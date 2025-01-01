@@ -23,6 +23,9 @@ create_order_tool = CreateOrderTool()
 update_order_status_tool = UpdateOrderStatusTool()
 
 class CustomHandler(BaseCallbackHandler):
+    """
+    Lớp xử lý callback tùy chỉnh để theo dõi và xử lý các sự kiện trong quá trình chat
+    """
     def __init__(self):
         super().__init__()
 
@@ -118,6 +121,16 @@ Example flow:
     return agent_executor
 
 def get_answer(question: str, thread_id: str) -> Dict:
+    """
+    Hàm lấy câu trả lời cho một câu hỏi
+    
+    Args:
+        question (str): Câu hỏi của người dùng
+        thread_id (str): ID của cuộc trò chuyện
+        
+    Returns:
+        str: Câu trả lời từ AI
+    """
     agent = get_llm_and_agent()
     
     # Get recent chat history
@@ -136,14 +149,34 @@ def get_answer(question: str, thread_id: str) -> Dict:
     return result
 
 async def get_answer_stream(question: str, thread_id: str) -> AsyncGenerator[Dict, None]:
+    """
+    Hàm lấy câu trả lời dạng stream cho một câu hỏi
+    
+    Quy trình xử lý:
+    1. Khởi tạo agent với các tools cần thiết
+    2. Lấy lịch sử chat gần đây
+    3. Gọi agent để xử lý câu hỏi
+    4. Stream từng phần của câu trả lời về client
+    5. Lưu câu trả lời hoàn chỉnh vào database
+    
+    Args:
+        question (str): Câu hỏi của người dùng
+        thread_id (str): ID phiên chat
+        
+    Returns:
+        AsyncGenerator[str, None]: Generator trả về từng phần của câu trả lời
+    """
+    # Khởi tạo agent với các tools cần thiết
     agent = get_llm_and_agent()
     
-    # Get recent chat history
+    # Lấy lịch sử chat gần đây
     history = get_recent_chat_history(thread_id)
     chat_history = format_chat_history(history)
     
+    # Biến lưu câu trả lời hoàn chỉnh
     final_answer = ""
     
+    # Stream từng phần của câu trả lời
     async for event in agent.astream_events(
         {
             "input": question,
@@ -151,14 +184,19 @@ async def get_answer_stream(question: str, thread_id: str) -> AsyncGenerator[Dic
         },
         version="v2"
     ):       
+        # Lấy loại sự kiện
         kind = event["event"]
+        # Nếu là sự kiện stream từ model
         if kind == "on_chat_model_stream":
+            # Lấy nội dung token
             content = event['data']['chunk'].content
-            if content:  #Only yield if there's content
+            if content:  # Chỉ yield nếu có nội dung
+                # Cộng dồn vào câu trả lời hoàn chỉnh
                 final_answer += content
+                # Trả về token cho client
                 yield content
     
-    # Save complete answer to database
+    # Lưu câu trả lời hoàn chỉnh vào database
     if final_answer:
         save_chat_history(thread_id, question, final_answer)
 

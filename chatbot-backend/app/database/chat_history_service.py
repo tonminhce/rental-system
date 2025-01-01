@@ -14,6 +14,12 @@ DB_HOST = os.getenv('DB_HOST')
 DB_PORT = os.getenv('DB_PORT')
 
 def get_db_connection():
+    """
+    Tạo kết nối đến cơ sở dữ liệu PostgreSQL
+    
+    Returns:
+        Connection: Đối tượng kết nối đến database
+    """
     return psycopg.connect(
         dbname=DB_NAME,
         user=DB_USER,
@@ -24,7 +30,15 @@ def get_db_connection():
     )
 
 def init_chat_history_table():
-    """Initialize message table if it doesn't exist"""
+    """
+    Khởi tạo bảng message trong database nếu chưa tồn tại
+    Bảng này lưu trữ lịch sử chat bao gồm:
+    - ID tin nhắn (UUID)
+    - ID cuộc trò chuyện
+    - Câu hỏi
+    - Câu trả lời
+    - Thời gian tạo
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             # Enable UUID extension if not exists
@@ -48,8 +62,18 @@ def init_chat_history_table():
             """)
         conn.commit()
 
-def save_chat_history(thread_id: str, question: str, answer: str):
-    """Save chat history to database"""
+def save_chat_history(thread_id: str, question: str, answer: str) -> Dict:
+    """
+    Lưu lịch sử chat vào database
+    
+    Args:
+        thread_id (str): ID của cuộc trò chuyện
+        question (str): Câu hỏi của người dùng
+        answer (str): Câu trả lời của chatbot
+        
+    Returns:
+        Dict: Thông tin lịch sử chat vừa được lưu
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -60,8 +84,17 @@ def save_chat_history(thread_id: str, question: str, answer: str):
         conn.commit()
         return result['id']
 
-def get_recent_chat_history(thread_id: str, limit: int = 5) -> List[Dict]:
-    """Get recent chat history for a specific thread"""
+def get_recent_chat_history(thread_id: str, limit: int = 10) -> List[Dict]:
+    """
+    Lấy lịch sử chat gần đây của một cuộc trò chuyện
+    
+    Args:
+        thread_id (str): ID của cuộc trò chuyện
+        limit (int): Số lượng tin nhắn tối đa cần lấy, mặc định là 10
+        
+    Returns:
+        List[Dict]: Danh sách các tin nhắn gần đây
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -81,10 +114,18 @@ def get_recent_chat_history(thread_id: str, limit: int = 5) -> List[Dict]:
             )
             return cur.fetchall()
 
-def format_chat_history(history: List[Dict]) -> List[Dict]:
-    """Format chat history for LangChain format"""
+def format_chat_history(chat_history: List[Dict]) -> str:
+    """
+    Định dạng lịch sử chat thành chuỗi văn bản
+    
+    Args:
+        chat_history (List[Dict]): Danh sách các tin nhắn
+        
+    Returns:
+        str: Chuỗi văn bản đã được định dạng
+    """
     formatted_history = []
-    for msg in reversed(history):  # Reverse to get chronological order
+    for msg in reversed(chat_history):  # Reverse to get chronological order
         formatted_history.extend([
             {"role": "human", "content": msg["question"]},
             {"role": "assistant", "content": msg["answer"]}

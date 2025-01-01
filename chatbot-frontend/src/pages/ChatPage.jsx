@@ -9,6 +9,12 @@ const PageWrapper = styled.div`
   flex-direction: column;
 `;
 
+/**
+ * Trang chính của ứng dụng chat
+ * Bao gồm:
+ * - Layout trang
+ * - Component ChatBox để xử lý chat
+ */
 const ChatPage = () => {
   return (
     <PageWrapper>

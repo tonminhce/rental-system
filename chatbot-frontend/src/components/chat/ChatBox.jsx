@@ -101,36 +101,63 @@ const Title = styled.h1`
   font-weight: bold;
 `;
 
+/**
+ * Component chính xử lý giao diện chat
+ * Bao gồm:
+ * - Hiển thị danh sách tin nhắn
+ * - Ô nhập tin nhắn
+ * - Nút gửi tin nhắn
+ * - Xử lý gửi/nhận tin nhắn với backend
+ */
 function ChatBox() {
+  // State lưu trữ danh sách tin nhắn
   const [messages, setMessages] = useState([]);
+  // State lưu trữ nội dung đang nhập
   const [input, setInput] = useState('');
+  // State đánh dấu đang gửi tin nhắn
   const [isLoading, setIsLoading] = useState(false);
+  // Ref để scroll đến tin nhắn cuối cùng
   const messagesEndRef = useRef(null);
+  // ID phiên chat
   const [threadId] = useState(uuidv4());
+  // Ref lưu nội dung tin nhắn đang stream
   const streamedMessageRef = useRef('');
 
+  /**
+   * Xử lý khi người dùng gửi tin nhắn
+   * - Thêm tin nhắn người dùng vào danh sách
+   * - Gọi API gửi tin nhắn
+   * - Xử lý phản hồi stream từ server
+   * - Cập nhật UI với từng token nhận được
+   */
   const handleSubmit = async () => {
+    // Kiểm tra input rỗng hoặc đang trong quá trình gửi
     if (!input.trim() || isLoading) return;
 
+    // Lấy nội dung tin nhắn và reset input
     const userMessage = input.trim();
     setInput('');
+    // Đánh dấu đang gửi tin nhắn
     setIsLoading(true);
+    // Reset nội dung tin nhắn đang stream
     streamedMessageRef.current = '';
 
-    // Add user message
+    // Thêm tin nhắn của người dùng vào danh sách
     setMessages(prev => [...prev, { text: userMessage, isUser: true }]);
 
     try {
-      // Add an empty bot message that will be updated with streaming content
+      // Thêm một tin nhắn rỗng của bot để hiển thị streaming
       setMessages(prev => [...prev, { text: '', isUser: false }]);
 
-      // Use streaming response
+      // Gọi API stream và xử lý từng token nhận được
       await chatService.sendMessageStream(
         userMessage,
         threadId,
+        // Callback xử lý mỗi khi nhận được token mới
         (token) => {
+          // Cộng dồn token vào nội dung tin nhắn
           streamedMessageRef.current += token;
-          // Update the last message with complete streamed content
+          // Cập nhật tin nhắn cuối cùng với nội dung mới
           setMessages(prev => {
             const newMessages = [...prev];
             const lastMessage = newMessages[newMessages.length - 1];
@@ -138,8 +165,10 @@ function ChatBox() {
             return newMessages;
           });
         },
+        // Callback xử lý khi có lỗi
         (error) => {
           console.error('Stream error:', error);
+          // Cập nhật tin nhắn cuối thành thông báo lỗi
           setMessages(prev => {
             const newMessages = [...prev];
             newMessages[newMessages.length - 1].text = 'Sorry, I am not able to process your request.';
@@ -148,17 +177,22 @@ function ChatBox() {
         }
       );
     } catch (error) {
+      // Xử lý lỗi chung
       console.error('Error:', error);
       setMessages(prev => [...prev, { 
         text: 'Sorry, I am not able to process your request.', 
         isUser: false 
       }]);
     } finally {
+      // Reset trạng thái loading
       setIsLoading(false);
     }
   };
 
-  // Scroll to bottom whenever messages change
+  /**
+   * Effect tự động scroll đến tin nhắn cuối cùng
+   * khi có tin nhắn mới
+   */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);

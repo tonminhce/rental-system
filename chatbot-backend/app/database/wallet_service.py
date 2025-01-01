@@ -3,7 +3,13 @@ from .chat_history_service import get_db_connection
 from decimal import Decimal
 
 def init_wallet_table():
-    """Initialize wallet table if it doesn't exist"""
+    """
+    Khởi tạo bảng user_wallet trong database nếu chưa tồn tại
+    Bảng này lưu trữ thông tin về ví tiền của người dùng bao gồm:
+    - ID người dùng
+    - Số dư
+    - Thời gian tạo và cập nhật
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
@@ -18,7 +24,15 @@ def init_wallet_table():
         conn.commit()
 
 def get_wallet(user_id: str) -> Optional[Dict]:
-    """Get user wallet information"""
+    """
+    Lấy thông tin ví của người dùng
+    
+    Args:
+        user_id (str): ID của người dùng
+        
+    Returns:
+        Optional[Dict]: Thông tin ví nếu tìm thấy, None nếu không tìm thấy
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -40,7 +54,16 @@ def get_wallet(user_id: str) -> Optional[Dict]:
             return result
 
 def create_wallet(user_id: str, initial_balance: Decimal = Decimal('0')) -> Optional[Dict]:
-    """Create a new wallet for user"""
+    """
+    Tạo ví mới cho người dùng
+    
+    Args:
+        user_id (str): ID của người dùng
+        initial_balance (Decimal): Số dư ban đầu, mặc định là 0
+        
+    Returns:
+        Optional[Dict]: Thông tin ví nếu tạo thành công, None nếu thất bại
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -65,7 +88,16 @@ def create_wallet(user_id: str, initial_balance: Decimal = Decimal('0')) -> Opti
             return result
 
 def update_balance(user_id: str, amount: Decimal) -> Optional[Dict]:
-    """Update wallet balance. Use negative amount to deduct."""
+    """
+    Cập nhật số dư trong ví của người dùng
+    
+    Args:
+        user_id (str): ID của người dùng
+        amount (Decimal): Số tiền cần thay đổi (dương để thêm vào, âm để trừ đi)
+        
+    Returns:
+        Optional[Dict]: Thông tin ví sau khi cập nhật, None nếu thất bại hoặc số dư không đủ
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(

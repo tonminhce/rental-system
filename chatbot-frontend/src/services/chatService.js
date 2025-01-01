@@ -1,7 +1,18 @@
 import axios from "axios";
 const API_URL = "http://localhost:8030";
 
+/**
+ * Service xử lý các tương tác chat với backend
+ */
 export const chatService = {
+  /**
+   * Gửi tin nhắn đến server và nhận phản hồi một lần
+   *
+   * @param {string} message - Nội dung tin nhắn cần gửi
+   * @param {string} sessionId - ID phiên chat
+   * @param {function} onChunk - Callback xử lý khi nhận được phản hồi
+   * @returns {Promise<string>} Phản hồi từ server
+   */
   sendMessage: async (message, sessionId, onChunk = (chunk) => {}) => {
     try {
       const response = await fetch(`${API_URL}/api/v1/chat/chat`, {
@@ -28,6 +39,14 @@ export const chatService = {
     }
   },
 
+  /**
+   * Gửi tin nhắn đến server và nhận phản hồi dạng stream
+   *
+   * @param {string} message - Nội dung tin nhắn cần gửi
+   * @param {string} sessionId - ID phiên chat
+   * @param {function} onToken - Callback xử lý từng token nhận được
+   * @param {function} onError - Callback xử lý khi có lỗi
+   */
   sendMessageStream: async (
     message,
     sessionId,

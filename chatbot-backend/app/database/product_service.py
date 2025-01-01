@@ -3,7 +3,15 @@ from .chat_history_service import get_db_connection
 from decimal import Decimal
 
 def init_product_table():
-    """Initialize product table if it doesn't exist"""
+    """
+    Khởi tạo bảng product trong database nếu chưa tồn tại
+    Bảng này lưu trữ thông tin về các sản phẩm bao gồm:
+    - Tên sản phẩm
+    - Mô tả
+    - Giá
+    - Số lượng tồn kho
+    - Thông số kỹ thuật
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
@@ -21,7 +29,15 @@ def init_product_table():
         conn.commit()
 
 def get_product_by_name(name: str) -> Optional[Dict]:
-    """Get product by name"""
+    """
+    Tìm kiếm sản phẩm theo tên
+    
+    Args:
+        name (str): Tên sản phẩm cần tìm
+        
+    Returns:
+        Optional[Dict]: Thông tin sản phẩm nếu tìm thấy, None nếu không tìm thấy
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -46,7 +62,16 @@ def get_product_by_name(name: str) -> Optional[Dict]:
             return result
 
 def check_product_stock(product_id: int, quantity: int) -> bool:
-    """Check if product has enough stock"""
+    """
+    Kiểm tra số lượng tồn kho của sản phẩm
+    
+    Args:
+        product_id (int): ID của sản phẩm
+        quantity (int): Số lượng cần kiểm tra
+        
+    Returns:
+        bool: True nếu đủ số lượng, False nếu không đủ
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -63,7 +88,16 @@ def check_product_stock(product_id: int, quantity: int) -> bool:
             return False
 
 def update_product_stock(product_id: int, quantity: int) -> bool:
-    """Update product stock"""
+    """
+    Cập nhật số lượng tồn kho của sản phẩm
+    
+    Args:
+        product_id (int): ID của sản phẩm
+        quantity (int): Số lượng cần trừ đi (số âm để thêm vào)
+        
+    Returns:
+        bool: True nếu cập nhật thành công, False nếu thất bại
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(

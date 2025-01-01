@@ -3,7 +3,15 @@ from .chat_history_service import get_db_connection
 from decimal import Decimal
 
 def init_order_table():
-    """Initialize order table if it doesn't exist"""
+    """
+    Khởi tạo bảng order trong database nếu chưa tồn tại
+    Bảng này lưu trữ thông tin về các đơn hàng bao gồm:
+    - ID người dùng
+    - ID sản phẩm
+    - Số lượng
+    - Tổng tiền
+    - Trạng thái đơn hàng
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
@@ -21,7 +29,18 @@ def init_order_table():
         conn.commit()
 
 def create_order(user_id: str, product_id: int, quantity: int, total_amount: Decimal) -> Optional[Dict]:
-    """Create a new order"""
+    """
+    Tạo đơn hàng mới
+    
+    Args:
+        user_id (str): ID của người dùng
+        product_id (int): ID của sản phẩm
+        quantity (int): Số lượng sản phẩm
+        total_amount (Decimal): Tổng tiền đơn hàng
+        
+    Returns:
+        Optional[Dict]: Thông tin đơn hàng nếu tạo thành công, None nếu thất bại
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -46,8 +65,17 @@ def create_order(user_id: str, product_id: int, quantity: int, total_amount: Dec
             conn.commit()
             return result
 
-def update_order_status(order_id: int, status: str) -> bool:
-    """Update order status"""
+def update_order_status(order_id: int, status: str) -> Optional[Dict]:
+    """
+    Cập nhật trạng thái đơn hàng
+    
+    Args:
+        order_id (int): ID của đơn hàng
+        status (str): Trạng thái mới (pending, confirmed, paid, cancelled)
+        
+    Returns:
+        Optional[Dict]: Thông tin đơn hàng sau khi cập nhật, None nếu thất bại
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(

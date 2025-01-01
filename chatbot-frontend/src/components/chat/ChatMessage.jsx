@@ -65,8 +65,20 @@ const MessageBubble = styled.div`
   }
 `;
 
+/**
+ * Component hiển thị một tin nhắn trong cuộc trò chuyện
+ * Hỗ trợ:
+ * - Hiển thị tin nhắn người dùng và bot với style khác nhau
+ * - Render markdown content
+ * - Style cho code blocks, tables, lists
+ * 
+ * @param {Object} props - Props của component
+ * @param {Object} props.message - Thông tin tin nhắn
+ * @param {string} props.message.text - Nội dung tin nhắn
+ * @param {boolean} props.isUser - Đánh dấu tin nhắn của người dùng hay bot
+ */
 const ChatMessage = ({ message, isUser }) => {
-  // Convert message to string if it's not already
+  // Chuyển đổi tin nhắn sang string nếu chưa phải
   const messageText = typeof message.text === 'string' 
     ? message.text 
     : JSON.stringify(message.text);
