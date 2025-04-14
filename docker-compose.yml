@@ -1,0 +1,65 @@
+name: grab-project
+
+volumes:
+  mysql-storage:
+networks:
+  default:
+    name: network-a
+
+services:
+  proxy:
+    image: nginxproxy/nginx-proxy:1.6
+    build:
+      dockerfile: ./docker/proxy/Dockerfile
+    container_name: grab_proxy
+    ports:
+      - 80:80
+    networks:
+      - default
+    volumes:
+      - ./docker/proxy/conf.d:/etc/nginx/conf.d
+
+  mysql:
+    image: mysql:8.0.37
+    container_name: grab_mysql
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: grab_mysql
+      MYSQL_USER: grab_user
+      MYSQL_PASSWORD: grab_pwd
+      MYSQL_ROOT_PASSWORD: grab_pwd
+    volumes:
+      - ./docker/mysql/log:/var/log
+      - mysql-storage:/var/lib/mysql
+    networks:
+      - default
+
+  api:
+    build:
+      args:
+        APP_NAME: backend
+        APP_PORT: 8080
+        NODE_ENV: local
+      context: .
+      dockerfile: ./docker/node/local.Dockerfile
+    container_name: grab_api
+    environment:
+      APP_PORT: 8080
+      NODE_ENV: local
+      DB_HOST_WRITE: mysql
+      DB_HOST_READ: mysql
+      DB_USER: grab_user
+      DB_PASSWORD: grab_pwd
+      DB_NAME: grab_mysql
+      VIRTUAL_HOST: local.api.com
+    expose:
+      - 8080
+    ports:
+      - 8080:8080
+    volumes:
+      - ./backend:/app
+    networks:
+      - default
+    depends_on:
+      - mysql
