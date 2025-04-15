@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { User } from './entities/user.entity';
+import { User } from '../entities/user.entity';
 // const _serviceName: string = 'AuthService';
 @Injectable()
 export class AuthService {
@@ -9,6 +9,7 @@ export class AuthService {
     readonly configService: ConfigService,
     readonly jwtService: JwtService,
   ) { }
+  
   //Mock data
   private users: User[] = [];
   private id_number: number = 1;
