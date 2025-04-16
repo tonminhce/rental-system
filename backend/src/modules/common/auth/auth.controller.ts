@@ -9,6 +9,7 @@ import { AuthService } from './auth.service';
 import { ConfigService } from "@nestjs/config";
 import { LoginDto } from '../dto/login.dto';
 import { SignupDto } from '../dto/signup.dto';
+import { Public } from 'src/decorator/public.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -17,6 +18,8 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService
   ) { }
+
+  @Public()
   @Post('signup')
   async signup(@Body() signupDto: SignupDto) {
     const result = await this.authService.signup(signupDto.email, signupDto.password, signupDto.role);
@@ -24,10 +27,11 @@ export class AuthController {
 
     return {
       message: "Sign up successful!",
-      user: result.user,
-      token: result.token
+      user: result.user
     };
   }
+
+  @Public()
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     const result = await this.authService.login(loginDto.email, loginDto.password);
