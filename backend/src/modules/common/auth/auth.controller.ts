@@ -17,6 +17,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService
   ) { }
+  
   @Post('signup')
   async signup(@Body() signupDto: SignupDto) {
     const result = await this.authService.signup(signupDto.email, signupDto.password, signupDto.role);
@@ -28,6 +29,7 @@ export class AuthController {
       token: result.token
     };
   }
+  
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     const result = await this.authService.login(loginDto.email, loginDto.password);
