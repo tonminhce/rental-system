@@ -9,12 +9,11 @@ export class AuthService {
     readonly configService: ConfigService,
     readonly jwtService: JwtService,
   ) { }
-  
   //Mock data
   private users: User[] = [];
   private id_number: number = 1;
 
-  async signup(email: string, password: string, role: "user" | "rental"): Promise<{ user: User, token: string }> {
+  async signup(email: string, password: string, role: "user" | "rental"): Promise<{ user: User }> {
     const existing_user = this.users.find((user) => user.email === email);
     if (existing_user) throw new Error("Email already exists!");
 
@@ -26,13 +25,7 @@ export class AuthService {
     };
     this.users.push(new_user);
 
-    const payload = {
-      id: new_user.id,
-      email: new_user.email,
-      role: new_user.role
-    };
-    const token = this.jwtService.sign(payload);
-    return { user: new_user, token };
+    return { user: new_user };
   }
 
   async login(email: string, password: string): Promise<{ user: User, token: string }> {
