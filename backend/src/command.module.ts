@@ -1,8 +1,16 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { loggerUtil } from './utils/log.util';
+import { loggerUtil } from 'src/shared/utils/log.util';
 import { ConfigAppModule } from './modules/config-app.module';
+import { User } from './database/entities/user.entity';
+import { RentalPost } from './database/entities/rental-post.entity';
+import { RentalImage } from './database/entities/rental-image.entity';
+import { ChatRoom } from './database/entities/chat-room.entity';
+import { ChatRoomMember } from './database/entities/chat-room-member.entity';
+import { Message } from './database/entities/message.entity';
+import { FavoriteList } from './database/entities/favorite-list.entity';
+import { Role } from './database/entities/role.entity';
 
 @Module({
   imports: [
@@ -21,7 +29,16 @@ import { ConfigAppModule } from './modules/config-app.module';
           username: configService.get<string>('DB_USER') || 'grab_user',
           password: configService.get<string>('DB_PASSWORD') || 'grab_pwd',
           database: configService.get<string>('DB_NAME') || 'grab_mysql',
-          models: [],
+          models: [
+            Role,
+            User,
+            RentalPost,
+            RentalImage,
+            ChatRoom,
+            ChatRoomMember,
+            Message,
+            FavoriteList
+          ],
           logging: (msg) => {
             // const logger = new Logger();
             loggerUtil.info(msg, 'Sequelize');
@@ -29,7 +46,16 @@ import { ConfigAppModule } from './modules/config-app.module';
         };
       },
     }),
-    SequelizeModule.forFeature([]),
+    SequelizeModule.forFeature([
+      Role,
+      User,
+      RentalPost,
+      RentalImage,
+      ChatRoom,
+      ChatRoomMember,
+      Message,
+      FavoriteList
+    ]),
   ],
   providers: [],
 })

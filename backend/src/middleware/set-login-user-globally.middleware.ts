@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import {JwtService} from "@nestjs/jwt";
 import {ConfigService} from "@nestjs/config";
 import { RequestContext } from 'src/common/request-context';
-import { loggerUtil } from 'src/utils/log.util';
+import { loggerUtil } from 'src/shared/utils/log.util'
 
 @Injectable()
 export class SetLoginUserGloballyMiddleware implements NestMiddleware {

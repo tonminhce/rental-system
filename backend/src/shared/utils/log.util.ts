@@ -1,5 +1,5 @@
 import { LoggerService } from '@nestjs/common';
-import logger from '../config/logger.config';
+import logger from '../../config/logger.config';
 export class Logger implements LoggerService {
   protected options: {
     timestamp: false;
