@@ -1,17 +1,15 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import {
-  databaseConfig,
-} from '../config/database.config';
+import { databaseConfig } from '../config/database.config';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { User } from '../database/entities/user.entity';
-import { RentalPost } from '../database/entities/rental-post.entity';
-import { RentalImage } from '../database/entities/rental-image.entity';
-import { ChatRoom } from '../database/entities/chat-room.entity';
-import { ChatRoomMember } from '../database/entities/chat-room-member.entity';
-import { Message } from '../database/entities/message.entity';
-import { FavoriteList } from '../database/entities/favorite-list.entity';
-import { Role } from '../database/entities/role.entity';
+import { User } from './entities/user.entity';
+import { RentalPost } from './entities/rental-post.entity';
+import { RentalImage } from './entities/rental-image.entity';
+import { ChatRoom } from './entities/chat-room.entity';
+import { ChatRoomMember } from './entities/chat-room-member.entity';
+import { Message } from './entities/message.entity';
+import { FavoriteList } from './entities/favorite-list.entity';
+import { Role } from './entities/role.entity';
 
 @Module({
   imports: [
@@ -30,7 +28,7 @@ import { Role } from '../database/entities/role.entity';
       ChatRoom,
       ChatRoomMember,
       Message,
-      FavoriteList
+      FavoriteList,
     ]),
   ],
   exports: [SequelizeModule],

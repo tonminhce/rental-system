@@ -1,6 +1,14 @@
 import { ConfigService } from '@nestjs/config';
 import { SequelizeModuleOptions } from '@nestjs/sequelize';
-import { Logger } from 'src/utils/log.util';
+import { Logger } from 'src/shared/utils/log.util';
+import { User } from 'src/database/entities/user.entity';
+import { RentalPost } from 'src/database/entities/rental-post.entity';
+import { RentalImage } from 'src/database/entities/rental-image.entity';
+import { ChatRoom } from 'src/database/entities/chat-room.entity';
+import { ChatRoomMember } from 'src/database/entities/chat-room-member.entity';
+import { Message } from 'src/database/entities/message.entity';
+import { FavoriteList } from 'src/database/entities/favorite-list.entity';
+import { Role } from 'src/database/entities/role.entity';
 
 export const databaseConfig = (
   configService: ConfigService,
@@ -24,6 +32,15 @@ export const databaseConfig = (
     logQueryParameters: true,
     autoLoadModels: false,
     synchronize: false,
-    models: [],
+    models: [
+      Role,
+      User,
+      RentalPost,
+      RentalImage,
+      ChatRoom,
+      ChatRoomMember,
+      Message,
+      FavoriteList
+    ],
   };
 };

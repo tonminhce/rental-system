@@ -35,7 +35,7 @@ export default class ResponseUtil {
       data: data,
       timestamp: momentUtil.now(),
     };
-    if (message) response['message'] = message
+    if (message) response['message'] = message;
     return response;
   }
 }
