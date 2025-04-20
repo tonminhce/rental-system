@@ -28,10 +28,6 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
   ) {}
-
-  private users: User[] = [];
-  private id_number: number = 1;
-
   async signup(signupDto: SignupDto): Promise<{ user: any; token: string }> {
     loggerUtil.info(
       `${_serviceName}.signup begin with email: ${signupDto.email}`,
