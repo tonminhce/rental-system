@@ -7,11 +7,11 @@ import {
 } from '@nestjs/common';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ConfigAppModule } from './modules/config-app.module';
-import { DatabaseModule } from './modules/database.module';
-import { AuthModule } from './modules/common/auth/auth.module';
-import { Logger } from './utils/log.util';
+import { DatabaseModule } from './database/database.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './guard/jwt.guard';
 import { SetLoginUserGloballyMiddleware } from "./middleware/set-login-user-globally.middleware";
+import { Logger } from './shared/utils/log.util'
 
 @Module({
   imports: [
