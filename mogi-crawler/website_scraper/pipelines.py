@@ -13,8 +13,7 @@ class MogiPipeline:
             "http://localhost:8080/api/auth/login",
             json={"email": "mogi@gmail.com", "password": "mogi123"},
         )
-        print(res)
-        if res.status_code != 201:
+        if res.status_code != 200:
             print("Error", res.json())
             raise Exception("Failed to login to the rental service")
         

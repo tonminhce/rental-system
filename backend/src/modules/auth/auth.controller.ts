@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -10,24 +10,25 @@ import { Public } from '../../decorator/public.decorator';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-  
+
   @Public()
   @Post('signup')
   async signup(@Body() signupDto: SignupDto) {
     const result = await this.authService.signup(signupDto);
-    
+
     return responseUtil.success({
       message: 'Sign up successful!',
       user: result.user,
       token: result.token,
     });
   }
-  
+
   @Public()
+  @HttpCode(200)
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     const result = await this.authService.login(loginDto);
-    
+
     return responseUtil.success({
       message: 'Login successful!',
       user: result.user,
