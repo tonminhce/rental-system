@@ -8,15 +8,60 @@ from .utils import standardize_district, standardize_ward
 class MogiPipeline:
     def __init__(self):
         # In here we will authenticate to the main rental service
-        res = requests.post()
-        self.access_token = res.json()["data"]["access_token"]
+        # Login to the rental service
+        res = requests.post(
+            "http://localhost:8080/api/auth/login",
+            json={"email": "mogi@gmail.com", "password": "mogi123"},
+        )
+        print(res)
+        if res.status_code != 201:
+            print("Error", res.json())
+            raise Exception("Failed to login to the rental service")
+        
+        self.access_token = res.json()["data"]["token"]
 
     def process_item(self, item, spider):
         adapter = ItemAdapter(item)
+        
+        # Parse coordinates for individual lat/long fields
+        coordinates = adapter["coordinates"]
+        # Extract address components
+        address_data = self.parse_address(adapter["address"])
 
         # We will store to database
-        res = requests.post()
+        res = requests.post(
+            "http://localhost:8080/api/posts",
+            headers={"Authorization": f"Bearer {self.access_token}"},
+            json={
+                "name": adapter["title"],
+                "description": adapter["description"],
+                "propertyType": "room",
+                "transactionType": "rent",
+                "price": float(self.parse_price(adapter["price"])),
+                "province": address_data["province"],
+                "district": address_data["district"],
+                "ward": address_data["ward"],
+                "street": address_data["street"],
+                "displayedAddress": adapter["address"],
+                "latitude": float(adapter["coordinates"][0]),
+                "longitude": float(adapter["coordinates"][1]),
+                "images": adapter["images"],
+                "sourceUrl": "mogi.vn",
+                "area": self.parse_area(adapter["area"]),
+                "bedrooms": adapter["bedrooms"],
+                "bathrooms": adapter["bathrooms"],
+                "contactName": adapter["owner_name"],
+                "contactPhone": self.parse_phone_number(adapter["owner_contact"]),
+                "postUrl":adapter["post_url"],
+            },
+        )
 
+        if res.status_code != 201:
+            print("Error in store", res.json())
+            raise Exception(
+                f"Failed to store post to the rental service. Status code: {res.status_code}"
+            )
+            
         return item
 
     def parse_price(self, price_str):
@@ -112,8 +157,8 @@ class CSVExportPipeline(MogiPipeline):
             "district": self.parse_address(adapter["address"])["district"],
             "ward": self.parse_address(adapter["address"])["ward"],
             "street": self.parse_address(adapter["address"])["street"],
-            "location_latitude": adapter["coordinates"][0],
-            "location_longitude": adapter["coordinates"][1],
+            "location_latitude": float(adapter["coordinates"][0]),
+            "location_longitude": float(adapter["coordinates"][1]),
             "owner_name": adapter["owner_name"],
             "owner_contact": self.parse_phone_number(adapter["owner_contact"]),
             "area": self.parse_area(adapter["area"]),

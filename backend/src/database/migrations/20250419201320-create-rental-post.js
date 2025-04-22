@@ -25,8 +25,11 @@ module.exports = {
         allowNull: true
       },
       price: {
-        type: Sequelize.DECIMAL(15, 2),
-        allowNull: false
+        type: Sequelize.INTEGER,
+      },
+      area: {
+        type: Sequelize.INTEGER,
+        allowNull: true
       },
       property_type: {
         type: Sequelize.STRING(50),
@@ -38,10 +41,6 @@ module.exports = {
       },
       source_url: {
         type: Sequelize.STRING(255),
-        allowNull: true
-      },
-      published_date: {
-        type: Sequelize.DATE,
         allowNull: true
       },
       province: {
@@ -61,11 +60,11 @@ module.exports = {
         allowNull: true
       },
       latitude: {
-        type: Sequelize.DECIMAL(10, 8),
+        type: Sequelize.DECIMAL(18, 8),
         allowNull: true
       },
       longitude: {
-        type: Sequelize.DECIMAL(11, 8),
+        type: Sequelize.DECIMAL(18, 8),
         allowNull: true
       },
       displayed_address: {
@@ -83,6 +82,18 @@ module.exports = {
       },
       bathrooms: {
         type: Sequelize.INTEGER,
+        allowNull: true
+      },
+      contact_name: {
+        type: Sequelize.STRING(100),
+        allowNull: true
+      },
+      contact_phone: {
+        type: Sequelize.STRING(100),
+        allowNull: true
+      },
+      post_url: {
+        type: Sequelize.STRING(255),
         allowNull: true
       },
       created_at: {

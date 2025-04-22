@@ -9,6 +9,7 @@ import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ConfigAppModule } from './modules/config-app.module';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { PostModule } from './modules/post/post.module';
 import { JwtAuthGuard } from './guard/jwt.guard';
 import { SetLoginUserGloballyMiddleware } from "./middleware/set-login-user-globally.middleware";
 import { Logger } from './shared/utils/log.util'
@@ -18,6 +19,7 @@ import { Logger } from './shared/utils/log.util'
     ConfigAppModule,
     DatabaseModule,
     AuthModule,
+    PostModule,
   ],
   providers: [
     Logger,
