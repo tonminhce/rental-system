@@ -33,6 +33,12 @@ export class RentalPost extends Model<RentalPost> {
   price: number;
 
   @Column({
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false,
+  })
+  area: number;
+
+  @Column({
     type: DataType.STRING(50),
     allowNull: true,
     field: 'property_type',
@@ -52,13 +58,6 @@ export class RentalPost extends Model<RentalPost> {
     field: 'source_url',
   })
   sourceUrl: string;
-
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-    field: 'published_date',
-  })
-  publishedDate: Date;
 
   @Column({
     type: DataType.STRING(100),
@@ -85,13 +84,13 @@ export class RentalPost extends Model<RentalPost> {
   street: string;
 
   @Column({
-    type: DataType.DECIMAL(10, 8),
+    type: DataType.DECIMAL(18, 8),
     allowNull: true,
   })
   latitude: number;
 
   @Column({
-    type: DataType.DECIMAL(11, 8),
+    type: DataType.DECIMAL(18, 8),
     allowNull: true,
   })
   longitude: number;
@@ -122,7 +121,27 @@ export class RentalPost extends Model<RentalPost> {
   })
   bathrooms: number;
 
-  // Relationships will be handled in the entity but not in migrations
+  @Column({
+    type: DataType.STRING(100),
+    allowNull: true,
+    field: 'contact_name',
+  })
+  contactName: string;
+
+  @Column({
+    type: DataType.STRING(100),
+    allowNull: true,
+    field: 'contact_phone',
+  })
+  contactPhone: string;
+
+  @Column({
+    type: DataType.STRING(255),
+    allowNull: true,
+    field: 'post_url',
+  })
+  postUrl: string;
+
   @HasMany(() => RentalImage, 'rental_id')
   images: RentalImage[];
 
