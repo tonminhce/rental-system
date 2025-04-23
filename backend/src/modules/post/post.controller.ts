@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Param, Delete, Query,  Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Query, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { GetPostsDto } from './dto/get-posts.dto';
 import { responseUtil } from '../../shared/utils/response.util';
-import { Public } from '../../decorator/public.decorator';
+import { Public } from '../../shared/decorators/public.decorator';
+import { IsRental } from '../../shared/decorators/is-rental.decorator';
 
 @ApiTags('Posts')
 @Controller('posts')
@@ -50,8 +51,9 @@ export class PostController {
     });
   }
 
-  @ApiOperation({ summary: 'Create a new post' })
+  @ApiOperation({ summary: 'Create a new post (requires rental role)' })
   @ApiBearerAuth()
+  @IsRental()
   @Post()
   async createPost(@Body() createPostDto: CreatePostDto, @Request() req) {
     const userId = req.user.id;
