@@ -10,7 +10,7 @@ import { IsRental } from '../../shared/decorators/is-rental.decorator';
 @ApiTags('Posts')
 @Controller('posts')
 export class PostController {
-  constructor(private readonly postService: PostService) {}
+  constructor(private readonly postService: PostService) { }
 
   @ApiOperation({ summary: 'Get all posts with filters and pagination' })
   @Public()
@@ -18,7 +18,7 @@ export class PostController {
   async getPosts(@Query() getPostsDto: GetPostsDto, @Request() req) {
     const userId = req.user?.id || null;
     const result = await this.postService.getPosts(getPostsDto, userId);
-    
+
     return responseUtil.success({
       ...result,
       message: 'Posts retrieved successfully',
@@ -31,7 +31,7 @@ export class PostController {
   async getFavoritePosts(@Query('page') page = 1, @Query('limit') limit = 10, @Request() req) {
     const userId = req.user.id;
     const result = await this.postService.getFavoritePosts(userId, page, limit);
-    
+
     return responseUtil.success({
       ...result,
       message: 'Favorite posts retrieved successfully',
@@ -44,7 +44,7 @@ export class PostController {
   async getPost(@Param('id') id: number, @Request() req) {
     const userId = req.user?.id || null;
     const post = await this.postService.getPost(id, userId);
-    
+
     return responseUtil.success({
       post,
       message: 'Post retrieved successfully',
@@ -58,7 +58,7 @@ export class PostController {
   async createPost(@Body() createPostDto: CreatePostDto, @Request() req) {
     const userId = req.user.id;
     const post = await this.postService.createPost(createPostDto, userId);
-    
+
     return responseUtil.success({
       post,
       message: 'Post created successfully',
@@ -70,8 +70,15 @@ export class PostController {
   @Post(':id/favorite')
   async addFavorite(@Param('id') id: number, @Request() req) {
     const userId = req.user.id;
-    await this.postService.addFavorite(id, userId);
-    
+    const result = await this.postService.addFavorite(id, userId);
+
+    // if post existed in user's favorite list
+    if (result === "existed") {
+      return responseUtil.success({
+        message: 'This post is already in your favorites',
+      });
+    }
+    // if don't
     return responseUtil.success({
       message: 'Post added to favorites',
     });
@@ -83,7 +90,7 @@ export class PostController {
   async removeFavorite(@Param('id') id: number, @Request() req) {
     const userId = req.user.id;
     await this.postService.removeFavorite(id, userId);
-    
+
     return responseUtil.success({
       message: 'Post removed from favorites',
     });
