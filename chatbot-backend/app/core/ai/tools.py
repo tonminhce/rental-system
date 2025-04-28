@@ -374,6 +374,9 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
     - Distance from Notre Dame Cathedral in kilometers
     - Travel times by different modes (walking, bicycle, motorbike, car)
     
+    Even if no properties are found within the specified radius,
+    the tool will still return the nearest available properties sorted by distance.
+    
     Each property includes:
     - Basic info: id, name, description
     - Price and details: price (in millions VND), area (m2), propertyType, transactionType, status
@@ -401,6 +404,9 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
             properties, DUCBA_LAT, DUCBA_LON, radius
         )
         
+        # Luôn trả về ít nhất 5 properties gần nhất, kể cả khi không có properties trong bán kính
+        nearest_properties = all_properties[:5] if all_properties else []
+        
         return {
             "reference_point": {
                 "name": "Nhà thờ Đức Bà",
@@ -414,9 +420,9 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
                 "total": len(properties_within_radius),
                 "properties": properties_within_radius
             },
-            "all_properties_sorted": {
-                "total": len(all_properties),
-                "properties": all_properties[:10]  # Top 10 nearest
+            "nearest_properties": {
+                "total": len(nearest_properties),
+                "properties": nearest_properties
             }
         }
 
@@ -433,6 +439,9 @@ class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
     - Other properties sorted by distance
     - Distance from Tan Son Nhat Airport in kilometers
     - Travel times by different modes (walking, bicycle, motorbike, car)
+    
+    Even if no properties are found within the specified radius,
+    the tool will still return the nearest available properties sorted by distance.
     
     Each property includes:
     - Basic info: id, name, description
@@ -461,6 +470,9 @@ class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
             properties, TANSONHAT_LAT, TANSONHAT_LON, radius
         )
         
+        # Luôn trả về ít nhất 5 properties gần nhất, kể cả khi không có properties trong bán kính
+        nearest_properties = all_properties[:5] if all_properties else []
+        
         return {
             "reference_point": {
                 "name": "Sân bay Tân Sơn Nhất",
@@ -474,9 +486,9 @@ class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
                 "total": len(properties_within_radius),
                 "properties": properties_within_radius
             },
-            "all_properties_sorted": {
-                "total": len(all_properties),
-                "properties": all_properties[:10]  # Top 10 nearest
+            "nearest_properties": {
+                "total": len(nearest_properties),
+                "properties": nearest_properties
             }
         }
 
@@ -494,6 +506,9 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
     - Other properties sorted by distance
     - Distance from the university campus in kilometers
     - Travel times by different modes (walking, bicycle, motorbike, car)
+    
+    Even if no properties are found within the specified radius,
+    the tool will still return the nearest available properties sorted by distance.
     
     Each property includes:
     - Basic info: id, name, description
@@ -657,6 +672,9 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
             properties, UNIV_LAT, UNIV_LON, radius
         )
         
+        # Luôn trả về ít nhất 5 properties gần nhất, kể cả khi không có properties trong bán kính
+        nearest_properties = all_properties[:5] if all_properties else []
+        
         return {
             "university": {
                 "name": matched_university["name"],
@@ -671,8 +689,8 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
                 "total": len(properties_within_radius),
                 "properties": properties_within_radius
             },
-            "all_properties_sorted": {
-                "total": len(all_properties),
-                "properties": all_properties[:10]  # Top 10 nearest
+            "nearest_properties": {
+                "total": len(nearest_properties),
+                "properties": nearest_properties
             }
         } 
