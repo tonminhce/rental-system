@@ -222,7 +222,7 @@ class CheckPropertiesPriceRangeTool(BaseTool):
         }
 
 class DucbaCheckingLocationInput(BaseModel):
-    radius: Optional[float] = Field(default=2.0, description="Radius in kilometers to search for properties (default: 2km)")
+    pass  # Remove radius parameter
 
 class LocationBaseMixin:
     """
@@ -343,21 +343,18 @@ class LocationBaseMixin:
     def process_properties_with_distance(self, 
                                       properties: List[Dict], 
                                       ref_lat: float, 
-                                      ref_lon: float, 
-                                      radius: float = None) -> Tuple[List[Dict], List[Dict]]:
+                                      ref_lon: float) -> List[Dict]:
         """
         Xử lý danh sách bất động sản, tính khoảng cách và thời gian di chuyển
         
         Args:
             properties: Danh sách bất động sản
             ref_lat, ref_lon: Tọa độ điểm tham chiếu
-            radius: Bán kính tìm kiếm (km), mặc định là None
             
         Returns:
-            Tuple[List[Dict], List[Dict]]: (properties_within_radius, all_properties_sorted)
+            List[Dict]: Danh sách properties đã được sắp xếp theo khoảng cách
         """
         all_properties = []
-        properties_within_radius = []
         
         for prop in properties:
             try:
@@ -390,19 +387,14 @@ class LocationBaseMixin:
                 }
                 
                 all_properties.append(property_with_distance)
-                
-                # Thêm vào danh sách trong bán kính nếu thỏa điều kiện
-                if radius is None or distance <= radius:
-                    properties_within_radius.append(property_with_distance)
                     
             except (ValueError, TypeError):
                 continue
         
         # Sắp xếp theo khoảng cách
         all_properties.sort(key=lambda x: x["distance_km"])
-        properties_within_radius.sort(key=lambda x: x["distance_km"])
         
-        return properties_within_radius, all_properties
+        return all_properties
 
 class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
     name: Annotated[str, Field(description="Tool name")] = "ducba_checking_location"
@@ -427,7 +419,7 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
     """
     args_schema: type[BaseModel] = DucbaCheckingLocationInput
 
-    def _run(self, radius: Optional[float] = 2.0) -> Dict:
+    def _run(self) -> Dict:
         # Tọa độ Nhà thờ Đức Bà
         DUCBA_LAT = 10.779814
         DUCBA_LON = 106.699150
@@ -436,7 +428,7 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
         properties = get_properties_by_status("active")
         
         # Xử lý và tính khoảng cách cho tất cả properties
-        _, all_properties = self.process_properties_with_distance(
+        all_properties = self.process_properties_with_distance(
             properties, DUCBA_LAT, DUCBA_LON
         )
         
@@ -453,7 +445,7 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
         }
 
 class TanSonNhatCheckingLocationInput(BaseModel):
-    radius: Optional[float] = Field(default=2.0, description="Radius in kilometers to search for properties (default: 2km)")
+    pass  # Remove radius parameter
 
 class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
     name: Annotated[str, Field(description="Tool name")] = "tansonhat_checking_location"
@@ -478,7 +470,7 @@ class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
     """
     args_schema: type[BaseModel] = TanSonNhatCheckingLocationInput
 
-    def _run(self, radius: Optional[float] = 2.0) -> Dict:
+    def _run(self) -> Dict:
         # Tọa độ sân bay Tân Sơn Nhất
         TANSONHAT_LAT = 10.817996728
         TANSONHAT_LON = 106.651164062
@@ -487,7 +479,7 @@ class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
         properties = get_properties_by_status("active")
         
         # Xử lý và tính khoảng cách cho tất cả properties
-        _, all_properties = self.process_properties_with_distance(
+        all_properties = self.process_properties_with_distance(
             properties, TANSONHAT_LAT, TANSONHAT_LON
         )
         
@@ -505,7 +497,6 @@ class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
 
 class UniversityCheckingLocationInput(BaseModel):
     university_name: str = Field(..., description="Name of the university and/or specific campus to search properties around")
-    radius: Optional[float] = Field(default=2.0, description="Radius in kilometers to search for properties (default: 2km)")
 
 class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
     name: Annotated[str, Field(description="Tool name")] = "university_checking_location"
@@ -633,7 +624,7 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
         }
     }
 
-    def _run(self, university_name: str, radius: Optional[float] = 2.0) -> Dict:
+    def _run(self, university_name: str) -> Dict:
         # Tìm trường đại học phù hợp
         search_key = university_name.lower().replace(" ", "").replace("-", "").replace("đ", "d")
         
@@ -674,7 +665,7 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
         properties = get_properties_by_status("active")
         
         # Xử lý và tính khoảng cách cho tất cả properties
-        _, all_properties = self.process_properties_with_distance(
+        all_properties = self.process_properties_with_distance(
             properties, UNIV_LAT, UNIV_LON
         )
         
