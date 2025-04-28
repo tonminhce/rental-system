@@ -281,9 +281,30 @@ class LocationBaseMixin:
             
         return travel_times
 
+    def fix_coordinates(self, lat: float, lon: float) -> tuple[float, float]:
+        """
+        Sửa lại tọa độ nếu bị đảo ngược (dựa vào range của HCMC)
+        
+        Args:
+            lat, lon: Tọa độ cần kiểm tra
+            
+        Returns:
+            tuple[float, float]: (lat, lon) đã được sửa
+        """
+        # Range của HCMC
+        LAT_RANGE = (10.3, 11.1)   # Vĩ độ HCMC ~ 10.3-11.1
+        LON_RANGE = (106.2, 107.1)  # Kinh độ HCMC ~ 106.2-107.1
+        
+        # Nếu tọa độ bị đảo ngược
+        if (LAT_RANGE[0] <= lon <= LAT_RANGE[1] and 
+            LON_RANGE[0] <= lat <= LON_RANGE[1]):
+            return (lon, lat)
+        
+        return (lat, lon)
+
     def validate_coordinates(self, lat: float, lon: float) -> bool:
         """
-        Kiểm tra tọa độ có hợp lệ và nằm trong khu vực TPHCM
+        Kiểm tra tọa độ có hợp lệ và nằm trong khu vực HCMC
         
         Args:
             lat, lon: Tọa độ cần kiểm tra
@@ -291,20 +312,33 @@ class LocationBaseMixin:
         Returns:
             bool: True nếu tọa độ hợp lệ
         """
-        # Kiểm tra range cơ bản
-        if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
-            return False
+        try:
+            lat = float(lat)
+            lon = float(lon)
             
-        # Ranh giới TPHCM (mở rộng một chút để bao gồm các khu vực lân cận)
-        HCMC_BOUNDS = {
-            "lat_min": 10.3,  # Cần Giờ
-            "lat_max": 11.1,  # Củ Chi
-            "lon_min": 106.2, # Củ Chi
-            "lon_max": 107.1  # Cần Giờ
-        }
-        
-        return (HCMC_BOUNDS["lat_min"] <= lat <= HCMC_BOUNDS["lat_max"] and
-                HCMC_BOUNDS["lon_min"] <= lon <= HCMC_BOUNDS["lon_max"])
+            # Kiểm tra range cơ bản
+            if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+                return False
+                
+            # Ranh giới HCMC (mở rộng một chút để bao gồm các khu vực lân cận)
+            HCMC_BOUNDS = {
+                "lat_min": 10.3,  # Cần Giờ
+                "lat_max": 11.1,  # Củ Chi
+                "lon_min": 106.2, # Củ Chi
+                "lon_max": 107.1  # Cần Giờ
+            }
+            
+            # Thử cả hai cách (gốc và đảo ngược)
+            original_valid = (HCMC_BOUNDS["lat_min"] <= lat <= HCMC_BOUNDS["lat_max"] and
+                            HCMC_BOUNDS["lon_min"] <= lon <= HCMC_BOUNDS["lon_max"])
+                            
+            swapped_valid = (HCMC_BOUNDS["lat_min"] <= lon <= HCMC_BOUNDS["lat_max"] and
+                            HCMC_BOUNDS["lon_min"] <= lat <= HCMC_BOUNDS["lon_max"])
+            
+            return original_valid or swapped_valid
+            
+        except (ValueError, TypeError):
+            return False
 
     def process_properties_with_distance(self, 
                                       properties: List[Dict], 
@@ -336,6 +370,9 @@ class LocationBaseMixin:
                 if not self.validate_coordinates(lat, lon):
                     continue
                 
+                # Sửa lại tọa độ nếu bị đảo ngược
+                lat, lon = self.fix_coordinates(lat, lon)
+                
                 # Tính khoảng cách
                 distance = self.haversine_distance(ref_lat, ref_lon, lat, lon)
                 
@@ -345,7 +382,11 @@ class LocationBaseMixin:
                 property_with_distance = {
                     **prop,
                     "distance_km": distance,
-                    "travel_times": travel_times
+                    "travel_times": travel_times,
+                    "coordinates": {
+                        "latitude": lat,
+                        "longitude": lon
+                    }
                 }
                 
                 all_properties.append(property_with_distance)
@@ -366,16 +407,11 @@ class LocationBaseMixin:
 class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
     name: Annotated[str, Field(description="Tool name")] = "ducba_checking_location"
     description: Annotated[str, Field(description="Tool description")] = """
-    Find properties near Notre Dame Cathedral (Nhà thờ Đức Bà) within a specified radius.
+    Find properties near Notre Dame Cathedral (Nhà thờ Đức Bà).
     Uses Haversine formula to calculate distances.
-    Returns all properties sorted by distance, including:
-    - Properties within specified radius (default 2km)
-    - Other properties sorted by distance
+    Returns ALL properties sorted by distance from the cathedral, including:
     - Distance from Notre Dame Cathedral in kilometers
     - Travel times by different modes (walking, bicycle, motorbike, car)
-    
-    Even if no properties are found within the specified radius,
-    the tool will still return the nearest available properties sorted by distance.
     
     Each property includes:
     - Basic info: id, name, description
@@ -399,13 +435,10 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
         # Lấy tất cả bất động sản đang hoạt động
         properties = get_properties_by_status("active")
         
-        # Xử lý và tính khoảng cách
-        properties_within_radius, all_properties = self.process_properties_with_distance(
-            properties, DUCBA_LAT, DUCBA_LON, radius
+        # Xử lý và tính khoảng cách cho tất cả properties
+        _, all_properties = self.process_properties_with_distance(
+            properties, DUCBA_LAT, DUCBA_LON
         )
-        
-        # Luôn trả về ít nhất 5 properties gần nhất, kể cả khi không có properties trong bán kính
-        nearest_properties = all_properties[:5] if all_properties else []
         
         return {
             "reference_point": {
@@ -415,15 +448,8 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
                     "lon": DUCBA_LON
                 }
             },
-            "radius_km": radius,
-            "properties_within_radius": {
-                "total": len(properties_within_radius),
-                "properties": properties_within_radius
-            },
-            "nearest_properties": {
-                "total": len(nearest_properties),
-                "properties": nearest_properties
-            }
+            "total_properties": len(all_properties),
+            "properties": all_properties  # Return all properties sorted by distance
         }
 
 class TanSonNhatCheckingLocationInput(BaseModel):
@@ -432,16 +458,11 @@ class TanSonNhatCheckingLocationInput(BaseModel):
 class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
     name: Annotated[str, Field(description="Tool name")] = "tansonhat_checking_location"
     description: Annotated[str, Field(description="Tool description")] = """
-    Find properties near Tan Son Nhat Airport (Sân bay Tân Sơn Nhất) within a specified radius.
+    Find properties near Tan Son Nhat Airport (Sân bay Tân Sơn Nhất).
     Uses Haversine formula to calculate distances.
-    Returns all properties sorted by distance, including:
-    - Properties within specified radius (default 2km)
-    - Other properties sorted by distance
+    Returns ALL properties sorted by distance from the airport, including:
     - Distance from Tan Son Nhat Airport in kilometers
     - Travel times by different modes (walking, bicycle, motorbike, car)
-    
-    Even if no properties are found within the specified radius,
-    the tool will still return the nearest available properties sorted by distance.
     
     Each property includes:
     - Basic info: id, name, description
@@ -465,13 +486,10 @@ class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
         # Lấy tất cả bất động sản đang hoạt động
         properties = get_properties_by_status("active")
         
-        # Xử lý và tính khoảng cách
-        properties_within_radius, all_properties = self.process_properties_with_distance(
-            properties, TANSONHAT_LAT, TANSONHAT_LON, radius
+        # Xử lý và tính khoảng cách cho tất cả properties
+        _, all_properties = self.process_properties_with_distance(
+            properties, TANSONHAT_LAT, TANSONHAT_LON
         )
-        
-        # Luôn trả về ít nhất 5 properties gần nhất, kể cả khi không có properties trong bán kính
-        nearest_properties = all_properties[:5] if all_properties else []
         
         return {
             "reference_point": {
@@ -481,15 +499,8 @@ class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
                     "lon": TANSONHAT_LON
                 }
             },
-            "radius_km": radius,
-            "properties_within_radius": {
-                "total": len(properties_within_radius),
-                "properties": properties_within_radius
-            },
-            "nearest_properties": {
-                "total": len(nearest_properties),
-                "properties": nearest_properties
-            }
+            "total_properties": len(all_properties),
+            "properties": all_properties  # Return all properties sorted by distance
         }
 
 class UniversityCheckingLocationInput(BaseModel):
@@ -501,14 +512,9 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
     description: Annotated[str, Field(description="Tool description")] = """
     Find properties near specified university campuses in Ho Chi Minh City.
     Uses Haversine formula to calculate distances.
-    Returns all properties sorted by distance, including:
-    - Properties within specified radius (default 2km)
-    - Other properties sorted by distance
+    Returns ALL properties sorted by distance from the selected campus, including:
     - Distance from the university campus in kilometers
     - Travel times by different modes (walking, bicycle, motorbike, car)
-    
-    Even if no properties are found within the specified radius,
-    the tool will still return the nearest available properties sorted by distance.
     
     Each property includes:
     - Basic info: id, name, description
@@ -667,13 +673,10 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
         # Lấy tất cả bất động sản đang hoạt động
         properties = get_properties_by_status("active")
         
-        # Xử lý và tính khoảng cách
-        properties_within_radius, all_properties = self.process_properties_with_distance(
-            properties, UNIV_LAT, UNIV_LON, radius
+        # Xử lý và tính khoảng cách cho tất cả properties
+        _, all_properties = self.process_properties_with_distance(
+            properties, UNIV_LAT, UNIV_LON
         )
-        
-        # Luôn trả về ít nhất 5 properties gần nhất, kể cả khi không có properties trong bán kính
-        nearest_properties = all_properties[:5] if all_properties else []
         
         return {
             "university": {
@@ -684,13 +687,6 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
                     "lon": UNIV_LON
                 }
             },
-            "radius_km": radius,
-            "properties_within_radius": {
-                "total": len(properties_within_radius),
-                "properties": properties_within_radius
-            },
-            "nearest_properties": {
-                "total": len(nearest_properties),
-                "properties": nearest_properties
-            }
+            "total_properties": len(all_properties),
+            "properties": all_properties  # Return all properties sorted by distance
         } 
