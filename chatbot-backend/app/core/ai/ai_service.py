@@ -207,7 +207,7 @@ Example flow:
         model="gpt-4o-mini",
         api_key=OPENAI_API_KEY,
         request_timeout=40,  
-        callbacks=[CustomHandler(stream_delay=0.07)]  # Delay 0.1 giây giữa các token
+        callbacks=[CustomHandler(stream_delay=0.04)] 
     )
     
     tools = [
