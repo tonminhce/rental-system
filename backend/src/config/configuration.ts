@@ -16,4 +16,5 @@ export default () => ({
   DB_NAME: process.env.DB_NAME || 'grab_mysql',
 
   SWAGGER_PATH: 'document',
+  CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:4000',
 });

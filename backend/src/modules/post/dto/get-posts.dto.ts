@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsNumber, Min, Max, IsEnum, IsString, IsLatitude, IsLongitude } from 'class-validator';
 import { PropertyType, TransactionType } from './create-post.dto';
 import { Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 
 export class GetPostsDto {
   @ApiProperty({ description: 'Page number', example: 1, required: false })
@@ -50,6 +51,8 @@ export class GetPostsDto {
   @ApiProperty({ description: 'Property type', example: PropertyType.APARTMENT, required: false, enum: PropertyType })
   @IsOptional()
   @IsEnum(PropertyType)
+  @Type(() => String)
+  @Transform(({ value }) => value === '' ? undefined : value)
   propertyType?: PropertyType;
 
   @ApiProperty({ description: 'Transaction type', example: TransactionType.RENT, required: false, enum: TransactionType })
