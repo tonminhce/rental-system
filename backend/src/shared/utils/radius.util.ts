@@ -17,15 +17,31 @@ export const getLocationQueryObj = ({
   center?: string;
   distance?: number;
   unit?: string;
-}): object => {
-  if (!center) return {};
+}): { query: object, coordinates?: number[] } => {
+  if (!center) return { query: {} };
 
   const [lng, lat] = center.split(',');
   const radius = getRadius(distance, unit);
+  const coordinates = [Number(lng), Number(lat)];
 
   return {
-    $geoWithin: {
-      $centerSphere: [[Number(lng), Number(lat)], radius],
+    query: {
+      $geoWithin: {
+        $centerSphere: [coordinates, radius],
+      },
     },
+    coordinates
   };
+};
+
+// Helper function to get coordinates in the format GoongJS expects
+export const getGoongJSCoordinates = (center?: string): number[] | null => {
+  if (!center) return null;
+  
+  // Assuming center is in format "lng,lat"
+  // Most JS mapping libraries (including GoongJS) expect [lat, lng] or [lng, lat] format
+  const [lng, lat] = center.split(',').map(coord => parseFloat(coord));
+  
+  // Return [lat, lng] for GoongJS
+  return [lat, lng]; 
 };
