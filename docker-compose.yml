@@ -1,21 +1,21 @@
 version: '3.8'
 
 services:
-  backend_database:
-    image: postgres:latest
-    container_name: sales-chatbot-backend-postgres
+  mongodb:
+    image: mongo:latest
+    container_name: sales-chatbot-mongodb
     environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
+      MONGO_INITDB_DATABASE: ${DB_NAME}
     ports:
-      - "${DB_PORT}:5432"
+      - "${DB_PORT}:27017"
     volumes:
-      - sales_chatbot_backend_data:/var/lib/postgresql/data
+      - sales_chatbot_mongodb_data:/data/db
     networks:
       - sales-chatbot-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,5 +25,5 @@ networks:
     driver: bridge
 
 volumes:
-  sales_chatbot_backend_data:
+  sales_chatbot_mongodb_data:
     driver: local

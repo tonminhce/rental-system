@@ -1,0 +1,710 @@
+{
+  "service": "app_name",
+  "statusText": "success",
+  "statusCode": 200,
+  "data": {
+    "posts": [
+      {
+        "id": 68,
+        "name": "Nhà nguyên căn mới, 3pn, 1PK, 2 wc chỉ 3tr5",
+        "description": "CHO THUÊ NHÀ NGUYÊN CĂN  Nhà ở Lê Văn Lương Nhơn Đức Nhà Bè. - Diện tích: 3×6m- Nhà 1 trệt, 1 lửng, 2 lầu - Nhà có 1 phòng khách, 3 PN, 2 WC, ban công và bếp ăn- Nội thất: có 2 bộ điều hòa mới- Trước nhà hẻm 3m, nhà cách đường LVL chỉ 100m- Tiện ích xung quanh nhà gần chợ, siêu thị, trường học cấp 1, 2,3, đi trrung tâm tp chỉ 15phut, gần trường ĐH mở, Tôn Đức Thắng Giá: 4 triệu Cọc: 6 triệuLiên hệ: ️  0909634270  gặp Kim Cúc hoặc zalo: Kim Cúc  ( Miễn trung gian)",
+        "price": 4,
+        "area": 50,
+        "propertyType": "room",
+        "transactionType": "rent",
+        "sourceUrl": "mogi.vn",
+        "province": "TPHCM",
+        "district": "Nhà Bè",
+        "ward": "Nhơn Đức",
+        "street": "2009 Lê Văn Lương",
+        "latitude": "106.70388031",
+        "longitude": "10.67145729",
+        "displayedAddress": "2009 Lê Văn Lương, Xã Nhơn Đức, Huyện Nhà Bè, TPHCM",
+        "status": "active",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "contactName": "Kim Cúc",
+        "contactPhone": "0909634270",
+        "postUrl": "https://mogi.vn/huyen-nha-be/thue-nha-hem-ngo/nha-nguyen-can-moi-3pn-1pk-2-wc-chi-3tr5-id22471979",
+        "createdAt": "2025-04-22T19:12:08.000Z",
+        "updatedAt": "2025-04-22T19:12:08.000Z",
+        "images": [
+          {
+            "id": 392,
+            "rentalId": 68,
+            "url": "https://cloud.mogi.vn/images/rotate3/2024/01/18/309/43181eb5f23849328911676029e6cf23.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 68
+          },
+          {
+            "id": 393,
+            "rentalId": 68,
+            "url": "https://cloud.mogi.vn/images/rotate3/2024/01/18/309/82e07b02fc7d42bda8b9978e76875a14.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 68
+          },
+          {
+            "id": 394,
+            "rentalId": 68,
+            "url": "https://cloud.mogi.vn/images/rotate3/2024/01/18/310/8e37e71ea2af44fa8f973d7ebcd5bdd3.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 68
+          },
+          {
+            "id": 395,
+            "rentalId": 68,
+            "url": "https://cloud.mogi.vn/images/rotate3/2024/01/18/311/6f0a0239a9284510a85a9d1d67410b5c.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 68
+          }
+        ]
+      },
+      {
+        "id": 61,
+        "name": "Căn Hộ Giá Rẻ - Đi Bộ Qua Sân Bay TSN 🔥🔥",
+        "description": "Tưng Bừng Trai Khương Căn Hộ Duplex Ban Công ✅📍 Kế Bên Sân Bay TSN💰4.500.000 Phòng Mới chưa qua sử dụngKhu vực đông đúc, đầy đủ tiện ích,….Hầm xe rộng thoải mái vô tư, bảo vệ 24/7, hệ thống ppccc, camera an ninh, thang máy,….Khu Vực Giặt Sấy tự động Giờ Giấc Tự DoRa Vào Vân Tay🌴 Liên hệ: 0346171785 - Thành Nhânn để được tư vấn và hỗ trợ.",
+        "price": 4,
+        "area": 30,
+        "propertyType": "room",
+        "transactionType": "rent",
+        "sourceUrl": "mogi.vn",
+        "province": "TPHCM",
+        "district": "Tân Bình",
+        "ward": "2",
+        "street": "Bạch Đằng",
+        "latitude": "1006.67423630",
+        "longitude": "10.81531568",
+        "displayedAddress": " Bạch Đằng, Phường 2, Quận Tân Bình, TPHCM",
+        "status": "active",
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "contactName": "Đặng Thành Nhân",
+        "contactPhone": "0346171785",
+        "postUrl": "https://mogi.vn/quan-tan-binh/thue-phong-tro-khu-nha-tro/can-ho-gia-re-di-bo-qua-san-bay-tsn-id22447229",
+        "createdAt": "2025-04-22T19:12:08.000Z",
+        "updatedAt": "2025-04-22T19:12:08.000Z",
+        "images": [
+          {
+            "id": 346,
+            "rentalId": 61,
+            "url": "https://cloud.mogi.vn/images/2023/12/21/098/d0968e1f8df44c21aaf68e61ce5dd960.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 61
+          },
+          {
+            "id": 347,
+            "rentalId": 61,
+            "url": "https://cloud.mogi.vn/images/2023/12/21/099/77b600b1658f4cf19adfce279580156d.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 61
+          },
+          {
+            "id": 348,
+            "rentalId": 61,
+            "url": "https://cloud.mogi.vn/images/2023/12/21/090/3d6f0314178d427793431d9121043aa2.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 61
+          },
+          {
+            "id": 349,
+            "rentalId": 61,
+            "url": "https://cloud.mogi.vn/images/2023/12/21/091/3ba72f718bfe4cd0bb06e764c9f28ebf.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 61
+          }
+        ]
+      },
+      {
+        "id": 60,
+        "name": "Phòng Trọ Giá Rẻ Full Nội Thất Gần Ngã Tư Bảy Hiền Đường Bàu Cát",
+        "description": "Khai Trương Căn Hộ Dạng Duplex Full Nội Thất Ở Đường Đồng Đen - Tân Bình Gần Ngã Tư Bảy Hiền - ĐH Văn HiếnGiá Chỉ Từ 4.400.000Vị trí : Đường Đồng Đen - Phường 12 - Tân BìnhGần Bàu Cát - Trường Chinh - Âu Cơ - Ngã Tư Bảy Hiền - ĐH Văn Hiến - BV Thống NhấtTòa Nhà Mới 100% - Setup Full Nội ThấtPhí Dịch Vụ Rẻ - Miễn Phí Giữ XeKhông Giới Hạn Người Ở - An Ninh Tuyệt ĐốiCall / Inbox / Zalo : 0329949123",
+        "price": 4,
+        "area": 30,
+        "propertyType": "room",
+        "transactionType": "rent",
+        "sourceUrl": "mogi.vn",
+        "province": "TPHCM",
+        "district": "Tân Bình",
+        "ward": "12",
+        "street": "Bàu Cát",
+        "latitude": "106.64970017",
+        "longitude": "10.80014181",
+        "displayedAddress": " Bàu Cát, Phường 12, Quận Tân Bình, TPHCM",
+        "status": "active",
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "contactName": "Ngọc Phát",
+        "contactPhone": "0329949123",
+        "postUrl": "https://mogi.vn/quan-tan-binh/thue-phong-tro-khu-nha-tro/phong-tro-gia-re-full-noi-that-gan-nga-tu-bay-hien-duong-bau-cat-id22422181",
+        "createdAt": "2025-04-22T19:12:08.000Z",
+        "updatedAt": "2025-04-22T19:12:08.000Z",
+        "images": [
+          {
+            "id": 336,
+            "rentalId": 60,
+            "url": "https://cloud.mogi.vn/images/2023/12/02/155/8e88a9b9f0cd437fb610edb8f0c220cd.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 60
+          },
+          {
+            "id": 337,
+            "rentalId": 60,
+            "url": "https://cloud.mogi.vn/images/2023/12/02/157/0986277e646540daa755a1f2304bd7e4.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 60
+          },
+          {
+            "id": 338,
+            "rentalId": 60,
+            "url": "https://cloud.mogi.vn/images/2023/12/02/158/74f0317581d04d4587a430feb6233870.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 60
+          },
+          {
+            "id": 339,
+            "rentalId": 60,
+            "url": "https://cloud.mogi.vn/images/2023/12/02/159/7deac349f0c648bbbb27e0a9adcf8fcb.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 60
+          },
+          {
+            "id": 340,
+            "rentalId": 60,
+            "url": "https://cloud.mogi.vn/images/2023/12/02/150/3637d14208fa4f819ad320671f6b5db7.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 60
+          },
+          {
+            "id": 341,
+            "rentalId": 60,
+            "url": "https://cloud.mogi.vn/images/2023/12/02/151/0ed7fde61f9f4e51b6cf4f25a857ae39.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 60
+          },
+          {
+            "id": 342,
+            "rentalId": 60,
+            "url": "https://cloud.mogi.vn/images/2023/12/02/152/fd9b8d418ab44e5295599683625e868d.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 60
+          },
+          {
+            "id": 343,
+            "rentalId": 60,
+            "url": "https://cloud.mogi.vn/images/2023/12/02/154/091f4962a65741bd9734b44e632386ec.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 60
+          },
+          {
+            "id": 344,
+            "rentalId": 60,
+            "url": "https://cloud.mogi.vn/images/2023/12/02/155/ec5c389ca8804d2198c4772b52417591.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 60
+          },
+          {
+            "id": 345,
+            "rentalId": 60,
+            "url": "https://cloud.mogi.vn/images/2023/12/02/156/0f9b279701e7438da737bfb1756aed9e.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 60
+          }
+        ]
+      },
+      {
+        "id": 59,
+        "name": "Cho thuê CHDV full nội thất ngay cạnh VXoay Lăng Cha Cả - Cộng Hoà",
+        "description": "🔥🔥CHO THUÊ CHDV FULL NỘI THẤT NGAY VÒNG XOAY LĂNG CHA CẢ🔥🔥📍Toạ lạc: Cộng Hoà, Tân Bình 💸Giá: 4tr5 - 5tr7- Gần ĐH Greenwich, VXoay Lăng Cha Cả, Vincom Cộng Hoà, Cv Hoàng Văn Thụ....- Thuận tiện di chuyển qua các quận trung tâm.Tiện ích: 🔸 An ninh, camera 24/24.�� Thang máy, bãi xe rộng, có bảo vệ.🔸 Phòng sạch sẽ, thoáng mát.🔸 Có phòng giặt sấy riêng.🔸 Giờ giấc tự do, không chung chủ.📞CALL/zalo: 0876306552 để được tư vấn và xem phòng nhé.",
+        "price": 4,
+        "area": 25,
+        "propertyType": "room",
+        "transactionType": "rent",
+        "sourceUrl": "mogi.vn",
+        "province": "TPHCM",
+        "district": "Tân Bình",
+        "ward": "4",
+        "street": "Cộng Hòa",
+        "latitude": "106.65837861",
+        "longitude": "10.79931212",
+        "displayedAddress": " Cộng Hòa, Phường 4, Quận Tân Bình, TPHCM",
+        "status": "active",
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "contactName": "Nguyễn Thúy",
+        "contactPhone": "0876306552",
+        "postUrl": "https://mogi.vn/quan-tan-binh/thue-phong-tro-khu-nha-tro/cho-thue-chdv-full-noi-that-ngay-canh-vxoay-lang-cha-ca-cong-hoa-id22349070",
+        "createdAt": "2025-04-22T19:12:08.000Z",
+        "updatedAt": "2025-04-22T19:12:08.000Z",
+        "images": [
+          {
+            "id": 332,
+            "rentalId": 59,
+            "url": "https://cloud.mogi.vn/images/2023/09/30/307/807fd7b6f4b6485d934651eddc8215c6.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 59
+          },
+          {
+            "id": 333,
+            "rentalId": 59,
+            "url": "https://cloud.mogi.vn/images/2023/09/30/309/1e3718429301468e9c4b5c0b5c8495d9.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 59
+          },
+          {
+            "id": 334,
+            "rentalId": 59,
+            "url": "https://cloud.mogi.vn/images/2023/09/30/300/ecabe7548dad46b897144f84c7cd7ad7.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 59
+          },
+          {
+            "id": 335,
+            "rentalId": 59,
+            "url": "https://cloud.mogi.vn/images/2023/09/30/308/fb7c549ec83f4a27a84559bf9810b5cc.jpg",
+            "createdAt": "2025-04-22T19:12:08.000Z",
+            "updatedAt": "2025-04-22T19:12:08.000Z",
+            "rental_id": 59
+          }
+        ]
+      },
+      {
+        "id": 56,
+        "name": "💥 Cho Thuê Phòng đủ nội thất_ Khu Sân Bay, P2 Tân Bình 💥",
+        "description": "💥 Cho Thuê Phòng đủ nội thất_ Khu Sân Bay, P2 Tân Bình 💥 🌟 Vị trí: + 153 Bạch Đằng, ngay sân bay TSN, gần CV Gia Định.                  + Xung quanh có nhiều nhà hàng, quán cafe, spa, phòng gym, ngân hàng, chợ, siêu thị...✅ Phòng đẹp, sạch sẽ, thoáng gió có thang máy, bảo vệ 24/24, giờ tự do✅ Mỗi phòng có hành lang, cửa sổ, WC riêng trong phòng…✅ Có hầm giữ xe rộng không lo trầy xe.✅ Diện tích phòng: 25m2✅ Full nội thất: máy lạnh, tủ lạnh, máy nước nóng lạnh, tủ quần áo, kệ bếp, giường nệm,..vv … mới 100%✅ Giá thuê: 4.5tr/ tháng✅ Điện: 3900k/số✅ Nước: 100k/người/tháng✅ Giữ Xe: 150k/xe/tháng✅ Phí quản lý: 150k/phòng✅ Wifi: miễn phí✅ Máy giặt chung: miễn phí📞 Xem phòng liên hệ: 0989568990 gặp Miss My (chủ nhà) :-* :-* :-*",
+        "price": 5,
+        "area": 25,
+        "propertyType": "room",
+        "transactionType": "rent",
+        "sourceUrl": "mogi.vn",
+        "province": "TPHCM",
+        "district": "Tân Bình",
+        "ward": "2",
+        "street": "Bạch Đằng",
+        "latitude": "106.66771317",
+        "longitude": "10.80705357",
+        "displayedAddress": " Bạch Đằng, Phường 2, Quận Tân Bình, TPHCM",
+        "status": "active",
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "contactName": "Na Na",
+        "contactPhone": "0989568990",
+        "postUrl": "https://mogi.vn/quan-tan-binh/thue-can-ho-dich-vu/cho-thue-phong-du-noi-that-khu-san-bay-p2-tan-binh-id22677118",
+        "createdAt": "2025-04-22T19:12:07.000Z",
+        "updatedAt": "2025-04-22T19:12:07.000Z",
+        "images": []
+      },
+      {
+        "id": 42,
+        "name": "Phòng trọ quận 7,nhiều cơ sở từ 2tr8",
+        "description": "Phòng full nt, cổng khu chế xuất, gần Phú Mỹ HưngCS1: 1333/14 Huỳnh Tấn Phát ( 14 Lê Thị Chợ)CS2:CC HAGL1, 357 Lê Văn Lương,tân quy (Lotte)CS3: CC HAGL2, 783 Trần Xuân Soạn,tân hưng ( cầu kinh Tẻ)-Gần ĐH TÀI CHÍNH MAKETTING, Tôn Đức Thắng, Rmit-Cách ĐH NTT, TDT, RMIT 10p đi XE,- Ngay chợ mua sắm thuận tiệnGồm các tiện ích:🎁 Điện,nước,wifi,gửi xe,phí quản lý.🎁 Giường, nệm rộng rãi, êm ái,giúp giấc ngủ ngon.🎁 Có tủ quần áo rộng rãi🎁 Phòng máy lạnh mát mẽ không ngại thời tiết Sài Gòn�� Khoá vân tay ra vào,Camera an ninh đảm bảo.🎁 Dọn vệ sinh định kì🎁 Bếp nấu ăn thoáng mát, có đồ dùng cơ bản.🎁 WC rộng rãi riêng từng phòng.LH: 0903.977.486Phòng 3tr- 3tr3- 3tr5- 4tr",
+        "price": 3,
+        "area": 25,
+        "propertyType": "room",
+        "transactionType": "rent",
+        "sourceUrl": "mogi.vn",
+        "province": "TPHCM",
+        "district": "7",
+        "ward": "Tân Quy",
+        "street": "Nguyễn Thị Thập",
+        "latitude": "106.70587532",
+        "longitude": "10.73899314",
+        "displayedAddress": " Nguyễn Thị Thập, Phường Tân Quy, Quận 7, TPHCM",
+        "status": "active",
+        "bedrooms": 0,
+        "bathrooms": 0,
+        "contactName": "Đức Tuấn",
+        "contactPhone": "0903977486",
+        "postUrl": "https://mogi.vn/quan-7/thue-phong-tro-khu-nha-tro/phong-tro-quan-7-nhieu-co-so-tu-2tr8-id22470857",
+        "createdAt": "2025-04-22T19:12:07.000Z",
+        "updatedAt": "2025-04-22T19:12:07.000Z",
+        "images": [
+          {
+            "id": 260,
+            "rentalId": 42,
+            "url": "https://cloud.mogi.vn/images/2024/01/17/285/7820fa3cc1be4f52aff635957bfe3f7c.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 42
+          },
+          {
+            "id": 261,
+            "rentalId": 42,
+            "url": "https://cloud.mogi.vn/images/2024/01/17/288/8b3989802af2473f88a97286b01ec4b9.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 42
+          },
+          {
+            "id": 262,
+            "rentalId": 42,
+            "url": "https://cloud.mogi.vn/images/2024/01/17/280/2a1db64cd2bd4d078e483398b25871ca.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 42
+          },
+          {
+            "id": 263,
+            "rentalId": 42,
+            "url": "https://cloud.mogi.vn/images/2024/01/17/289/196828e0a21844a190c13bc027c8f934.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 42
+          },
+          {
+            "id": 264,
+            "rentalId": 42,
+            "url": "https://cloud.mogi.vn/images/2024/01/17/283/23290e2072734c7bb24e856e82a71c7a.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 42
+          },
+          {
+            "id": 265,
+            "rentalId": 42,
+            "url": "https://cloud.mogi.vn/images/2024/01/17/373/6045c74febe145ce88e98fb007511114.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 42
+          },
+          {
+            "id": 266,
+            "rentalId": 42,
+            "url": "https://cloud.mogi.vn/images/2024/01/17/284/19e84f2a0ce1463da380f3a1c847713d.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 42
+          },
+          {
+            "id": 267,
+            "rentalId": 42,
+            "url": "https://cloud.mogi.vn/images/2024/01/17/375/eb948a47038547739a051050c97870cb.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 42
+          },
+          {
+            "id": 268,
+            "rentalId": 42,
+            "url": "https://cloud.mogi.vn/images/2024/01/17/371/6b6d216e6f964c0cae02accdb620cf49.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 42
+          },
+          {
+            "id": 269,
+            "rentalId": 42,
+            "url": "https://cloud.mogi.vn/images/2024/01/17/374/02dc601dd782443ba2c01887f21fc60c.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 42
+          }
+        ]
+      },
+      {
+        "id": 43,
+        "name": "Cho Thuê Phòng Q3.rộng rãi thoải mái.nội thất cơ bản cửa sổ.2tr7",
+        "description": "😍Còn 2 phòng như hình sát nhau mới keng cho thuê tại địa chỉ 686/72/41 Cách Mạng Tháng Tám P11 Q3.giờ giấc tự do,ko chung chủ thoải mái,Nhà ngay công viên Lê Thị Riêng.❤Giá 2tr700.(phòng mới keng rộng rãi thoải mái,ở tầng 2.nội thất nệm,quạt,máy lạnh,tủ lạnh,cửa sổ,máy giặt chung,chỗ nấu ăn trước phòng...vv).tolet chung trước phòng.hỗ trợ nội thất theo yêu cầu tính phí.xe để trong nhà miễn phí.📚Điện 4k,nước 100/ng,xe+wifi+rác free.không phát sinh chi phí.Ai có nhu cầu vui lòng IB hoặc LH 0838.999988.0975572901.l",
+        "price": 3,
+        "area": 17,
+        "propertyType": "room",
+        "transactionType": "rent",
+        "sourceUrl": "mogi.vn",
+        "province": "TPHCM",
+        "district": "3",
+        "ward": "11",
+        "street": "Cách Mạng Tháng 8",
+        "latitude": "106.67015075",
+        "longitude": "10.78656292",
+        "displayedAddress": " Cách Mạng Tháng 8, Phường 11, Quận 3, TPHCM",
+        "status": "active",
+        "bedrooms": 0,
+        "bathrooms": 0,
+        "contactName": "Trieu Anh",
+        "contactPhone": "0838999988",
+        "postUrl": "https://mogi.vn/quan-3/thue-phong-tro-khu-nha-tro/cho-thue-phong-q3-rong-rai-thoai-mai-noi-that-co-ban-cua-so-2tr7-id22057577",
+        "createdAt": "2025-04-22T19:12:07.000Z",
+        "updatedAt": "2025-04-22T19:12:07.000Z",
+        "images": [
+          {
+            "id": 270,
+            "rentalId": 43,
+            "url": "https://cloud.mogi.vn/images/2025/04/20/451/a1a6e9a5359d48139704e8c446384167.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 43
+          },
+          {
+            "id": 271,
+            "rentalId": 43,
+            "url": "https://cloud.mogi.vn/images/2025/04/15/073/6f675eeaf61d4821ae639771428ed566.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 43
+          },
+          {
+            "id": 272,
+            "rentalId": 43,
+            "url": "https://cloud.mogi.vn/images/2025/03/25/175/50dbc758f45942f1bb5054ee378a1796.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 43
+          },
+          {
+            "id": 273,
+            "rentalId": 43,
+            "url": "https://cloud.mogi.vn/images/2025/03/25/175/daedd8d95bfe420292f48023e1a4b3ed.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 43
+          },
+          {
+            "id": 274,
+            "rentalId": 43,
+            "url": "https://cloud.mogi.vn/images/2025/04/15/074/65bd05033ef545e080f408394477d118.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 43
+          },
+          {
+            "id": 275,
+            "rentalId": 43,
+            "url": "https://cloud.mogi.vn/images/2025/04/20/450/0dfd02b2fa5845dbb67bb0c9a6eef3cd.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 43
+          },
+          {
+            "id": 276,
+            "rentalId": 43,
+            "url": "https://cloud.mogi.vn/images/2025/04/20/450/411b2fef7c8f4dd38627b691ddcccb47.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 43
+          }
+        ]
+      },
+      {
+        "id": 44,
+        "name": "Phòng q7 mới giá bình dân, sạch sẽ, yên tĩnh",
+        "description": "💥 Còn 2 phòng duy nhấtỞ hẻm 77, đường chuyên dùng, phú mỹ, q7Giá yêu thương 2tr2 phòng mới☎️ liiên hệ : 0909634270👉 Điện 3kg, nước 20khoi, rác 20k, wif miễn phí, GIỜ GIẤC TỰ DO👉 phòng ưu tiên ở 1-2 người👉 có camaraa an ninh, cửa khóa vân tay👉 có tạp hóa và giặt sấy bên cạnh, gần siêu thị, rạp chiếu phim, chợ, đi q1, q8 và phú mỹ hưng chie vài bước chân",
+        "price": 2,
+        "area": 16,
+        "propertyType": "room",
+        "transactionType": "rent",
+        "sourceUrl": "mogi.vn",
+        "province": "TPHCM",
+        "district": "7",
+        "ward": "Phú Mỹ",
+        "street": "Chuyên Dùng",
+        "latitude": "106.74014589",
+        "longitude": "10.70665863",
+        "displayedAddress": " Chuyên Dùng, Phường Phú Mỹ, Quận 7, TPHCM",
+        "status": "active",
+        "bedrooms": 0,
+        "bathrooms": 0,
+        "contactName": "Kim Cúc",
+        "contactPhone": "0909634270",
+        "postUrl": "https://mogi.vn/quan-7/thue-phong-tro-khu-nha-tro/phong-q7-moi-gia-binh-dan-sach-se-yen-tinh-id20834580",
+        "createdAt": "2025-04-22T19:12:07.000Z",
+        "updatedAt": "2025-04-22T19:12:07.000Z",
+        "images": [
+          {
+            "id": 277,
+            "rentalId": 44,
+            "url": "https://cloud.mogi.vn/images/2020/06/15/107/c9acb2d5316d497096bc67e2dc8e98fe.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 44
+          },
+          {
+            "id": 278,
+            "rentalId": 44,
+            "url": "https://cloud.mogi.vn/images/2020/06/15/108/b56613e3de904102b6342b2745bf8061.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 44
+          },
+          {
+            "id": 279,
+            "rentalId": 44,
+            "url": "https://cloud.mogi.vn/images/2020/06/15/109/f23dfbabf5f0433fb348a40f02d8c422.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 44
+          },
+          {
+            "id": 280,
+            "rentalId": 44,
+            "url": "https://cloud.mogi.vn/images/2020/06/15/100/9b0b0e44b35442a7b18be39a71c7775f.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 44
+          },
+          {
+            "id": 281,
+            "rentalId": 44,
+            "url": "https://cloud.mogi.vn/images/2020/06/15/100/3da96059715447c4b27ff773186ffbc0.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 44
+          }
+        ]
+      },
+      {
+        "id": 45,
+        "name": "Cho Thuê Phòng Q10.fuff nội thất cửa sổ.wc riêng 2tr8",
+        "description": "🤗Còn 1 phòng mới keng ở lầu 1 như hình cho thuê tại địa chỉ 313/11 Nguyễn Duy Dương P4 Q10.(Ngay Đại học Kinh tế và Bách Khoa).tĩnh mát mẻ,an ninh,giờ giấc tự do,không chung chủ thoải mái.🥰Giá 2tr800.(phòng mới.fuff nội thất máy lạnh,tủ lạnh,quạt,nệm,máy giặt chung,cửa sổ lớn.....vv).Tolet Riêng trong phòng.xe để trong nhà free 1 chiếc.😍Điện 4k,nước 100/ng,xe+wifi+rác free,không phát sinh chi phí.vui lòng IB hoặc liên hệ 0838.999988.0975.572.901",
+        "price": 3,
+        "area": 13,
+        "propertyType": "room",
+        "transactionType": "rent",
+        "sourceUrl": "mogi.vn",
+        "province": "TPHCM",
+        "district": "10",
+        "ward": "4",
+        "street": "Nguyễn Duy Dương",
+        "latitude": "106.67000199",
+        "longitude": "10.76302624",
+        "displayedAddress": " Nguyễn Duy Dương, Phường 4, Quận 10, TPHCM",
+        "status": "active",
+        "bedrooms": 0,
+        "bathrooms": 0,
+        "contactName": "Trieu Anh",
+        "contactPhone": "0838999988",
+        "postUrl": "https://mogi.vn/quan-10/thue-phong-tro-khu-nha-tro/cho-thue-phong-q10-fuff-noi-that-cua-so-wc-rieng-2tr8-id22654422",
+        "createdAt": "2025-04-22T19:12:07.000Z",
+        "updatedAt": "2025-04-22T19:12:07.000Z",
+        "images": [
+          {
+            "id": 282,
+            "rentalId": 45,
+            "url": "https://cloud.mogi.vn/images/2025/04/20/288/480b74bebfec44ff9a1aa2009b55b38d.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 45
+          },
+          {
+            "id": 283,
+            "rentalId": 45,
+            "url": "https://cloud.mogi.vn/images/2025/04/20/289/2afa57d794564e17bbdd5e71af915503.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 45
+          },
+          {
+            "id": 284,
+            "rentalId": 45,
+            "url": "https://cloud.mogi.vn/images/2025/04/20/280/fa7327270c4446f29e9e199fc3523f86.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 45
+          }
+        ]
+      },
+      {
+        "id": 57,
+        "name": "Đang Trống Ít Phòng Dạng Như Hình - Sau Aeon Tân Phú - Nội Thất Cơ Bản",
+        "description": "CHÍNH CHỦ ĐANG CHO THUÊ CHDV NHƯ HÌNH NẰM SAU AEON TÂN PHÚ - GIÁ ƯU ĐÃI CHO KHÁCH CHỐT TRONG THÁNG MỚIHỖ TRỢ TÌM PHÒNG TRỌ/ CHDV KHU VỰC TP.HCM CHO KHÁCH — NHANH NHẸN — NHIỆT TÌNH — MIỄN PHÍ 10000%✔️Nội thất có sẵn: Máy lạnh, Tủ quần áo, Kệ Bếp, Pallet💸Điện 3.800đ/ KwhNướcc: 100.000đ/ NgườiXee FREERác, Wifi, Phí Quản Lý,…. 150.000đ/ Phòng🚦Thuận tiện di chuyển: Aeon Tân Phú, HUIT,…📲Liên hệ 0822.610.094 để biết thêm chi tiết",
+        "price": 4,
+        "area": 22,
+        "propertyType": "room",
+        "transactionType": "rent",
+        "sourceUrl": "mogi.vn",
+        "province": "TPHCM",
+        "district": "Tân Phú",
+        "ward": "Sơn Kỳ",
+        "street": "Bờ Bao Tân Thắng",
+        "latitude": "106.61977387",
+        "longitude": "10.80487442",
+        "displayedAddress": " Bờ Bao Tân Thắng, Phường Sơn Kỳ, Quận Tân Phú, TPHCM",
+        "status": "active",
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "contactName": "Thiên Định",
+        "contactPhone": "0822610094",
+        "postUrl": "https://mogi.vn/quan-tan-phu/thue-phong-tro-khu-nha-tro/dang-trong-it-phong-dang-nhu-hinh-sau-aeon-tan-phu-noi-that-co-ban-id22291628",
+        "createdAt": "2025-04-22T19:12:07.000Z",
+        "updatedAt": "2025-04-22T19:12:07.000Z",
+        "images": [
+          {
+            "id": 320,
+            "rentalId": 57,
+            "url": "https://cloud.mogi.vn/images/2023/08/05/135/99ab0f9b1aa14ed7853081219a80f476.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 57
+          },
+          {
+            "id": 321,
+            "rentalId": 57,
+            "url": "https://cloud.mogi.vn/images/2023/08/05/136/f769c65d90dd4272849b445be62c6bdc.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 57
+          },
+          {
+            "id": 322,
+            "rentalId": 57,
+            "url": "https://cloud.mogi.vn/images/2023/08/05/137/57552418df9e486595d7d62a65fdc312.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 57
+          },
+          {
+            "id": 323,
+            "rentalId": 57,
+            "url": "https://cloud.mogi.vn/images/2023/08/05/137/284dc5ce9d1a4f398136afcc7ae3269c.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 57
+          },
+          {
+            "id": 324,
+            "rentalId": 57,
+            "url": "https://cloud.mogi.vn/images/2023/08/05/138/1d7b85aca7e6433b8d6fdec5d57cb9ea.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 57
+          },
+          {
+            "id": 325,
+            "rentalId": 57,
+            "url": "https://cloud.mogi.vn/images/2023/08/05/139/5b43df69d2cc4966a8ff7ec2a7727396.jpg",
+            "createdAt": "2025-04-22T19:12:07.000Z",
+            "updatedAt": "2025-04-22T19:12:07.000Z",
+            "rental_id": 57
+          }
+        ]
+      }
+    ],
+    "pagination": {
+      "total": 25,
+      "current_page": 1,
+      "page_size": 10,
+      "total_pages": 3
+    },
+    "message": "Posts retrieved successfully"
+  },
+  "timestamp": "2025-04-23 07:10:12"
+}

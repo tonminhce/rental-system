@@ -1,122 +1,238 @@
 from typing import List, Dict, Optional
-from .chat_history_service import get_db_connection
+from app.database.chat_history_service import get_db_connection
 from decimal import Decimal
+from datetime import datetime
+import os
 
-def init_product_table():
+def init_properties_table():
     """
-    Khởi tạo bảng product trong database nếu chưa tồn tại
-    Bảng này lưu trữ thông tin về các sản phẩm bao gồm:
-    - Tên sản phẩm
+    Khởi tạo collection rentals trong MongoDB nếu chưa tồn tại
+    Collection này lưu trữ thông tin về các bất động sản bao gồm:
+    - ID
+    - Tên bất động sản
     - Mô tả
-    - Giá
-    - Số lượng tồn kho
-    - Thông số kỹ thuật
+    - Giá (triệu đồng)
+    - Loại bất động sản (room, apartment, house)
+    - Loại giao dịch (rent, sale)
+    - Trạng thái (active, inactive)
+    - Số phòng ngủ
+    - Số phòng tắm
+    - Diện tích (m2)
+    - Thông tin liên hệ
+    - Địa chỉ chi tiết
+    - Tọa độ
+    - Nguồn và URL
+    - Hình ảnh
     """
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS product (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(255) NOT NULL,
-                    description TEXT,
-                    price DECIMAL(10,2) NOT NULL,
-                    stock INTEGER NOT NULL DEFAULT 0,
-                    specifications JSONB,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-        conn.commit()
+    try:
+        client = get_db_connection()
+        db = client[os.getenv('DB_NAME')]
+        
+        # Tạo collection nếu chưa tồn tại
+        if 'rentals' not in db.list_collection_names():
+            db.create_collection('rentals')
+            
+        # Tạo các index cần thiết
+        db.rentals.create_index('district')
+        db.rentals.create_index('status')
+        db.rentals.create_index([('createdAt', -1)])
+        
+        print("Properties table initialized successfully")
+    except Exception as e:
+        print(f"Error initializing properties table: {str(e)}")
+    finally:
+        client.close()
 
-def get_product_by_name(name: str) -> Optional[Dict]:
+def get_properties_by_district(district: str) -> List[Dict]:
     """
-    Tìm kiếm sản phẩm theo tên
+    Tìm kiếm bất động sản theo quận/huyện
     
     Args:
-        name (str): Tên sản phẩm cần tìm
+        district (str): Tên quận/huyện cần tìm
         
     Returns:
-        Optional[Dict]: Thông tin sản phẩm nếu tìm thấy, None nếu không tìm thấy
+        List[Dict]: Danh sách bất động sản trong quận/huyện đó
     """
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT 
-                    id,
-                    name,
-                    description,
-                    price::text,
-                    stock,
-                    specifications,
-                    created_at,
-                    updated_at
-                FROM product 
-                WHERE LOWER(name) LIKE LOWER(%s)
-                """,
-                (f"%{name}%",)
-            )
-            result = cur.fetchone()
-            if result:
-                result['price'] = Decimal(result['price'])
-            return result
+    try:
+        client = get_db_connection()
+        db = client[os.getenv('DB_NAME')]
+        
+        # Sử dụng regex để tìm kiếm không phân biệt hoa thường
+        district_pattern = {'$regex': f'^{district}$', '$options': 'i'}
+        
+        results = list(db.rentals.find(
+            {'district': district_pattern},
+            {
+                '_id': 0,
+                'id': 1,
+                'name': 1,
+                'description': 1,
+                'price': 1,
+                'propertyType': 1,
+                'transactionType': 1,
+                'status': 1,
+                'bedrooms': 1,
+                'bathrooms': 1,
+                'area': 1,
+                'contactName': 1,
+                'contactPhone': 1,
+                'street': 1,
+                'ward': 1,
+                'district': 1,
+                'province': 1,
+                'displayedAddress': 1,
+                'latitude': 1,
+                'longitude': 1,
+                'sourceUrl': 1,
+                'postUrl': 1,
+                'images': 1,
+                'createdAt': 1,
+                'updatedAt': 1
+            }
+        ).sort('createdAt', -1))
+            
+        return results
+    finally:
+        client.close()
 
-def check_product_stock(product_id: int, quantity: int) -> bool:
+def get_properties_by_status(status: str) -> List[Dict]:
     """
-    Kiểm tra số lượng tồn kho của sản phẩm
+    Tìm kiếm bất động sản theo trạng thái
     
     Args:
-        product_id (int): ID của sản phẩm
-        quantity (int): Số lượng cần kiểm tra
+        status (str): Trạng thái của bất động sản (active, inactive)
         
     Returns:
-        bool: True nếu đủ số lượng, False nếu không đủ
+        List[Dict]: Danh sách bất động sản có trạng thái tương ứng
     """
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT stock 
-                FROM product 
-                WHERE id = %s
-                """,
-                (product_id,)
-            )
-            result = cur.fetchone()
-            if result and result['stock'] >= quantity:
-                return True
-            return False
+    try:
+        client = get_db_connection()
+        db = client[os.getenv('DB_NAME')]
+        
+        # Sử dụng regex để tìm kiếm không phân biệt hoa thường
+        status_pattern = {'$regex': f'^{status}$', '$options': 'i'}
+        
+        results = list(db.rentals.find(
+            {'status': status_pattern},
+            {
+                '_id': 0,
+                'id': 1,
+                'name': 1,
+                'description': 1,
+                'price': 1,
+                'propertyType': 1,
+                'transactionType': 1,
+                'status': 1,
+                'bedrooms': 1,
+                'bathrooms': 1,
+                'area': 1,
+                'contactName': 1,
+                'contactPhone': 1,
+                'street': 1,
+                'ward': 1,
+                'district': 1,
+                'province': 1,
+                'displayedAddress': 1,
+                'latitude': 1,
+                'longitude': 1,
+                'sourceUrl': 1,
+                'postUrl': 1,
+                'images': 1,
+                'createdAt': 1,
+                'updatedAt': 1
+            }
+        ).sort('createdAt', -1))
+            
+        return results
+    finally:
+        client.close()
 
-def update_product_stock(product_id: int, quantity: int) -> bool:
+def get_properties_by_price_range(min_price: float, max_price: float) -> List[Dict]:
     """
-    Cập nhật số lượng tồn kho của sản phẩm
+    Tìm bất động sản trong khoảng giá
     
     Args:
-        product_id (int): ID của sản phẩm
-        quantity (int): Số lượng cần trừ đi (số âm để thêm vào)
+        min_price (float): Giá tối thiểu (triệu đồng)
+        max_price (float): Giá tối đa (triệu đồng)
         
     Returns:
-        bool: True nếu cập nhật thành công, False nếu thất bại
+        List[Dict]: Danh sách bất động sản trong khoảng giá
     """
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                UPDATE product 
-                SET stock = stock - %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = %s AND stock >= %s
-                RETURNING id
-                """,
-                (quantity, product_id, quantity)
-            )
-            result = cur.fetchone()
-            conn.commit()
-            return bool(result) 
+    try:
+        client = get_db_connection()
+        db = client[os.getenv('DB_NAME')]
+        
+        results = list(db.rentals.find(
+            {
+                'price': {
+                    '$gte': min_price,
+                    '$lte': max_price
+                }
+            },
+            {
+                '_id': 0,
+                'id': 1,
+                'name': 1,
+                'description': 1,
+                'price': 1,
+                'propertyType': 1,
+                'transactionType': 1,
+                'status': 1,
+                'bedrooms': 1,
+                'bathrooms': 1,
+                'area': 1,
+                'contactName': 1,
+                'contactPhone': 1,
+                'street': 1,
+                'ward': 1,
+                'district': 1,
+                'province': 1,
+                'displayedAddress': 1,
+                'latitude': 1,
+                'longitude': 1,
+                'sourceUrl': 1,
+                'postUrl': 1,
+                'images': 1,
+                'createdAt': 1,
+                'updatedAt': 1
+            }
+        ).sort('createdAt', -1))
+            
+        return results
+    finally:
+        client.close()
 
 def main():
-    quantity = check_product_stock(1, 1)
-    print('check_product_stock(1, 1): ', quantity)
+    """
+    Hàm test các chức năng tìm kiếm bất động sản
+    """
+    # Test tìm theo quận
+    print("\n=== Tìm bất động sản ở quận Bình Thạnh ===")
+    binh_thanh_properties = get_properties_by_district("Bình Thạnh")
+    for prop in binh_thanh_properties:
+        print(f"- {prop['name']}")
+        print(f"  Giá: {prop['price']:,.1f} triệu")
+        print(f"  Địa chỉ: {prop['displayedAddress']}")
+        print()
+
+    # Test tìm theo trạng thái
+    print("\n=== Bất động sản đang cho thuê ===")
+    available_properties = get_properties_by_status("active")
+    for prop in available_properties:
+        print(f"- {prop['name']}")
+        print(f"  Giá: {prop['price']:,.1f} triệu")
+        print(f"  Địa chỉ: {prop['displayedAddress']}")
+        print(f"  Liên hệ: {prop['contactName']} - {prop['contactPhone']}")
+        print()
+        
+    # Test tìm theo khoảng giá
+    print("\n=== Bất động sản từ 5-10 triệu ===")
+    price_range_properties = get_properties_by_price_range(5.0, 10.0)
+    for prop in price_range_properties:
+        print(f"- {prop['name']}")
+        print(f"  Giá: {prop['price']:,.1f} triệu")
+        print(f"  Địa chỉ: {prop['displayedAddress']}")
+        print()
 
 if __name__ == '__main__':
     main()

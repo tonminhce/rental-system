@@ -1,9 +1,9 @@
 import os
 from dotenv import load_dotenv
-import psycopg
-from psycopg.rows import dict_row
+from pymongo import MongoClient
 from datetime import datetime
 from typing import List, Dict
+from bson import ObjectId
 
 load_dotenv()
 
@@ -15,52 +15,40 @@ DB_PORT = os.getenv('DB_PORT')
 
 def get_db_connection():
     """
-    Tạo kết nối đến cơ sở dữ liệu PostgreSQL
+    Tạo kết nối đến MongoDB
     
     Returns:
-        Connection: Đối tượng kết nối đến database
+        MongoClient: Đối tượng kết nối đến MongoDB
     """
-    return psycopg.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT,
-        row_factory=dict_row
-    )
+    MONGODB_URI = f"mongodb://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?authSource=admin"
+    return MongoClient(MONGODB_URI)
 
 def init_chat_history_table():
     """
     Khởi tạo bảng message trong database nếu chưa tồn tại
     Bảng này lưu trữ lịch sử chat bao gồm:
-    - ID tin nhắn (UUID)
+    - ID tin nhắn (ObjectId)
     - ID cuộc trò chuyện
     - Câu hỏi
     - Câu trả lời
     - Thời gian tạo
     """
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            # Enable UUID extension if not exists
-            cur.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"")
+    try:
+        client = get_db_connection()
+        db = client[DB_NAME]
+        
+        # Tạo collection nếu chưa tồn tại
+        if 'message' not in db.list_collection_names():
+            db.create_collection('message')
             
-            # Create table if not exists
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS message (
-                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                    thread_id VARCHAR(255) NOT NULL,
-                    question TEXT NOT NULL,
-                    answer TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Create index if not exists
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_message_thread_id 
-                ON message(thread_id)
-            """)
-        conn.commit()
+        # Tạo index cho thread_id
+        db.message.create_index('thread_id')
+        
+        print("Chat history table initialized successfully")
+    except Exception as e:
+        print(f"Error initializing chat history table: {str(e)}")
+    finally:
+        client.close()
 
 def save_chat_history(thread_id: str, question: str, answer: str) -> Dict:
     """
@@ -74,15 +62,21 @@ def save_chat_history(thread_id: str, question: str, answer: str) -> Dict:
     Returns:
         Dict: Thông tin lịch sử chat vừa được lưu
     """
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO message (thread_id, question, answer) VALUES (%s, %s, %s) RETURNING id::text",
-                (thread_id, question, answer)
-            )
-            result = cur.fetchone()
-        conn.commit()
-        return result['id']
+    try:
+        client = get_db_connection()
+        db = client[DB_NAME]
+        
+        message = {
+            'thread_id': thread_id,
+            'question': question,
+            'answer': answer,
+            'created_at': datetime.utcnow()
+        }
+        
+        result = db.message.insert_one(message)
+        return {'id': str(result.inserted_id)}
+    finally:
+        client.close()
 
 def get_recent_chat_history(thread_id: str, limit: int = 10) -> List[Dict]:
     """
@@ -95,24 +89,22 @@ def get_recent_chat_history(thread_id: str, limit: int = 10) -> List[Dict]:
     Returns:
         List[Dict]: Danh sách các tin nhắn gần đây
     """
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT 
-                    id::text,
-                    thread_id,
-                    question,
-                    answer,
-                    created_at
-                FROM message 
-                WHERE thread_id = %s 
-                ORDER BY created_at DESC 
-                LIMIT %s
-                """,
-                (thread_id, limit)
-            )
-            return cur.fetchall()
+    try:
+        client = get_db_connection()
+        db = client[DB_NAME]
+        
+        messages = list(db.message.find(
+            {'thread_id': thread_id},
+            {'_id': 1, 'thread_id': 1, 'question': 1, 'answer': 1, 'created_at': 1}
+        ).sort('created_at', -1).limit(limit))
+        
+        # Convert ObjectId to string for JSON serialization
+        for msg in messages:
+            msg['id'] = str(msg.pop('_id'))
+        
+        return messages
+    finally:
+        client.close()
 
 def format_chat_history(chat_history: List[Dict]) -> str:
     """

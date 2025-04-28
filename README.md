@@ -19,3 +19,7 @@
 - Step 6: Install dependencies: `pip install -r requirements.txt`
 - Step 7: Seed data vào database: `python app/database/seed.py`
 - Step 8: Run backend: `uvicorn main:app --reload --host 0.0.0.0 --port 8030`
+
+3. Noting
+- Tạo tài khoản và tracing project với langsmith và lấy api key của langsmith truyền `LANGCHAIN_API_KEY`
+- Đã set up model ở `ai_service.py` là `gpt-4o-mini`. Mọi người không đổi cấu hình của model 
