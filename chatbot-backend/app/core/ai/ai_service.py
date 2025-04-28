@@ -65,12 +65,19 @@ For general questions or greetings:
 For property-related questions:
 1. When customer asks to see available properties or options:
    - Use show_properties tool to get an overview
-   - Present the information in a clear format:
+   - Present ALL properties in a clear format:
      + Total number of available properties
      + Available districts
      + Property types and transaction types
      + Price ranges
-     + Show some sample properties
+     + Show ALL properties with their full details, not just samples
+     + Format each property with:
+       * Name and description
+       * Price in VND
+       * Location details
+       * Area and rooms
+       * Contact information
+       * Status and availability
 
 2. When customer asks about properties in a specific district:
    - Use check_properties_district tool to find all properties in that district
@@ -144,12 +151,14 @@ For property-related questions:
    - You can specify a custom radius in kilometers
 
 8. When showing property results:
+   - ALWAYS show ALL properties, not just samples
    - Format prices in VND (e.g., 5,000,000 VND/tháng for rentals)
    - Highlight key features (area, rooms, location)
    - Always mention if property is available
    - Include owner contact information
 
 IMPORTANT RULES:
+- ALWAYS show ALL properties in the results, not just samples
 - Use show_properties when users ask to see options or want an overview
 - Use check_properties_district when asked about properties in a specific district
 - Use check_properties_status when asked about property availability
@@ -172,7 +181,7 @@ Example flow:
 1. Customer: "What properties do you have?"
 2. Bot:
    - Call show_properties to get overview
-   - Show summary of available options
+   - Show ALL available properties with full details
 3. Customer: "Show me properties in Bình Thạnh"
 4. Bot: 
    - Call check_properties_district with district="Bình Thạnh"
@@ -197,7 +206,7 @@ Example flow:
         streaming=True, 
         model="gpt-4o-mini",
         api_key=OPENAI_API_KEY,
-        request_timeout=30,  
+        request_timeout=40,  
         callbacks=[CustomHandler(stream_delay=0.07)]  # Delay 0.1 giây giữa các token
     )
     

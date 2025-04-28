@@ -21,7 +21,7 @@ from datetime import datetime
 #         return get_product_by_name(product_name)
 
 class ShowPropertiesInput(BaseModel):
-    limit: Optional[int] = Field(default=10, description="Number of properties to show (default: 10)")
+    pass  # Remove limit parameter
 
 class ShowPropertiesTool(BaseTool):
     name: Annotated[str, Field(description="Tool name")] = "show_properties"
@@ -33,6 +33,7 @@ class ShowPropertiesTool(BaseTool):
     - Properties by type (room, apartment, house)
     - Price ranges available
     - Available transaction types (rent/sale)
+    - All available properties with full details
     
     Each property includes:
     - Basic info: id, name, description
@@ -47,7 +48,7 @@ class ShowPropertiesTool(BaseTool):
     """
     args_schema: type[BaseModel] = ShowPropertiesInput
 
-    def _run(self, limit: Optional[int] = 10) -> Dict:
+    def _run(self) -> Dict:
         try:
             # Get all available properties
             available_properties = get_properties_by_status("active")
@@ -60,7 +61,7 @@ class ShowPropertiesTool(BaseTool):
                     "property_types": [],
                     "transaction_types": [],
                     "price_range": {"min": 0, "max": 0},
-                    "sample_properties": []
+                    "properties": []
                 }
             
             # Get unique districts
@@ -77,9 +78,6 @@ class ShowPropertiesTool(BaseTool):
             min_price = min(prices) if prices else 0
             max_price = max(prices) if prices else 0
             
-            # Get sample properties (limited by input)
-            sample_properties = available_properties[:limit]
-            
             return {
                 "total_available": len(available_properties),
                 "districts_available": sorted(districts),
@@ -89,7 +87,7 @@ class ShowPropertiesTool(BaseTool):
                     "min": min_price,
                     "max": max_price
                 },
-                "sample_properties": sample_properties
+                "properties": available_properties  # Return all properties
             }
         except Exception as e:
             print(f"Error in ShowPropertiesTool: {str(e)}")
@@ -100,7 +98,7 @@ class ShowPropertiesTool(BaseTool):
                 "property_types": [],
                 "transaction_types": [],
                 "price_range": {"min": 0, "max": 0},
-                "sample_properties": []
+                "properties": []
             }
 
 class CheckPropertiesDistrictInput(BaseModel):
