@@ -1,0 +1,21 @@
+---
+- name: Deploy the frontend application
+  hosts: all
+  become: true
+  remote_user: congdat
+  vars:
+    container_image: ""
+
+  tasks:
+    - name: Create a frontend container
+      community.docker.docker_container:
+        name: frontend
+        image: "{{ container_image }}"
+        ports:
+          - "4000:4000"
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+          interval: 30s
+          retries: 3
+          start_period: 30s
+          timeout: 30s
