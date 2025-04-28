@@ -1,0 +1,133 @@
+@import "@scss/_mixins.scss";
+@import "@scss/variables.scss";
+
+.form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 350px;
+  margin-bottom: 8px;
+}
+
+.menu {
+  width: 300px;
+  max-height: 220px;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  display: flex;
+  overflow-y: auto;
+  overflow-x: hidden;
+  @include custom-scrollbar();
+}
+
+.hidden {
+  display: none;
+}
+
+.input {
+  width: calc(100% - 16px);
+  height: 50px;
+  font-size: 0.875rem;
+  padding: 2px 16px;
+  border: 1px solid darken($light-grey-color, 20%);
+  border-radius: 5px;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 8px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+
+  &Address {
+    width: 350px;
+  }
+}
+
+.icon {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  color: $dark-grey-color;
+  cursor: pointer;
+}
+
+.option {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 12px 8px;
+  gap: 8px;
+
+  &:hover {
+    background-color: $light-grey-color;
+  }
+}
+
+.action {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 4px 12px;
+  border-top: 1px solid $light-grey-color;
+
+  &Btn {
+    padding: 6px 12px;
+    border: 1px solid $dark-grey-color;
+    border-radius: 5px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    &:hover {
+      background-color: $light-grey-color;
+    }
+
+    &Primary {
+      background-color: $primary-color;
+      color: $primary-foreground-color;
+      border-color: $ring-color;
+
+      &:hover {
+        background-color: lighten($primary-color, 5%);
+      }
+    }
+  }
+}
+
+.title {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: $dark-grey-color;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.value {
+  width: 100%;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #2c2c2c;
+  font-weight: 600;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -30,8 +30,8 @@ export class PostService {
   async getPosts(getPostsDto: GetPostsDto, userId: number) {
     try {
       const {
-        page = 1,
-        limit = 10,
+        page,
+        limit,
         minPrice,
         maxPrice,
         minArea,
@@ -54,7 +54,6 @@ export class PostService {
         status: 'active',
       };
 
-      // Apply price range filter
       if (minPrice !== undefined || maxPrice !== undefined) {
         whereConditions.price = {};
         if (minPrice !== undefined) {
@@ -65,7 +64,6 @@ export class PostService {
         }
       }
 
-      // Apply area range filter
       if (minArea !== undefined || maxArea !== undefined) {
         whereConditions.area = {};
         if (minArea !== undefined) {
@@ -76,7 +74,11 @@ export class PostService {
         }
       }
 
-      // Apply property type filter - handle comma separated values like in MongoDB version
+      if (minBathrooms !== undefined) {
+        whereConditions.bathrooms = { [Op.gte]: minBathrooms };
+      }
+
+      // Only apply propertyType filter if it exists
       if (propertyType) {
         if (typeof propertyType === 'string' && propertyType.includes(',')) {
           const propertyTypes = propertyType.split(',');
@@ -86,12 +88,10 @@ export class PostService {
         }
       }
 
-      // Apply transaction type filter
       if (transactionType) {
         whereConditions.transactionType = transactionType;
       }
 
-      // Apply location filters
       if (province) {
         whereConditions.province = province;
       }
@@ -105,10 +105,8 @@ export class PostService {
       if (minBedrooms !== undefined) {
         whereConditions.bedrooms = { [Op.gte]: minBedrooms };
       }
-      if (minBathrooms !== undefined) {
-        whereConditions.bathrooms = { [Op.gte]: minBathrooms };
-      }
 
+      // Location-based filtering using radius search
       if (
         centerLat !== undefined &&
         centerLng !== undefined &&
@@ -125,8 +123,8 @@ export class PostService {
 
         whereConditions[Op.and] = literal(`${haversine} <= ${radius}`);
       }
-
-      if (bounds) {
+      // Fallback to bounding box search
+      else if (bounds) {
         const [minLat, minLng, maxLat, maxLng] = bounds.split(',').map(Number);
         whereConditions.latitude = { [Op.between]: [minLat, maxLat] };
         whereConditions.longitude = { [Op.between]: [minLng, maxLng] };
@@ -162,17 +160,30 @@ export class PostService {
           const plainPost = post.get({ plain: true });
           return {
             ...plainPost,
-            isFavorite: favoritePostIds.has(post.id)
+            isFavorite: favoritePostIds.has(post.id),
+            coordinates: {
+              type: 'Point',
+              coordinates: [Number(plainPost.longitude), Number(plainPost.latitude)]
+            }
           };
         });
       } else {
-        postsWithFavorites = rows.map(post => post.get({ plain: true }));
+        postsWithFavorites = rows.map(post => {
+          const plainPost = post.get({ plain: true });
+          return {
+            ...plainPost,
+            coordinates: {
+              type: 'Point',
+              coordinates: [Number(plainPost.longitude), Number(plainPost.latitude)]
+            }
+          };
+        });
       }
 
       return {
-        posts: postsWithFavorites,
+        data: postsWithFavorites,
         pagination: {
-          total: count,
+          total_records: count,
           current_page: page,
           page_size: limit,
           total_pages: Math.ceil(count / limit),
@@ -268,6 +279,18 @@ export class PostService {
 
         plainPost.isFavorite = !!favorite;
       }
+
+      plainPost.coordinates = {
+        type: 'Point',
+        coordinates: [Number(plainPost.longitude), Number(plainPost.latitude)]
+      };
+      
+      plainPost.address = {
+        province: plainPost.province,
+        district: plainPost.district,
+        ward: plainPost.ward,
+        street: plainPost.street
+      };
 
       return plainPost;
     } catch (error) {
