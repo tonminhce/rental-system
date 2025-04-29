@@ -8,6 +8,7 @@ from app.database.models import Property
 from decimal import Decimal
 import math
 from datetime import datetime
+from ..location_utils import LocationUtils
 
 # class ProductSearchInput(BaseModel):
 #     product_name: str = Field(..., description="The name of the product to search for")
@@ -255,8 +256,7 @@ class LocationBaseMixin:
         c = 2 * math.asin(math.sqrt(a))
         
         # Bán kính trái đất tại Việt Nam (km)
-        # Sử dụng bán kính chính xác hơn cho vĩ độ của TPHCM
-        r = 6378.137 - 21.385 * math.sin(math.radians(10.8231))  # Bán kính tại vĩ độ ~10.8°N
+        r = 6378.137 - 21.385 * math.sin(math.radians(10.8231))
         
         return round(c * r, 2)
 
@@ -270,17 +270,14 @@ class LocationBaseMixin:
         Returns:
             dict: Thời gian di chuyển theo từng phương tiện
         """
-        # Tốc độ trung bình (km/h) tại TPHCM
         speeds = {
             "walking": 5.0,      # Đi bộ
-            "bicycle": 12.0,     # Xe đạp
             "motorbike": 25.0,   # Xe máy (có tính đến tắc đường)
             "car": 20.0         # Ô tô (có tính đến tắc đường)
         }
         
         travel_times = {}
         for mode, speed in speeds.items():
-            # Tính thời gian theo phút
             time_hours = distance_km / speed
             time_minutes = int(time_hours * 60)
             travel_times[mode] = time_minutes
@@ -373,7 +370,6 @@ class LocationBaseMixin:
                 if not self.validate_coordinates(lat, lon):
                     continue
                 
-                # Sửa lại tọa độ nếu bị đảo ngược
                 lat, lon = self.fix_coordinates(lat, lon)
                 
                 # Tính khoảng cách
@@ -382,14 +378,8 @@ class LocationBaseMixin:
                 # Tính thời gian di chuyển
                 travel_times = self.calculate_travel_times(distance)
                 
-                # Format distance description
-                distance_desc = ""
-                if distance < 0.1:  # Less than 100m
-                    distance_desc = f"{int(distance * 1000)}m"
-                elif distance < 1:  # Less than 1km
-                    distance_desc = f"{int(distance * 1000)}m"
-                else:
-                    distance_desc = f"{distance:.1f}km"
+                # Format khoảng cách
+                distance_desc = f"{distance:.2f}km"
                 
                 property_with_distance = {
                     **prop,
@@ -399,15 +389,6 @@ class LocationBaseMixin:
                     "coordinates": {
                         "latitude": lat,
                         "longitude": lon
-                    },
-                    "distance_info": {
-                        "value": distance,
-                        "formatted": distance_desc,
-                        "category": "very_close" if distance < 0.5 else
-                                  "close" if distance < 1 else
-                                  "walkable" if distance < 2 else
-                                  "nearby" if distance < 5 else
-                                  "far"
                     }
                 }
                 
@@ -429,46 +410,35 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
     Returns ALL properties sorted by distance from the cathedral.
     
     Reference Point:
-    - Notre Dame Cathedral (10.779814, 106.699150)
+    - Cathedral Main Entrance: 10.779814°N, 106.699150°E
     - Address: 01 Công xã Paris, Bến Nghé, District 1, HCMC
     
     Each property includes:
-    - Distance from Notre Dame Cathedral in kilometers
-    - Travel times by different modes (walking, bicycle, motorbike, car)
-    - Basic info: id, name, description
-    - Price and details: price (in millions VND), area (m2), propertyType, transactionType, status
-    - Property features: bedrooms, bathrooms, area
-    - Location: street, ward, district, province, displayedAddress
-    - Contact: contactName, contactPhone
-    - Source: sourceUrl, postUrl
-    - Images: List of image URLs
-    - Distance info: distance_km, travel_times
-    
-    Use this tool when users want to find properties near Notre Dame Cathedral.
+    - Exact distance from cathedral in kilometers
+    - Travel times by different modes (walking, motorbike, car)
+    - Basic property information and features
+    - Price and contact details
     """
-    args_schema: type[BaseModel] = DucbaCheckingLocationInput
-
+    
     # Predefined coordinates for Notre Dame Cathedral
-    DUCBA_LAT: ClassVar[float] = 10.779814
-    DUCBA_LON: ClassVar[float] = 106.699150
-    DUCBA_ADDRESS: ClassVar[str] = "01 Công xã Paris, Bến Nghé, District 1, HCMC"
+    CATHEDRAL_LAT: ClassVar[float] = 10.779814
+    CATHEDRAL_LON: ClassVar[float] = 106.699150
+    CATHEDRAL_ADDRESS: ClassVar[str] = "01 Công xã Paris, Bến Nghé, District 1, HCMC"
 
     def _run(self) -> Dict:
-        # Lấy tất cả bất động sản đang hoạt động
         properties = get_properties_by_status("active")
         
-        # Xử lý và tính khoảng cách cho tất cả properties
         all_properties = self.process_properties_with_distance(
-            properties, self.DUCBA_LAT, self.DUCBA_LON
+            properties, self.CATHEDRAL_LAT, self.CATHEDRAL_LON
         )
         
         return {
             "reference_point": {
-                "name": "Nhà thờ Đức Bà",
-                "address": self.DUCBA_ADDRESS,
+                "name": "Notre Dame Cathedral",
+                "address": self.CATHEDRAL_ADDRESS,
                 "coordinates": {
-                    "lat": self.DUCBA_LAT,
-                    "lon": self.DUCBA_LON
+                    "lat": self.CATHEDRAL_LAT,
+                    "lon": self.CATHEDRAL_LON
                 }
             },
             "total_properties": len(all_properties),
@@ -478,57 +448,51 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
 class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
     name: Annotated[str, Field(description="Tool name")] = "tansonhat_checking_location"
     description: Annotated[str, Field(description="Tool description")] = """
-    Find properties near Tan Son Nhat Airport (Sân bay Tân Sơn Nhất).
+    Find properties near Tan Son Nhat Airport.
     Uses Haversine formula to calculate distances.
     Returns ALL properties sorted by distance from the airport.
     
     Reference Point:
-    - Tan Son Nhat Airport (10.818663, 106.654835)
-    - Address: Sân bay Tân Sơn Nhất, P.2, Q.Tân Bình, HCMC
+    - Main Terminal: 10.818663°N, 106.654835°E
+    - Address: Trường Sơn, P.2, Q.Tân Bình, HCMC
     
     Each property includes:
-    - Distance from Tan Son Nhat Airport in kilometers
-    - Travel times by different modes (walking, bicycle, motorbike, car)
-    - Basic info: id, name, description
-    - Price and details: price (in millions VND), area (m2), propertyType, transactionType, status
-    - Property features: bedrooms, bathrooms, area
-    - Location: street, ward, district, province, displayedAddress
-    - Contact: contactName, contactPhone
-    - Source: sourceUrl, postUrl
-    - Images: List of image URLs
-    - Distance info: distance_km, travel_times
-    
-    Use this tool when users want to find properties near Tan Son Nhat Airport.
+    - Exact distance from airport in kilometers
+    - Travel times by different modes (walking, motorbike, car)
+    - Basic property information and features
+    - Price and contact details
     """
-    args_schema: type[BaseModel] = TanSonNhatCheckingLocationInput
-
+    
     # Predefined coordinates for Tan Son Nhat Airport
-    # Using the center point of the airport instead of the main gate
-    TANSONHAT_LAT: ClassVar[float] = 10.818663  # Updated to airport center
-    TANSONHAT_LON: ClassVar[float] = 106.654835  # Updated to airport center
-    TANSONHAT_ADDRESS: ClassVar[str] = "Sân bay Tân Sơn Nhất, P.2, Q.Tân Bình, HCMC"
+    AIRPORT_LAT: ClassVar[float] = 10.818663
+    AIRPORT_LON: ClassVar[float] = 106.654835
+    AIRPORT_ADDRESS: ClassVar[str] = "Trường Sơn, P.2, Q.Tân Bình, HCMC"
 
     def _run(self) -> Dict:
-        # Lấy tất cả bất động sản đang hoạt động
         properties = get_properties_by_status("active")
         
-        # Xử lý và tính khoảng cách cho tất cả properties
         all_properties = self.process_properties_with_distance(
-            properties, self.TANSONHAT_LAT, self.TANSONHAT_LON
+            properties, self.AIRPORT_LAT, self.AIRPORT_LON
         )
         
         return {
             "reference_point": {
-                "name": "Sân bay Tân Sơn Nhất",
-                "address": self.TANSONHAT_ADDRESS,
+                "name": "Tan Son Nhat Airport",
+                "address": self.AIRPORT_ADDRESS,
                 "coordinates": {
-                    "lat": self.TANSONHAT_LAT,
-                    "lon": self.TANSONHAT_LON
+                    "lat": self.AIRPORT_LAT,
+                    "lon": self.AIRPORT_LON
                 }
             },
             "total_properties": len(all_properties),
             "properties": all_properties
         }
+
+class LocationCheckingInput(BaseModel):
+    landmark_type: str = Field(
+        default="tsn_main",
+        description="Type of landmark to check distance from. Options: tsn_main, tsn_domestic, tsn_international"
+    )
 
 class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
     name: Annotated[str, Field(description="Tool name")] = "university_checking_location"
