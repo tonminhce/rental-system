@@ -222,7 +222,13 @@ class CheckPropertiesPriceRangeTool(BaseTool):
         }
 
 class DucbaCheckingLocationInput(BaseModel):
-    pass  # Remove radius parameter
+    pass  # Remove all parameters since coordinates are predefined
+
+class TanSonNhatCheckingLocationInput(BaseModel):
+    pass  # Remove all parameters since coordinates are predefined
+
+class UniversityCheckingLocationInput(BaseModel):
+    university_name: str = Field(..., description="Name of the university to search properties around. Examples: HCMUS, Bách Khoa, HUTECH, UEH, etc.")
 
 class LocationBaseMixin:
     """
@@ -376,13 +382,32 @@ class LocationBaseMixin:
                 # Tính thời gian di chuyển
                 travel_times = self.calculate_travel_times(distance)
                 
+                # Format distance description
+                distance_desc = ""
+                if distance < 0.1:  # Less than 100m
+                    distance_desc = f"{int(distance * 1000)}m"
+                elif distance < 1:  # Less than 1km
+                    distance_desc = f"{int(distance * 1000)}m"
+                else:
+                    distance_desc = f"{distance:.1f}km"
+                
                 property_with_distance = {
                     **prop,
                     "distance_km": distance,
+                    "distance_desc": distance_desc,
                     "travel_times": travel_times,
                     "coordinates": {
                         "latitude": lat,
                         "longitude": lon
+                    },
+                    "distance_info": {
+                        "value": distance,
+                        "formatted": distance_desc,
+                        "category": "very_close" if distance < 0.5 else
+                                  "close" if distance < 1 else
+                                  "walkable" if distance < 2 else
+                                  "nearby" if distance < 5 else
+                                  "far"
                     }
                 }
                 
@@ -401,11 +426,15 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
     description: Annotated[str, Field(description="Tool description")] = """
     Find properties near Notre Dame Cathedral (Nhà thờ Đức Bà).
     Uses Haversine formula to calculate distances.
-    Returns ALL properties sorted by distance from the cathedral, including:
-    - Distance from Notre Dame Cathedral in kilometers
-    - Travel times by different modes (walking, bicycle, motorbike, car)
+    Returns ALL properties sorted by distance from the cathedral.
+    
+    Reference Point:
+    - Notre Dame Cathedral (10.779814, 106.699150)
+    - Address: 01 Công xã Paris, Bến Nghé, District 1, HCMC
     
     Each property includes:
+    - Distance from Notre Dame Cathedral in kilometers
+    - Travel times by different modes (walking, bicycle, motorbike, car)
     - Basic info: id, name, description
     - Price and details: price (in millions VND), area (m2), propertyType, transactionType, status
     - Property features: bedrooms, bathrooms, area
@@ -419,44 +448,47 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
     """
     args_schema: type[BaseModel] = DucbaCheckingLocationInput
 
+    # Predefined coordinates for Notre Dame Cathedral
+    DUCBA_LAT: ClassVar[float] = 10.779814
+    DUCBA_LON: ClassVar[float] = 106.699150
+    DUCBA_ADDRESS: ClassVar[str] = "01 Công xã Paris, Bến Nghé, District 1, HCMC"
+
     def _run(self) -> Dict:
-        # Tọa độ Nhà thờ Đức Bà
-        DUCBA_LAT = 10.779814
-        DUCBA_LON = 106.699150
-        
         # Lấy tất cả bất động sản đang hoạt động
         properties = get_properties_by_status("active")
         
         # Xử lý và tính khoảng cách cho tất cả properties
         all_properties = self.process_properties_with_distance(
-            properties, DUCBA_LAT, DUCBA_LON
+            properties, self.DUCBA_LAT, self.DUCBA_LON
         )
         
         return {
             "reference_point": {
                 "name": "Nhà thờ Đức Bà",
+                "address": self.DUCBA_ADDRESS,
                 "coordinates": {
-                    "lat": DUCBA_LAT,
-                    "lon": DUCBA_LON
+                    "lat": self.DUCBA_LAT,
+                    "lon": self.DUCBA_LON
                 }
             },
             "total_properties": len(all_properties),
-            "properties": all_properties  # Return all properties sorted by distance
+            "properties": all_properties
         }
-
-class TanSonNhatCheckingLocationInput(BaseModel):
-    pass  # Remove radius parameter
 
 class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
     name: Annotated[str, Field(description="Tool name")] = "tansonhat_checking_location"
     description: Annotated[str, Field(description="Tool description")] = """
     Find properties near Tan Son Nhat Airport (Sân bay Tân Sơn Nhất).
     Uses Haversine formula to calculate distances.
-    Returns ALL properties sorted by distance from the airport, including:
-    - Distance from Tan Son Nhat Airport in kilometers
-    - Travel times by different modes (walking, bicycle, motorbike, car)
+    Returns ALL properties sorted by distance from the airport.
+    
+    Reference Point:
+    - Tan Son Nhat Airport (10.818663, 106.654835)
+    - Address: Sân bay Tân Sơn Nhất, P.2, Q.Tân Bình, HCMC
     
     Each property includes:
+    - Distance from Tan Son Nhat Airport in kilometers
+    - Travel times by different modes (walking, bicycle, motorbike, car)
     - Basic info: id, name, description
     - Price and details: price (in millions VND), area (m2), propertyType, transactionType, status
     - Property features: bedrooms, bathrooms, area
@@ -470,70 +502,71 @@ class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
     """
     args_schema: type[BaseModel] = TanSonNhatCheckingLocationInput
 
+    # Predefined coordinates for Tan Son Nhat Airport
+    # Using the center point of the airport instead of the main gate
+    TANSONHAT_LAT: ClassVar[float] = 10.818663  # Updated to airport center
+    TANSONHAT_LON: ClassVar[float] = 106.654835  # Updated to airport center
+    TANSONHAT_ADDRESS: ClassVar[str] = "Sân bay Tân Sơn Nhất, P.2, Q.Tân Bình, HCMC"
+
     def _run(self) -> Dict:
-        # Tọa độ sân bay Tân Sơn Nhất
-        TANSONHAT_LAT = 10.817996728
-        TANSONHAT_LON = 106.651164062
-        
         # Lấy tất cả bất động sản đang hoạt động
         properties = get_properties_by_status("active")
         
         # Xử lý và tính khoảng cách cho tất cả properties
         all_properties = self.process_properties_with_distance(
-            properties, TANSONHAT_LAT, TANSONHAT_LON
+            properties, self.TANSONHAT_LAT, self.TANSONHAT_LON
         )
         
         return {
             "reference_point": {
                 "name": "Sân bay Tân Sơn Nhất",
+                "address": self.TANSONHAT_ADDRESS,
                 "coordinates": {
-                    "lat": TANSONHAT_LAT,
-                    "lon": TANSONHAT_LON
+                    "lat": self.TANSONHAT_LAT,
+                    "lon": self.TANSONHAT_LON
                 }
             },
             "total_properties": len(all_properties),
-            "properties": all_properties  # Return all properties sorted by distance
+            "properties": all_properties
         }
-
-class UniversityCheckingLocationInput(BaseModel):
-    university_name: str = Field(..., description="Name of the university and/or specific campus to search properties around")
 
 class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
     name: Annotated[str, Field(description="Tool name")] = "university_checking_location"
     description: Annotated[str, Field(description="Tool description")] = """
     Find properties near specified university campuses in Ho Chi Minh City.
     Uses Haversine formula to calculate distances.
-    Returns ALL properties sorted by distance from the selected campus, including:
-    - Distance from the university campus in kilometers
-    - Travel times by different modes (walking, bicycle, motorbike, car)
+    Returns ALL properties sorted by distance from the selected campus.
+    
+    Available Universities:
+    1. HCMUS (Đại học Khoa học Tự nhiên):
+       - Q5 Campus: 227 Nguyen Van Cu, District 5
+       - Thu Duc Campus: Quarter 6, Linh Trung, Thu Duc (part of VNU)
+    
+    2. HCMUT (Đại học Bách Khoa):
+       - Q10 Campus: 268 Ly Thuong Kiet, District 10
+       - Di An Campus: Dĩ An, Bình Dương (part of VNU)
+    
+    3. HUTECH (Đại học Công nghệ TP.HCM):
+       - Binh Thanh Campus: 475A Dien Bien Phu
+    
+    4. UEH (Đại học Kinh tế TP.HCM):
+       - District 3 Campus: 59C Nguyen Dinh Chieu
+    
+    5. VNU (Đại học Quốc gia):
+       - Thu Duc Campus: Linh Trung, Thu Duc
+       - Includes: HCMUS, HCMUT, UIT, USSH, IU, UEL
+       - KTX khu B: Dong Hoa, Di An, Binh Duong
     
     Each property includes:
+    - Distance from campus in kilometers
+    - Travel times by different modes (walking, bicycle, motorbike, car)
     - Basic info: id, name, description
-    - Price and details: price (in millions VND), area (m2), propertyType, transactionType, status
-    - Property features: bedrooms, bathrooms, area
-    - Location: street, ward, district, province, displayedAddress
-    - Contact: contactName, contactPhone
-    - Source: sourceUrl, postUrl
-    - Images: List of image URLs
-    - Distance info: distance_km, travel_times
-    
-    Available university campuses:
-    - HCMUS Q5 (Đại học Khoa học Tự nhiên - Cơ sở Quận 5): 227 Nguyen Van Cu, District 5
-    - HCMUT Q10 (Đại học Bách Khoa - Cơ sở Lý Thường Kiệt): 268 Ly Thuong Kiet, District 10
-    - HUTECH BT (Đại học Công nghệ TP.HCM - Cơ sở Điện Biên Phủ): 475A Dien Bien Phu, Binh Thanh
-    - UEH Q3 (Đại học Kinh tế TP.HCM - Cơ sở Nguyễn Đình Chiểu): 59C Nguyen Dinh Chieu, District 3
-    - HCMUTE TD (Đại học Sư phạm Kỹ thuật - Cơ sở Thủ Đức): 1 Vo Van Ngan, Thu Duc
-    - IU TD (Đại học Quốc tế - Cơ sở Thủ Đức): Quarter 6, Linh Trung Ward, Thu Duc
-    - UFM Q7 (Đại học Tài chính - Marketing - Cơ sở Quận 7): 2/4 Tran Xuan Soan, District 7
-    - VNU KTX B (Ký túc xá khu B - ĐHQG): Dong Hoa, Di An, Binh Duong
-    - VLU GV (Đại học Văn Lang - Cơ sở Gò Vấp): 69/68 Dang Thuy Tram, Go Vap
-    - HCMUE ADV (Đại học Sư phạm TP.HCM - Cơ sở An Dương Vương): 280 An Duong Vuong, District 5
-    - HCMUE LVS (Đại học Sư phạm TP.HCM - Cơ sở Lê Văn Sỹ): 222 Lê Văn Sỹ, Phường 14, Quận 3
-    - HCMUE LLQ (Đại học Sư phạm TP.HCM - Cơ sở Lạc Long Quân): 351 Lạc Long Quân, Phường 5, Quận 11
+    - Price and details: price (in millions VND), area (m2), propertyType, transactionType
+    - Location and contact information
     """
     args_schema: type[BaseModel] = UniversityCheckingLocationInput
 
-    # Dictionary of university campus coordinates
+    # Predefined university coordinates
     UNIVERSITIES: ClassVar[Dict[str, Dict[str, Any]]] = {
         "hcmus_q5": {
             "name": "Đại học Khoa học Tự nhiên - Cơ sở Quận 5",
@@ -559,24 +592,6 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
             "lat": 10.783300549788201,
             "lon": 106.69466826701431
         },
-        "hcmute_td": {
-            "name": "Đại học Sư phạm Kỹ thuật - Cơ sở Thủ Đức",
-            "address": "1 Võ Văn Ngân, Thủ Đức",
-            "lat": 10.850864203563647,
-            "lon": 106.77192382424722
-        },
-        "iu_td": {
-            "name": "Đại học Quốc tế - Cơ sở Thủ Đức",
-            "address": "Khu phố 6, Phường Linh Trung, Thủ Đức",
-            "lat": 10.877732266612055,
-            "lon": 106.80169467073344
-        },
-        "ufm_q7": {
-            "name": "Đại học Tài chính - Marketing - Cơ sở Quận 7",
-            "address": "2/4 Trần Xuân Soạn, Quận 7",
-            "lat": 10.752240594077142,
-            "lon": 106.71988755122759
-        },
         "vnu_ktx_b": {
             "name": "Ký túc xá khu B - ĐHQG",
             "address": "Đông Hòa, Dĩ An, Bình Dương",
@@ -593,60 +608,45 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
                 "khu phố đại học", "làng đại học",
                 "đại học quốc gia thủ đức", "đại học quốc gia dĩ an"
             ]
-        },
-        "vlu_gv": {
-            "name": "Đại học Văn Lang - Cơ sở Gò Vấp",
-            "address": "69/68 Đặng Thùy Trâm, Gò Vấp",
-            "lat": 10.827676581053456,
-            "lon": 106.70000433773774,
-            "aliases": ["văn lang", "vlu", "van lang go vap"]
-        },
-        "hcmue_adv": {
-            "name": "Đại học Sư phạm TP.HCM - Cơ sở An Dương Vương",
-            "address": "280 An Dương Vương, Quận 5",
-            "lat": 10.761081650813715,
-            "lon": 106.68255128006409,
-            "aliases": ["đại học sư phạm", "dhsp", "sư phạm an dương vương", "hcmue", "sư phạm cơ sở chính"]
-        },
-        "hcmue_lvs": {
-            "name": "Đại học Sư phạm TP.HCM - Cơ sở Lê Văn Sỹ",
-            "address": "222 Lê Văn Sỹ, Phường 14, Quận 3",
-            "lat": 10.785998895835074,
-            "lon": 106.67746491157694,
-            "aliases": ["sư phạm lê văn sỹ", "dhsp lê văn sỹ", "sư phạm cơ sở 2", "hcmue lê văn sỹ"]
-        },
-        "hcmue_llq": {
-            "name": "Đại học Sư phạm TP.HCM - Cơ sở Lạc Long Quân",
-            "address": "351 Lạc Long Quân, Phường 5, Quận 11",
-            "lat": 10.765301665949094,
-            "lon": 106.64494168197885,
-            "aliases": ["sư phạm lạc long quân", "dhsp lạc long quân", "sư phạm cơ sở 3", "hcmue lạc long quân"]
         }
     }
 
-    def _run(self, university_name: str) -> Dict:
-        # Tìm trường đại học phù hợp
-        search_key = university_name.lower().replace(" ", "").replace("-", "").replace("đ", "d")
+    def _find_matching_university(self, search_key: str) -> Optional[Dict[str, Any]]:
+        """
+        Tìm trường đại học phù hợp với từ khóa tìm kiếm
         
+        Args:
+            search_key (str): Từ khóa tìm kiếm (đã được chuẩn hóa)
+            
+        Returns:
+            Optional[Dict[str, Any]]: Thông tin trường đại học nếu tìm thấy
+        """
         # Special case for VNU/ĐHQG queries
         vnu_keywords = ["vnu", "dhqg", "daihocquocgia", "vietnam national university", "ktxkhub"]
         if any(keyword.lower() in search_key for keyword in vnu_keywords):
-            matched_university = self.UNIVERSITIES["vnu_ktx_b"]
-        else:
-            # Tìm campus phù hợp
-            matched_university = None
-            for key, univ in self.UNIVERSITIES.items():
-                if (key in search_key or 
-                    search_key in key.lower() or 
-                    search_key in univ["name"].lower().replace(" ", "").replace("-", "").replace("đ", "d") or
-                    (
-                        "aliases" in univ and 
-                        any(alias.lower().replace(" ", "") in search_key or 
-                            search_key in alias.lower().replace(" ", "")
-                            for alias in univ["aliases"])
-                    )):
-                    matched_university = univ
-                    break
+            return self.UNIVERSITIES["vnu_ktx_b"]
+            
+        # Tìm campus phù hợp
+        for key, univ in self.UNIVERSITIES.items():
+            if (key in search_key or 
+                search_key in key.lower() or 
+                search_key in univ["name"].lower().replace(" ", "").replace("-", "").replace("đ", "d") or
+                (
+                    "aliases" in univ and 
+                    any(alias.lower().replace(" ", "") in search_key or 
+                        search_key in alias.lower().replace(" ", "")
+                        for alias in univ["aliases"])
+                )):
+                return univ
+                
+        return None
+
+    def _run(self, university_name: str) -> Dict:
+        # Chuẩn hóa từ khóa tìm kiếm
+        search_key = university_name.lower().replace(" ", "").replace("-", "").replace("đ", "d")
+        
+        # Tìm trường đại học phù hợp
+        matched_university = self._find_matching_university(search_key)
         
         if not matched_university:
             return {
@@ -658,15 +658,15 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
             }
         
         # Lấy tọa độ trường
-        UNIV_LAT = matched_university["lat"]
-        UNIV_LON = matched_university["lon"]
+        univ_lat = matched_university["lat"]
+        univ_lon = matched_university["lon"]
         
         # Lấy tất cả bất động sản đang hoạt động
         properties = get_properties_by_status("active")
         
         # Xử lý và tính khoảng cách cho tất cả properties
         all_properties = self.process_properties_with_distance(
-            properties, UNIV_LAT, UNIV_LON
+            properties, univ_lat, univ_lon
         )
         
         return {
@@ -674,10 +674,11 @@ class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
                 "name": matched_university["name"],
                 "address": matched_university["address"],
                 "coordinates": {
-                    "lat": UNIV_LAT,
-                    "lon": UNIV_LON
-                }
+                    "lat": univ_lat,
+                    "lon": univ_lon
+                },
+                "note": matched_university.get("note", "")  # Add note if available
             },
             "total_properties": len(all_properties),
-            "properties": all_properties  # Return all properties sorted by distance
+            "properties": all_properties
         } 
