@@ -26,8 +26,8 @@ const StyledButton = styled((props) => <Button size="small" variant="outlined" c
 );
 
 export default function PriceSelect() {
-  const [bottomPrice, setBottomPrice] = useQueryParam("bp", withDefault(NumberParam, 0));
-  const [topPrice, setTopPrice] = useQueryParam("tp", withDefault(NumberParam, 0));
+  const [bottomPrice, setBottomPrice] = useQueryParam("minPrice", withDefault(NumberParam, 0));
+  const [topPrice, setTopPrice] = useQueryParam("maxPrice", withDefault(NumberParam, 0));
 
   const [priceRange, setPriceRange] = useState([bottomPrice, topPrice]);
   const [anchorEl, setAnchorEl] = React.useState(null);
