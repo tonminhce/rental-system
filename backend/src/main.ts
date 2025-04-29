@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './app/http-exception.filter';
 import { AllExceptionFilter } from './app/all-exception.filter';
+import { JwtExceptionFilter } from './shared/filters/jwt-exception.filter';
 import {
   SwaggerModule,
   DocumentBuilder,
@@ -22,6 +23,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new AllExceptionFilter());
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalFilters(new JwtExceptionFilter());
   app.enableCors({
     origin: configService.get<string>('CORS_ORIGIN').split(','), 
     credentials: true,

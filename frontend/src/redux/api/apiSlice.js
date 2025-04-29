@@ -17,23 +17,69 @@ const baseQuery = fetchBaseQuery({
 const baseQueryWithReAuthentication = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
 
-  // if the result is an error, and the error is a 401, try to refresh the token
-  if (result?.error?.originalStatus === 401) {
-    console.log("sending refresh token");
-    // refresh the token
-    const refreshResult = await baseQuery("/auth/refresh", api, extraOptions);
-    console.log("refreshResult", refreshResult);
-
-    if (refreshResult?.data) {
-      // store the new token in the store
-      api.dispatch(
-        setUserInfo({ ...auth, accessToken: refreshResult.data.accessToken })
+  // Check if the result is an error due to token expiration (401 status with TOKEN_EXPIRED code)
+  if (
+    result?.error?.status === 401 && 
+    result?.error?.data?.code === 'TOKEN_EXPIRED' && 
+    !args.url.includes('/auth/refresh-token')
+  ) {
+    console.log("Access token expired, attempting to refresh token");
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (!refreshToken) {
+      console.log("No refresh token available");
+      api.dispatch(removeUserInfo());
+      return result;
+    }
+    
+    try {
+      const refreshResult = await baseQuery(
+        {
+          url: '/auth/refresh-token',
+          method: 'POST',
+          body: { refreshToken }
+        }, 
+        api, 
+        extraOptions
       );
-      // if the refresh was successful, retry the initial request
-      result = await baseQuery(args, api, extraOptions);
-    } else {
-      // if the refresh failed, log the user out
-      console.log("refresh failed");
+      
+      if (refreshResult?.data?.data) {
+        const { token: newToken, refreshToken: newRefreshToken, user } = refreshResult.data.data;
+        
+        localStorage.setItem('accessToken', newToken);
+        localStorage.setItem('refreshToken', newRefreshToken);
+        
+        api.dispatch(
+          setUserInfo({ 
+            token: newToken,
+            refreshToken: newRefreshToken,
+            user: user || api.getState().auth.user
+          })
+        );
+        
+        const newHeaders = new Headers(args.headers);
+        newHeaders.set('Authorization', `Bearer ${newToken}`);
+        
+        result = await baseQuery(
+          {
+            ...args,
+            headers: newHeaders
+          }, 
+          api, 
+          extraOptions
+        );
+      } else {
+        console.log("Token refresh failed");
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        api.dispatch(removeUserInfo());
+      }
+    } catch (error) {
+      console.error("Error during token refresh:", error);
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
       api.dispatch(removeUserInfo());
     }
   }

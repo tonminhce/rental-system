@@ -4,3 +4,11 @@ export const transformPropertiesResponse = (response) => {
     pagination: response?.data?.pagination,
   };
 };
+
+
+export const transformFavouritePropertiesResponse = (response) => {
+  return {
+    properties: response?.data?.posts ?? [],
+    pagination: response?.data?.pagination,
+  };
+};
