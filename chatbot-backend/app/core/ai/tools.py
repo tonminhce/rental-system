@@ -348,43 +348,58 @@ class LocationBaseMixin:
                                       ref_lat: float, 
                                       ref_lon: float) -> List[Dict]:
         """
-        Xử lý danh sách bất động sản, tính khoảng cách và thời gian di chuyển
+        Process all properties with distance calculations, no filtering
         
         Args:
-            properties: Danh sách bất động sản
-            ref_lat, ref_lon: Tọa độ điểm tham chiếu
+            properties: List of properties
+            ref_lat, ref_lon: Reference point coordinates
             
         Returns:
-            List[Dict]: Danh sách properties đã được sắp xếp theo khoảng cách
+            List[Dict]: All properties with distance info, sorted by distance
         """
         all_properties = []
         
         for prop in properties:
             try:
                 if not prop.get("latitude") or not prop.get("longitude"):
+                    # For properties without coordinates, mark as unknown distance
+                    property_with_distance = {
+                        **prop,
+                        "distance_km": None,
+                        "distance_desc": "Distance unknown - No coordinates",
+                        "travel_times": None,
+                        "coordinates": None
+                    }
+                    all_properties.append(property_with_distance)
                     continue
                     
                 lat = float(prop["latitude"])
                 lon = float(prop["longitude"])
                 
                 if not self.validate_coordinates(lat, lon):
+                    property_with_distance = {
+                        **prop,
+                        "distance_km": None,
+                        "distance_desc": "Distance unknown - Invalid coordinates",
+                        "travel_times": None,
+                        "coordinates": {
+                            "latitude": lat,
+                            "longitude": lon
+                        }
+                    }
+                    all_properties.append(property_with_distance)
                     continue
                 
                 lat, lon = self.fix_coordinates(lat, lon)
                 
-                # Tính khoảng cách
+                # Calculate distance for all properties
                 distance = self.haversine_distance(ref_lat, ref_lon, lat, lon)
-                
-                # Tính thời gian di chuyển
                 travel_times = self.calculate_travel_times(distance)
-                
-                # Format khoảng cách
-                distance_desc = f"{distance:.2f}km"
                 
                 property_with_distance = {
                     **prop,
                     "distance_km": distance,
-                    "distance_desc": distance_desc,
+                    "distance_desc": f"{distance:.2f}km",
                     "travel_times": travel_times,
                     "coordinates": {
                         "latitude": lat,
@@ -394,13 +409,22 @@ class LocationBaseMixin:
                 
                 all_properties.append(property_with_distance)
                     
-            except (ValueError, TypeError):
-                continue
+            except (ValueError, TypeError) as e:
+                # For any other errors, include property with error note
+                property_with_distance = {
+                    **prop,
+                    "distance_km": None,
+                    "distance_desc": f"Distance calculation error: {str(e)}",
+                    "travel_times": None,
+                    "coordinates": None
+                }
+                all_properties.append(property_with_distance)
         
-        # Sắp xếp theo khoảng cách
-        all_properties.sort(key=lambda x: x["distance_km"])
-        
-        return all_properties
+        # Sort properties: those with valid distances first, sorted by distance
+        return sorted(
+            all_properties,
+            key=lambda x: (x["distance_km"] is None, x["distance_km"] if x["distance_km"] is not None else float('inf'))
+        )
 
 class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
     name: Annotated[str, Field(description="Tool name")] = "ducba_checking_location"
@@ -448,9 +472,9 @@ class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
 class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
     name: Annotated[str, Field(description="Tool name")] = "tansonhat_checking_location"
     description: Annotated[str, Field(description="Tool description")] = """
-    Find properties near Tan Son Nhat Airport.
+    Calculate distances from all properties to Tan Son Nhat Airport.
     Uses Haversine formula to calculate distances.
-    Returns ALL properties sorted by distance from the airport.
+    Returns ALL properties with their exact distance from the airport.
     
     Reference Point:
     - Main Terminal: 10.818663°N, 106.654835°E
@@ -458,9 +482,11 @@ class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
     
     Each property includes:
     - Exact distance from airport in kilometers
-    - Travel times by different modes (walking, motorbike, car)
-    - Basic property information and features
+    - Travel times by different modes
+    - Basic property information
     - Price and contact details
+    
+    Note: Shows ALL properties with their distances, no distance filtering
     """
     
     # Predefined coordinates for Tan Son Nhat Airport
