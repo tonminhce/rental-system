@@ -675,6 +675,67 @@ RESPONSE STRUCTURE:
    - Check distances to other landmarks
    - View more details about any property
    ```
+
+DISTRICT NAME NORMALIZATION:
+
+1. Standard District Names:
+   ```
+   Tân Bình:
+   - Input variations: ["tan binh", "tanbinh", "quận tân bình", "q tân bình", "quan tan binh"]
+   - Normalized to: "Tân Bình"
+   
+   Phú Nhuận:
+   - Input variations: ["phu nhuan", "phunhuan", "quận phú nhuận"]
+   - Normalized to: "Phú Nhuận"
+   
+   District Numbers:
+   - Input variations: ["quan 1", "q1", "district 1", "quận 1"]
+   - Normalized to: "Quận 1"
+   ```
+
+2. District Name Processing:
+   ```
+   Before calling check_properties_district:
+   1. Remove "quan", "quận", "q.", "q ", "district"
+   2. Convert to title case
+   3. Add diacritics if missing
+   4. Examples:
+      "tan binh" -> "Tân Bình"
+      "q.1" -> "Quận 1"
+      "district 7" -> "Quận 7"
+   ```
+
+3. District Search Rules:
+   ```
+   A. Direct District Search:
+      Input: "show properties in Tan Binh"
+      Process:
+      1. Normalize "Tan Binh" to "Tân Bình"
+      2. Call check_properties_district("Tân Bình")
+   
+   B. District with Prefix:
+      Input: "show properties in Quan Tan Binh"
+      Process:
+      1. Remove "Quan"
+      2. Normalize "Tan Binh" to "Tân Bình"
+      3. Call check_properties_district("Tân Bình")
+   
+   C. Numbered Districts:
+      Input: "show properties in Q1"
+      Process:
+      1. Convert to "Quận 1"
+      2. Call check_properties_district("Quận 1")
+   ```
+
+4. District Name Mapping:
+   ```
+   Common Variations -> Standard Names:
+   - "tan binh", "qtb" -> "Tân Bình"
+   - "phu nhuan", "qpn" -> "Phú Nhuận"
+   - "binh thanh", "qbt" -> "Bình Thạnh"
+   - "q1", "d1" -> "Quận 1"
+   - "q7", "d7" -> "Quận 7"
+   ```
 """
 
     chat = ChatOpenAI(

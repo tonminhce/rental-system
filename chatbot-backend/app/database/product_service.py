@@ -57,11 +57,23 @@ def get_properties_by_district(district: str) -> List[Dict]:
         client = get_db_connection()
         db = client[os.getenv('DB_NAME')]
         
-        # Sử dụng regex để tìm kiếm không phân biệt hoa thường
-        district_pattern = {'$regex': f'^{district}$', '$options': 'i'}
+        # Chuẩn hóa tên quận
+        district = district.strip()
         
+        # Xử lý các biến thể tên quận
+        district_variations = [
+            district,  # Tên gốc
+            district.lower(),  # Chữ thường
+            district.upper(),  # Chữ hoa
+            f"Quận {district}",  # Thêm prefix Quận
+            f"quận {district.lower()}",  # Thêm prefix quận
+            f"Quan {district}",  # Không dấu
+            f"quan {district.lower()}"  # Không dấu
+        ]
+        
+        # Query với nhiều biến thể tên quận
         results = list(db.rentals.find(
-            {'district': district_pattern},
+            {'district': {'$in': district_variations}},
             {
                 '_id': 0,
                 'id': 1,
