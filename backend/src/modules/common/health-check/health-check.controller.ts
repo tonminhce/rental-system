@@ -2,8 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { responseUtil } from 'src/shared/utils/response.util';
-import { Public } from 'src/decorator/public.decorator';
-import { loggerUtil } from 'src/shared/utils/log.util'
+import { Public } from 'src/shared/decorators/public.decorator';
 @ApiTags('health-check')
 @Controller('health-check')
 export class HealthCheckController {

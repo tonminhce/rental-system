@@ -1,0 +1,39 @@
+@import "@scss/_variables.scss";
+
+.owner {
+  &_container {
+    position: relative;
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    grid-template-areas:
+      "avatar name"
+      "avatar joined";
+    padding-bottom: 16px;
+    border-bottom: 1px solid $border-color;
+  }
+
+  &_avatar {
+    position: relative;
+    grid-area: avatar;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: contain;
+    overflow: hidden;
+  }
+
+  &_name {
+    grid-area: name;
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    font-weight: 500;
+    color: $secondary-foreground-color;
+  }
+
+  &_joined {
+    grid-area: joined;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    color: $muted-foreground-color;
+  }
+}
