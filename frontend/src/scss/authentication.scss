@@ -1,0 +1,140 @@
+@import "./_mixins";
+@import "./variables";
+
+.auth {
+  &_container {
+    width: 100%;
+    min-height: calc(100vh - 80px);
+    margin: 0 auto;
+    padding: 120px 32px;
+
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+
+    background: $bg-gradient-color;
+  }
+
+  &_banner {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  &_content {
+    flex: 1;
+  }
+
+  &_form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 16px;
+
+    &-container {
+      flex: 1;
+      max-width: 450px;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+
+      background-color: #fff;
+      box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+      padding: 12px 24px;
+      margin: 0 32px;
+
+      border-radius: 6px;
+    }
+
+    &-input {
+      width: 100%;
+      font-size: 1rem;
+
+      margin-top: 16px;
+      padding: 18px 12px;
+
+      background-color: transparent;
+
+      border: 1px solid $light-grey-color;
+      border-color: $input-color;
+      border-radius: $radius;
+      outline: $primary-color;
+
+      transition: all 0.3s ease-in-out;
+      box-shadow: rgba(182, 182, 182, 0.18) 0px 2px 2px 0px;
+
+      &:focus,
+      &:hover {
+        border: 1px solid $input-color;
+      }
+
+      &--error {
+        border: 1px solid $destructive-color;
+
+        &:focus,
+        &:hover {
+          border: 1px solid $destructive-color;
+        }
+      }
+    }
+
+    &-message {
+      width: 100%;
+      font-size: 0.9375rem;
+      line-height: 1.5rem;
+      // font-weight: 500;
+
+      &--forgot-password {
+        font-size: 1rem;
+        color: $secondary-foreground-color;
+        text-decoration: none;
+        transition: all 0.3s ease-in-out;
+        margin-bottom: 6px;
+        &:hover {
+          color: $primary-color;
+        }
+      }
+
+      &--error {
+        color: $destructive-color;
+      }
+    }
+
+    &-seperator {
+      width: 80%;
+      height: 1px;
+      background-color: $light-grey-color;
+      margin: 20px 0;
+    }
+  }
+
+  &_submit-btn {
+    background-color: $primary-color;
+    color: $primary-foreground-color;
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px 24px;
+    font-size: 1.125rem;
+
+    &:hover {
+      background-color: darken($primary-color, 5%);
+    }
+
+    &--loading {
+      background-color: $secondary-color;
+      color: $secondary-foreground-color;
+    }
+  }
+}
+
+.btn {
+  &:hover {
+    cursor: pointer;
+    background-color: darken($secondary-color, 5%);
+  }
+}

@@ -42,7 +42,7 @@ module.exports = {
         },
         onUpdate: 'CASCADE',
         onDelete: 'RESTRICT',
-        defaultValue: 1  // Default to 'user' role (ID: 1)
+        defaultValue: 1 
       },
       created_at: {
         allowNull: false,

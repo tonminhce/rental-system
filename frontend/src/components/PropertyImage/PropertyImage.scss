@@ -1,0 +1,25 @@
+@import "@scss/_variables.scss";
+
+$blur: 100px;
+
+.propertyImage {
+  &_container {
+    position: relative;
+    border: 1px solid $border-color;
+    overflow: hidden;
+  }
+
+  &_main {
+    object-fit: contain;
+    z-index: 1;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+
+  &_overlay {
+    position: absolute;
+    object-fit: cover;
+    filter: blur($blur);
+    -webkit-filter: blur($blur);
+  }
+}
