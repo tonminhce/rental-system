@@ -16,6 +16,7 @@ import { encodeToMD5 } from '../../shared/utils/md5.util';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { SequelizeErrorUtil } from 'src/utils/sequelize-error.util';
 
 const _serviceName = 'AuthService';
@@ -32,7 +33,6 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
   ) {
-    // Kiểm tra xem model đã được inject đúng chưa
     loggerUtil.info(`${_serviceName} initialized with models:`, {
       hasUserModel: !!this.userModel,
       hasRoleModel: !!this.roleModel,
@@ -391,5 +391,66 @@ export class AuthService {
       secret: tokenSecret,
       expiresIn: +ms(tokenExpiration) / 1000,
     });
+  }
+
+  async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+    loggerUtil.info(
+      `${_serviceName}.changePassword begin for userId: ${userId}`,
+    );
+
+    try {
+      // Confirm that newPassword and confirmPassword match
+      if (changePasswordDto.newPassword !== changePasswordDto.confirmPassword) {
+        throw new HttpException('New password and confirm password do not match', HttpStatus.BAD_REQUEST);
+      }
+
+      // Find the user
+      const user = await this.userModel.findByPk(userId);
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Verify current password
+      const currentHashedPassword = encodeToMD5(changePasswordDto.currentPassword);
+      if (currentHashedPassword !== user.password) {
+        throw new HttpException('Current password is incorrect', HttpStatus.BAD_REQUEST);
+      }
+
+      // Hash and set new password
+      const newHashedPassword = encodeToMD5(changePasswordDto.newPassword);
+      
+      // Check if new password is the same as current password
+      if (newHashedPassword === user.password) {
+        throw new HttpException('New password cannot be the same as current password', HttpStatus.BAD_REQUEST);
+      }
+
+      // Update the password
+      await user.update({ password: newHashedPassword });
+      
+      // Revoke all existing refresh tokens (optional security measure)
+      try {
+        await this.revokeAllRefreshTokens(userId);
+      } catch (e) {
+        loggerUtil.warn(
+          `${_serviceName}.changePassword could not revoke old refresh tokens, but continuing: ${e.message}`,
+        );
+      }
+
+      loggerUtil.info(
+        `${_serviceName}.changePassword successful for userId: ${userId}`,
+      );
+
+      return { message: 'Password changed successfully' };
+    } catch (error) {
+      loggerUtil.error(`${_serviceName}.changePassword error: ${error.message}`, error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      if (error instanceof Error) {
+        const message = SequelizeErrorUtil.formatSequelizeError(error);
+        throw new HttpException(message, HttpStatus.BAD_REQUEST);
+      }
+      throw error;
+    }
   }
 }

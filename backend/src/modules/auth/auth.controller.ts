@@ -4,9 +4,11 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { responseUtil } from '../../shared/utils/response.util';
 import { Public } from '../../shared/decorators/public.decorator';
 import { JwtAuthGuard } from '../../shared/guards/jwt.guard';
+import { RequestContext } from '../../common/request-context';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -69,6 +71,23 @@ export class AuthController {
     
     return responseUtil.success({
       message: 'Logout successful!'
+    });
+  }
+
+  @ApiBearerAuth()
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Change user password' })
+  @Post('change-password')
+  async changePassword(@Body() changePasswordDto: ChangePasswordDto) {
+    const user = RequestContext.get('user');
+    if (!user || !user.id) {
+      return responseUtil.error(401, 'User not authenticated', {});
+    }
+
+    const result = await this.authService.changePassword(user.id, changePasswordDto);
+
+    return responseUtil.success({
+      message: result.message,
     });
   }
 }

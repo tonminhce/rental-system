@@ -19,7 +19,7 @@ function LoginPage() {
     try {
       const response = await login(values).unwrap();
       setSubmitting(false);
-      
+
       dispatch(loginSuccess(response.data));
       redirect();
     } catch (error) {
