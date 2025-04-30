@@ -1,0 +1,23 @@
+{
+    "gender": {
+        "Male": 1,
+        "Female": 0
+    },
+    "lifestyle": {
+        "Clean": 3,
+        "Normal": 2,
+        "Messy": 1
+    },
+    "personality": {
+        "Introvert": 3,
+        "Extrovert": 2
+    },
+    "pets": {
+        "true": 2,
+        "false": 0
+    },
+    "smoking": {
+        "true": 1,
+        "false": 0
+    }
+}
