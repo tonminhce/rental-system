@@ -5,14 +5,14 @@ export default () => ({
   APP_DESCRIPTION: process.env.npm_package_description || 'grab-app',
   APP_VERSION: process.env.npm_package_version || 'grab-app',
 
-  APP_PORT: parseInt(process.env.PORT, 10) || 3000,
+  APP_PORT: parseInt(process.env.APP_PORT, 10) || 8080,
   APP_PREFIX: process.env.APP_PREFIX || 'api',
 
   DB_PORT: process.env.DB_PORT || 3306,
-  DB_HOST_READ: process.env.DB_HOST_READ || 'localhost',
-  DB_HOST_WRITE: process.env.DB_HOST_WRITE || 'localhost',
-  DB_USER: process.env.DB_USER || 'root',
-  DB_PASSWORD: process.env.DB_PASSWORD || 'root',
+  DB_HOST_READ: process.env.DB_HOST_READ || '127.0.0.1',
+  DB_HOST_WRITE: process.env.DB_HOST_WRITE || '127.0.0.1',
+  DB_USER: process.env.DB_USER || 'grab_user',
+  DB_PASSWORD: process.env.DB_PASSWORD || 'grab_pwd',
   DB_NAME: process.env.DB_NAME || 'grab_mysql',
 
   SWAGGER_PATH: 'document',
