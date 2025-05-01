@@ -5,6 +5,7 @@ import {
     Body,
     Request,
     ParseIntPipe,
+    Post,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { RoommateService } from './roommate.service';
@@ -56,6 +57,7 @@ export class RoommateController {
 
     @ApiOperation({ summary: 'Create user profile for roommate matching' })
     @ApiBearerAuth()
+    @Post()
     async createProfile(
         @Body() createUserProfileDto: CreateUserProfileDto,
         @Request() req,
