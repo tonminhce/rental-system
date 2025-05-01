@@ -28,6 +28,16 @@ export class RoommateService {
         return profile;
     }
 
+    async getProfileByUserId(userId: number): Promise<UserProfile> {
+        const profile = await this.userProfileModel.findOne({
+            where: {
+                userId: { [Op.eq]: userId },
+            },
+        });
+        if (!profile) throw new NotFoundException('Profile not found for this user');
+        return profile;
+    }
+
     async createProfile(
         userId: number,
         createUserProfileDto: CreateUserProfileDto,
@@ -42,8 +52,6 @@ export class RoommateService {
 
         return profile;
     }
-
-
 
     private calculateTotalScore(profile: Partial<UserProfile>): number {
         let score = 0;
