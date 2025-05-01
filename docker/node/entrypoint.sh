@@ -44,6 +44,12 @@ fi
 npx sequelize-cli db:migrate
 
 #---------------------------------
+# Run seed
+#---------------------------------
+echo "[INFO] Seeding is running ........."
+npx sequelize-cli db:seed:all --seeders-path src/database/seeders
+
+#---------------------------------
 # Start app
 #---------------------------------
 echo "[INFO] ${APP_NAME} is starting ........."
