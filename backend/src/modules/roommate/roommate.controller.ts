@@ -11,6 +11,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { RoommateService } from './roommate.service';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { responseUtil } from 'src/shared/utils/response.util';
+import { Public } from 'src/shared/decorators/public.decorator';
 
 
 @ApiTags('Roommate')
@@ -20,6 +21,7 @@ export class RoommateController {
 
     @ApiOperation({ summary: 'Get all user profiles (roommate)' })
     @ApiBearerAuth()
+    @Public()
     @Get()
     async getAllProfiles(): Promise<any> {
         const profiles = await this.roommateService.getAllProfiles();
