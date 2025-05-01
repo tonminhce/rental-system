@@ -19,6 +19,7 @@ export default function SignUpPage() {
     try {
       const response = await signup(values).unwrap();
       setSubmitting(false);
+      
       dispatch(setUserInfo(response.data));
       redirect();
     } catch (error) {
