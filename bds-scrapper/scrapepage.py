@@ -158,11 +158,14 @@ def scrape_page(urls: list[str]):
                 "date": "",
                 "expire": "",
                 "benefit": "",
+                "frontview": "",
+                "movetime": "",
                 "interior": "" ,
                 "address": "",
                 "lattitude": "",
                 "longitude": "",
-                "user": ""
+                "user": "",
+                "img": []
             }
             page_data["title"] = driver.find_element(By.CSS_SELECTOR, "h1[class*='re__pr-title pr-title js__pr-title']").text
             page_data["address"] = driver.find_element(By.CSS_SELECTOR, "span[class*='re__pr-short-description js__pr-address']").text
@@ -170,9 +173,10 @@ def scrape_page(urls: list[str]):
             lat, lng = concat_coordinate(map_url)
             page_data["lattitude"] = lat
             page_data["longitude"] = lng
-            page_data["user"] = driver.find_elements(By.CSS_SELECTOR, "div[class*='re__agent-infor re__agent-name']")[0].text
+            page_data["user"] = driver.find_elements(By.CSS_SELECTOR, "a[class*='re__contact-name']")[1].text
             list_main_ele =  driver.find_elements(By.CSS_SELECTOR, "div[class*='re__pr-short-info-item js__pr-short-info-item']")
-            
+            img_container = driver.find_element(By.CSS_SELECTOR, "div[class*='re__pr-media-slide js__pr-media-slide']")
+            page_data["img"] = [li.find_element(By.CSS_SELECTOR, "img").get_attribute('src') for li in img_container.find_elements(By.CSS_SELECTOR, "li")]
             for main_ele in list_main_ele:
                 val = main_ele.find_element(By.CSS_SELECTOR, "span[class*='value']").text
                 key = main_ele.find_element(By.CSS_SELECTOR, "span[class*='title']").text 
@@ -195,14 +199,17 @@ def scrape_page(urls: list[str]):
                     "re__icon-size" : "area",
                     "re__icon-money": "price",
                     "re__icon-bedroom": "bedroom",
+                    "re__icon-front-view": "frontview",
                     "re__icon-bath": "bathroom",
                     "re__icon-apartment": "floor",
                     "re__icon-benefit": "benefit",
+                    "re__icon-clock": "movetime",
                     "re__icon-interior": "interior" 
                 }
                 if key != None:
-                    k_2 = list_dict[key]
-                    page_data[k_2] = val
+                    k_2 = list_dict.get(key)
+                    if k_2 != None:
+                        page_data[k_2] = val
 
             dates_sec = driver.find_elements(By.CSS_SELECTOR, "div[class*='re__pr-short-info-item js__pr-config-item']")
             for date_ele in dates_sec:

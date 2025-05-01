@@ -25,10 +25,14 @@ export class PostService {
     private rentalImageModel: typeof RentalImage,
     @InjectModel(FavoriteList)
     private favoriteListModel: typeof FavoriteList,
-  ) { }
+  ) {}
 
   async getPosts(getPostsDto: GetPostsDto, userId: number) {
     try {
+      loggerUtil.info(`${_serviceName}.getPosts start`, {
+        getPostsDto,
+        userId,
+      });
       const {
         page,
         limit,
@@ -106,7 +110,6 @@ export class PostService {
         whereConditions.bedrooms = { [Op.gte]: minBedrooms };
       }
 
-      // Location-based filtering using radius search
       if (
         centerLat !== undefined &&
         centerLng !== undefined &&
@@ -115,19 +118,39 @@ export class PostService {
         const haversine = `
           (
             6371 * acos(
-              cos(radians(${centerLat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${centerLng})) + 
-              sin(radians(${centerLat})) * sin(radians(latitude))
+              cos(radians(${centerLat})) * cos(radians(longitude)) * cos(radians(latitude) - radians(${centerLng})) + 
+              sin(radians(${centerLat})) * sin(radians(longitude))
             )
           )
         `;
 
         whereConditions[Op.and] = literal(`${haversine} <= ${radius}`);
-      }
-      // Fallback to bounding box search
-      else if (bounds) {
+      } else if (bounds) {
         const [minLat, minLng, maxLat, maxLng] = bounds.split(',').map(Number);
         whereConditions.latitude = { [Op.between]: [minLat, maxLat] };
         whereConditions.longitude = { [Op.between]: [minLng, maxLng] };
+      }
+
+      loggerUtil.info(`${_serviceName}.getPosts querying database`, {
+        whereConditions,
+        limit,
+        offset,
+      });
+
+      // Add distance calculation for sorting if center coordinates are provided
+      const orderClause = [];
+      if (centerLat !== undefined && centerLng !== undefined) {
+        const distanceCalculation = literal(`
+          (
+            6371 * acos(
+              cos(radians(${centerLat})) * cos(radians(longitude)) * cos(radians(latitude) - radians(${centerLng})) + 
+              sin(radians(${centerLat})) * sin(radians(longitude))
+            )
+          )
+        `);
+        orderClause.push([distanceCalculation, 'ASC']);
+      } else {
+        orderClause.push(['createdAt', 'DESC']);
       }
 
       const { rows, count } = await this.rentalPostModel.findAndCountAll({
@@ -140,46 +163,61 @@ export class PostService {
         ],
         limit,
         offset,
-        order: [['createdAt', 'DESC']],
+        order: orderClause,
         distinct: true,
       });
 
       let postsWithFavorites: any[] = [];
       if (userId) {
+        loggerUtil.info(
+          `${_serviceName}.getPosts fetching favorites for user`,
+          { userId },
+        );
         const favorites = await this.favoriteListModel.findAll({
           where: {
             userId,
             rentalId: {
-              [Op.in]: rows.map(post => post.id)
-            }
-          }
+              [Op.in]: rows.map((post) => post.id),
+            },
+          },
         });
 
-        const favoritePostIds = new Set(favorites.map(fav => fav.rentalId));
-        postsWithFavorites = rows.map(post => {
+        const favoritePostIds = new Set(favorites.map((fav) => fav.rentalId));
+
+        postsWithFavorites = rows.map((post) => {
           const plainPost = post.get({ plain: true });
           return {
             ...plainPost,
             isFavorite: favoritePostIds.has(post.id),
             coordinates: {
               type: 'Point',
-              coordinates: [Number(plainPost.longitude), Number(plainPost.latitude)]
-            }
+              coordinates: [
+                Number(plainPost.longitude),
+                Number(plainPost.latitude),
+              ],
+            },
           };
         });
       } else {
-        postsWithFavorites = rows.map(post => {
+        postsWithFavorites = rows.map((post) => {
           const plainPost = post.get({ plain: true });
           return {
             ...plainPost,
             coordinates: {
               type: 'Point',
-              coordinates: [Number(plainPost.longitude), Number(plainPost.latitude)]
-            }
+              coordinates: [
+                Number(plainPost.longitude),
+                Number(plainPost.latitude),
+              ],
+            },
           };
         });
       }
 
+      loggerUtil.info(`${_serviceName}.getPosts completed`, {
+        totalPosts: count,
+        returnedPosts: postsWithFavorites.length,
+      });
       return {
         data: postsWithFavorites,
         pagination: {
@@ -190,7 +228,10 @@ export class PostService {
         },
       };
     } catch (error) {
-      loggerUtil.error(`${_serviceName}.getPosts error: ${error.message}`, error);
+      loggerUtil.error(
+        `${_serviceName}.getPosts error: ${error.message}`,
+        error,
+      );
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);
@@ -201,6 +242,11 @@ export class PostService {
 
   async getFavoritePosts(userId: number, page: number, limit: number) {
     try {
+      loggerUtil.info(`${_serviceName}.getFavoritePosts start`, {
+        userId,
+        page,
+        limit,
+      });
       const offset = (page - 1) * limit;
 
       const { rows, count } = await this.rentalPostModel.findAndCountAll({
@@ -228,10 +274,14 @@ export class PostService {
         return {
           ...plainPost,
           isFavorite: true,
-          favorites: undefined
+          favorites: undefined,
         };
       });
 
+      loggerUtil.info(`${_serviceName}.getFavoritePosts completed`, {
+        totalFavorites: count,
+        returnedPosts: posts.length,
+      });
       return {
         posts,
         pagination: {
@@ -242,7 +292,10 @@ export class PostService {
         },
       };
     } catch (error) {
-      loggerUtil.error(`${_serviceName}.getFavoritePosts error: ${error.message}`, error);
+      loggerUtil.error(
+        `${_serviceName}.getFavoritePosts error: ${error.message}`,
+        error,
+      );
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);
@@ -253,6 +306,7 @@ export class PostService {
 
   async getPost(id: number, userId: number | null) {
     try {
+      loggerUtil.info(`${_serviceName}.getPost start`, { id, userId });
       const post = await this.rentalPostModel.findByPk(id, {
         include: [
           {
@@ -263,6 +317,7 @@ export class PostService {
       });
 
       if (!post) {
+        loggerUtil.warn(`${_serviceName}.getPost post not found`, { id });
         throw new NotFoundException(`Post with ID ${id} not found`);
       }
 
@@ -270,6 +325,10 @@ export class PostService {
 
       // Add favorite status if user is logged in
       if (userId) {
+        loggerUtil.info(`${_serviceName}.getPost checking favorite status`, {
+          id,
+          userId,
+        });
         const favorite = await this.favoriteListModel.findOne({
           where: {
             rentalId: id,
@@ -282,19 +341,23 @@ export class PostService {
 
       plainPost.coordinates = {
         type: 'Point',
-        coordinates: [Number(plainPost.longitude), Number(plainPost.latitude)]
+        coordinates: [Number(plainPost.longitude), Number(plainPost.latitude)],
       };
-      
+
       plainPost.address = {
         province: plainPost.province,
         district: plainPost.district,
         ward: plainPost.ward,
-        street: plainPost.street
+        street: plainPost.street,
       };
 
+      loggerUtil.info(`${_serviceName}.getPost completed`, { id });
       return plainPost;
     } catch (error) {
-      loggerUtil.error(`${_serviceName}.getPost error: ${error.message}`, error);
+      loggerUtil.error(
+        `${_serviceName}.getPost error: ${error.message}`,
+        error,
+      );
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);
@@ -305,6 +368,10 @@ export class PostService {
 
   async createPost(createPostDto: CreatePostDto, userId: number) {
     try {
+      loggerUtil.info(`${_serviceName}.createPost start`, {
+        createPostDto,
+        userId,
+      });
       const { images, ...postData } = createPostDto;
 
       const post = await this.rentalPostModel.create({
@@ -321,9 +388,15 @@ export class PostService {
 
         await this.rentalImageModel.bulkCreate(imageRecords);
       }
+      loggerUtil.info(`${_serviceName}.createPost completed`, {
+        postId: post.id,
+      });
       return this.getPost(post.id, userId);
     } catch (error) {
-      loggerUtil.error(`${_serviceName}.createPost error: ${error.message}`, error);
+      loggerUtil.error(
+        `${_serviceName}.createPost error: ${error.message}`,
+        error,
+      );
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);
@@ -332,12 +405,13 @@ export class PostService {
     }
   }
 
-
-  async addFavorite(id: number, userId: number): Promise<"created" | "existed"> {
+  async addFavorite(id: number, userId: number) {
     try {
+      loggerUtil.info(`${_serviceName}.addFavorite start`, { id, userId });
       const post = await this.rentalPostModel.findByPk(id);
 
       if (!post) {
+        loggerUtil.warn(`${_serviceName}.addFavorite post not found`, { id });
         throw new NotFoundException(`Post with ID ${id} not found`);
       }
 
@@ -347,19 +421,30 @@ export class PostService {
           userId,
         },
       });
-      // if post already in user's favorite list -> return "existed"
-      if (existingFavorite) {
-        return "existed";
-      }
-      // if don't -> add post to user's favorite list and return "created"
-      await this.favoriteListModel.create({
-        rentalId: id,
-        userId,
-      });
-      return "created";
 
+      if (!existingFavorite) {
+        loggerUtil.info(`${_serviceName}.addFavorite creating new favorite`, {
+          id,
+          userId,
+        });
+        await this.favoriteListModel.create({
+          rentalId: id,
+          userId,
+        });
+      } else {
+        loggerUtil.info(`${_serviceName}.addFavorite favorite already exists`, {
+          id,
+          userId,
+        });
+      }
+
+      loggerUtil.info(`${_serviceName}.addFavorite completed`, { id, userId });
+      return true;
     } catch (error) {
-      loggerUtil.error(`${_serviceName}.addFavorite error: ${error.message}`, error);
+      loggerUtil.error(
+        `${_serviceName}.addFavorite error: ${error.message}`,
+        error,
+      );
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);
@@ -370,6 +455,7 @@ export class PostService {
 
   async removeFavorite(id: number, userId: number) {
     try {
+      loggerUtil.info(`${_serviceName}.removeFavorite start`, { id, userId });
       const favorite = await this.favoriteListModel.findOne({
         where: {
           rentalId: id,
@@ -378,12 +464,28 @@ export class PostService {
       });
 
       if (favorite) {
+        loggerUtil.info(`${_serviceName}.removeFavorite deleting favorite`, {
+          id,
+          userId,
+        });
         await favorite.destroy();
+      } else {
+        loggerUtil.info(`${_serviceName}.removeFavorite favorite not found`, {
+          id,
+          userId,
+        });
       }
 
+      loggerUtil.info(`${_serviceName}.removeFavorite completed`, {
+        id,
+        userId,
+      });
       return true;
     } catch (error) {
-      loggerUtil.error(`${_serviceName}.removeFavorite error: ${error.message}`, error);
+      loggerUtil.error(
+        `${_serviceName}.removeFavorite error: ${error.message}`,
+        error,
+      );
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);

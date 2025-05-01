@@ -11,6 +11,7 @@ import { Message } from './entities/message.entity';
 import { FavoriteList } from './entities/favorite-list.entity';
 import { Role } from './entities/role.entity';
 import { UserProfile } from './entities/user-profile.entity';
+import { RefreshToken } from './entities/refresh-token.entity';
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { UserProfile } from './entities/user-profile.entity';
       ChatRoomMember,
       Message,
       FavoriteList,
-      UserProfile
+      UserProfile,
+      RefreshToken,
     ]),
   ],
   exports: [SequelizeModule],

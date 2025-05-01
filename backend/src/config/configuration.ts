@@ -17,4 +17,10 @@ export default () => ({
 
   SWAGGER_PATH: 'document',
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:4000',
+
+  // JWT Configuration
+  TOKEN_SECRET: process.env.TOKEN_SECRET || '***REDACTED***',
+  TOKEN_EXPIRATION: process.env.TOKEN_EXPIRATION || '1h',
+  REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET || '***REDACTED***',
+  REFRESH_TOKEN_EXPIRATION: process.env.REFRESH_TOKEN_EXPIRATION || '7d',
 });
