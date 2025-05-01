@@ -1,4 +1,12 @@
-import { Body, Controller, HttpCode, Post, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  UseGuards,
+  UnauthorizedException,
+  Request,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -25,7 +33,7 @@ export class AuthController {
       message: 'Sign up successful!',
       user: result.user,
       token: result.token,
-      refreshToken: result.refreshToken
+      refreshToken: result.refreshToken,
     });
   }
 
@@ -40,7 +48,7 @@ export class AuthController {
       message: 'Login successful!',
       user: result.user,
       token: result.token,
-      refreshToken: result.refreshToken
+      refreshToken: result.refreshToken,
     });
   }
 
@@ -54,7 +62,7 @@ export class AuthController {
     return responseUtil.success({
       message: 'Token refreshed successfully!',
       token: result.token,
-      refreshToken: result.refreshToken
+      refreshToken: result.refreshToken,
     });
   }
 
@@ -64,13 +72,13 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout user and revoke refresh token' })
   @Post('logout')
   async logout(@Request() req, @Body() body: { refreshToken?: string }) {
-    const userId = req.user.id;
+    const userId = this._getUserIdFromContext();
     const refreshToken = body.refreshToken;
-    
+
     await this.authService.logout(userId, refreshToken);
-    
+
     return responseUtil.success({
-      message: 'Logout successful!'
+      message: 'Logout successful!',
     });
   }
 
@@ -79,15 +87,23 @@ export class AuthController {
   @ApiOperation({ summary: 'Change user password' })
   @Post('change-password')
   async changePassword(@Body() changePasswordDto: ChangePasswordDto) {
-    const user = RequestContext.get('user');
-    if (!user || !user.id) {
-      return responseUtil.error(401, 'User not authenticated', {});
-    }
+    const userId = this._getUserIdFromContext();
 
-    const result = await this.authService.changePassword(user.id, changePasswordDto);
+    const result = await this.authService.changePassword(
+      userId,
+      changePasswordDto,
+    );
 
     return responseUtil.success({
       message: result.message,
     });
+  }
+
+  private _getUserIdFromContext(): number {
+    const user = RequestContext.get('user');
+    if (!user) {
+      throw new UnauthorizedException('User not found in request context');
+    }
+    return user.id;
   }
 }
