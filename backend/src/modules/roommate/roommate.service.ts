@@ -31,13 +31,17 @@ export class RoommateService {
         userId: number,
         createUserProfileDto: CreateUserProfileDto,
     ): Promise<UserProfile> {
-        // Nếu đã có profile thì update, không thì create new
+        const totalScore = this.calculateTotalScore(createUserProfileDto);
+
         const [profile, created] = await this.userProfileModel.upsert({
             ...createUserProfileDto,
             userId,
+            totalScore, // Update total score after created profile
         });
+
         return profile;
     }
+
 
 
     private calculateTotalScore(profile: Partial<UserProfile>): number {
