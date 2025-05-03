@@ -11,7 +11,7 @@ module.exports = {
         name: 'Mogi Crawler',
         email: 'mogi@gmail.com',
         phone: '1234567890',
-        password: '***REDACTED***', 
+        password: '***REDACTED***',
         role_id: 2,
         created_at: new Date(),
         updated_at: new Date()
@@ -29,7 +29,16 @@ module.exports = {
         name: 'Property Owner',
         email: 'owner@example.com',
         phone: '1122334455',
-        password: 'owner123', 
+        password: 'owner123',
+        role_id: 2,
+        created_at: new Date(),
+        updated_at: new Date()
+      },
+      {
+        name: 'Quoc Anh',
+        email: 'qa@gmail.com',
+        phone: '1122334455',
+        password: '***REDACTED***', // abc@123
         role_id: 2,
         created_at: new Date(),
         updated_at: new Date()
