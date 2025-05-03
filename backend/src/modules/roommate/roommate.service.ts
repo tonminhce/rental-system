@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { UserProfile } from 'src/database/entities/user-profile.entity';
+import { User } from 'src/database/entities/user.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
@@ -13,6 +14,8 @@ export class RoommateService {
     constructor(
         @InjectModel(UserProfile)
         private userProfileModel: typeof UserProfile,
+        @InjectModel(User)
+        private userModel: typeof User,
     ) {
         const configPath = path.resolve(__dirname, '../../config/profile-weight-config.json');
         this.weightConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -96,23 +99,23 @@ export class RoommateService {
     }
 
     async getRoommateSuggestions(userId: number, topN = 5): Promise<UserProfile[]> {
-      
+
         const currentUser = await this.userProfileModel.findOne({
             where: {
                 userId: { [Op.eq]: userId },
             },
         });
-     
+
         if (!currentUser) {
             throw new Error('User profile not found');
         }
 
         const allProfiles = await this.userProfileModel.findAll({
-            where: {
-                userId: { [Op.ne]: userId }, // Exclude current user
-            },
+            where: { userId: { [Op.ne]: userId } },
+            include: [{ model: this.userModel, attributes: ['name', 'email', 'phone'] }],
         });
-       
+
+
         const scoredProfiles = allProfiles.map(profile => ({
             profile,
             similarity: this.calculateSimilarityScore(currentUser, profile),

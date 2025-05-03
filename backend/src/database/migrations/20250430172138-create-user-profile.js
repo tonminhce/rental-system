@@ -58,6 +58,11 @@ module.exports = {
         allowNull: false,
         defaultValue: 0,
       },
+      avatar_url: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        defaultValue: 'https://gravatar.com/avatar/099a18e2464167981425de46035aa0ae?s=400&d=mp&r=x'
+      },
       created_at: {
         type: Sequelize.DATE,
         allowNull: false,
