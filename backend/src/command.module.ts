@@ -11,6 +11,7 @@ import { ChatRoomMember } from './database/entities/chat-room-member.entity';
 import { Message } from './database/entities/message.entity';
 import { FavoriteList } from './database/entities/favorite-list.entity';
 import { Role } from './database/entities/role.entity';
+import { UserProfile } from './database/entities/user-profile.entity';
 
 @Module({
   imports: [
@@ -37,7 +38,8 @@ import { Role } from './database/entities/role.entity';
             ChatRoom,
             ChatRoomMember,
             Message,
-            FavoriteList
+            FavoriteList,
+            UserProfile
           ],
           logging: (msg) => {
             // const logger = new Logger();

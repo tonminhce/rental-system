@@ -12,6 +12,10 @@
       {
         "include": "**/*.ejs",
         "outDir": "./dist"
+      },
+      {
+        "include": "config/profile-weight-config.json",
+        "outDir": "dist"
       }
     ]
   }
