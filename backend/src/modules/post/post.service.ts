@@ -25,7 +25,7 @@ export class PostService {
     private rentalImageModel: typeof RentalImage,
     @InjectModel(FavoriteList)
     private favoriteListModel: typeof FavoriteList,
-  ) {}
+  ) { }
 
   async getPosts(getPostsDto: GetPostsDto, userId: number) {
     try {
@@ -174,7 +174,6 @@ export class PostService {
         });
 
         const favoritePostIds = new Set(favorites.map(fav => fav.rentalId));
-        
         postsWithFavorites = rows.map(post => {
           const plainPost = post.get({ plain: true });
           return {
@@ -301,7 +300,7 @@ export class PostService {
             userId,
           },
         });
-        
+
         plainPost.isFavorite = !!favorite;
       }
 
@@ -360,7 +359,8 @@ export class PostService {
     }
   }
 
-  async addFavorite(id: number, userId: number) {
+
+  async addFavorite(id: number, userId: number): Promise<"created" | "existed"> {
     try {
       loggerUtil.info(`${_serviceName}.addFavorite start`, { id, userId });
       const post = await this.rentalPostModel.findByPk(id);
@@ -377,18 +377,20 @@ export class PostService {
         },
       });
 
-      if (!existingFavorite) {
-        loggerUtil.info(`${_serviceName}.addFavorite creating new favorite`, { id, userId });
-        await this.favoriteListModel.create({
-          rentalId: id,
-          userId,
-        });
-      } else {
-        loggerUtil.info(`${_serviceName}.addFavorite favorite already exists`, { id, userId });
+      // if post already in user's favorite list -> return "existed"
+      if (existingFavorite) {
+        return "existed";
       }
+      // if don't -> add post to user's favorite list and return "created"
+      await this.favoriteListModel.create({
+        rentalId: id,
+        userId,
+      });
+      return "created";
 
       loggerUtil.info(`${_serviceName}.addFavorite completed`, { id, userId });
       return true;
+
     } catch (error) {
       loggerUtil.error(`${_serviceName}.addFavorite error: ${error.message}`, error);
       if (error instanceof Error) {

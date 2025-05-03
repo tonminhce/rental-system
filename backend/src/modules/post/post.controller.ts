@@ -11,7 +11,7 @@ import { RequestContext } from '../../common/request-context';
 @ApiTags('Posts')
 @Controller('posts')
 export class PostController {
-  constructor(private readonly postService: PostService) {}
+  constructor(private readonly postService: PostService) { }
 
   @ApiOperation({ summary: 'Get all posts with filters and pagination' })
   @Public()
@@ -28,6 +28,7 @@ export class PostController {
 
   @ApiOperation({ summary: 'Get favorite posts of the logged-in user' })
   @ApiBearerAuth()
+
   @Get('favourites')
   async getFavoritePosts(@Query('page') page = 1, @Query('limit') limit = 10) {
     const user = RequestContext.get('user');
@@ -78,8 +79,15 @@ export class PostController {
   @Post(':id/favourites')
   async addFavorite(@Param('id') id: number, @Request() req) {
     const userId = req.user.id;
+    const result = await this.postService.addFavorite(id, userId);
+    // if post existed in user's favorite list
+    if (result === "existed") {
+      return responseUtil.success({
+        message: 'This post is already in your favorites',
+      });
+    }
+    // if don't
     await this.postService.addFavorite(id, userId);
-
     return responseUtil.success({
       message: 'Post added to favorites',
     });
