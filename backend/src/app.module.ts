@@ -15,6 +15,7 @@ import { JwtAuthGuard } from './shared/guards/jwt.guard';
 import { SetLoginUserGloballyMiddleware } from "./middleware/set-login-user-globally.middleware";
 import { Logger } from './shared/utils/log.util'
 import { RoommateModule } from './modules/roommate/roommate.module';
+import { BookingModule } from './modules/booking/booking.module';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { RoommateModule } from './modules/roommate/roommate.module';
     DatabaseModule,
     AuthModule,
     PostModule,
-    RoommateModule
+    RoommateModule,
+    BookingModule
   ],
   providers: [
     Logger,

@@ -10,6 +10,7 @@ import { Message } from 'src/database/entities/message.entity';
 import { FavoriteList } from 'src/database/entities/favorite-list.entity';
 import { Role } from 'src/database/entities/role.entity';
 import { UserProfile } from 'src/database/entities/user-profile.entity';
+import { Booking } from 'src/database/entities/booking.entity';
 
 export const databaseConfig = (
   configService: ConfigService,
@@ -42,7 +43,8 @@ export const databaseConfig = (
       ChatRoomMember,
       Message,
       FavoriteList,
-      UserProfile
+      UserProfile,
+      Booking
     ],
   };
 };

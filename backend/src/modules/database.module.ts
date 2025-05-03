@@ -13,6 +13,7 @@ import { Message } from '../database/entities/message.entity';
 import { FavoriteList } from '../database/entities/favorite-list.entity';
 import { Role } from '../database/entities/role.entity';
 import { UserProfile } from 'src/database/entities/user-profile.entity';
+import { Booking } from 'src/database/entities/booking.entity';
 
 @Module({
   imports: [
@@ -32,7 +33,8 @@ import { UserProfile } from 'src/database/entities/user-profile.entity';
       ChatRoomMember,
       Message,
       FavoriteList,
-      UserProfile
+      UserProfile,
+      Booking
     ]),
   ],
   exports: [SequelizeModule],
