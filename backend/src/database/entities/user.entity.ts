@@ -3,6 +3,7 @@ import { Message } from './message.entity';
 import { FavoriteList } from './favorite-list.entity';
 import { ChatRoomMember } from './chat-room-member.entity';
 import { Role } from './role.entity'
+import { Booking } from './booking.entity';
 
 @Table({
   tableName: 'users',
@@ -61,4 +62,7 @@ export class User extends Model<User> {
 
   @HasMany(() => ChatRoomMember, 'user_id')
   chatRoomMembers: ChatRoomMember[];
+  
+  @HasMany(() => Booking, 'userId')
+  bookings: Booking[];
 }

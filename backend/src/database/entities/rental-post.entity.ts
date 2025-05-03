@@ -1,6 +1,7 @@
 import { Table, Column, Model, DataType, HasMany } from 'sequelize-typescript';
 import { RentalImage } from './rental-image.entity';
 import { FavoriteList } from './favorite-list.entity';
+import { Booking } from './booking.entity';
 
 @Table({
   tableName: 'rental_posts',
@@ -147,4 +148,7 @@ export class RentalPost extends Model<RentalPost> {
 
   @HasMany(() => FavoriteList, 'rental_id')
   favorites: FavoriteList[];
+
+  @HasMany(() => Booking, 'postId')
+  bookings: Booking[];
 } 
