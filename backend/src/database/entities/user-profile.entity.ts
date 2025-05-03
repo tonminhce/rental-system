@@ -59,6 +59,13 @@ export class UserProfile extends Model<UserProfile> {
     totalScore: number; // Total score calculated from above field
 
     @Column({
+        type: DataType.STRING,
+        allowNull: true,
+        field: 'avatar_url',
+    })
+    avatarUrl: string;
+
+    @Column({
         type: DataType.DATE,
         allowNull: false,
         defaultValue: DataType.NOW,

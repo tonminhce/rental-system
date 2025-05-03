@@ -1,5 +1,5 @@
-import { IsEnum, IsBoolean, IsInt, Matches } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum, IsBoolean, IsInt, IsOptional, IsString, Matches, IsUrl } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateUserProfileDto {
     @ApiProperty({ enum: ['Male', 'Female'], example: 'Male' })
@@ -37,4 +37,10 @@ export class CreateUserProfileDto {
         message: 'bedTime must be in HH:mm format',
     })
     bedTime: string;
+
+    @ApiPropertyOptional({ type: String, example: 'https://example.com/avatar.jpg', description: 'URL to user avatar image' })
+    @IsOptional()
+    @IsString()
+    @IsUrl({}, { message: 'avatarUrl must be a valid URL' })
+    avatarUrl?: string;
 }
