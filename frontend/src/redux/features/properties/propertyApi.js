@@ -1,5 +1,5 @@
 import baseQueryWithAuth from "@/redux/baseQueryWithAuth";
-import { transformPropertiesResponse } from "@/redux/transform";
+import { transformPropertiesResponse, transformFavouritePropertiesResponse } from "@/redux/transform";
 import { createApi } from "@reduxjs/toolkit/query/react";
 
 export const propertyApi = createApi({
@@ -39,7 +39,7 @@ export const propertyApi = createApi({
       query: () => ({
         url: "/posts/favourites",
       }),
-      transformResponse: transformPropertiesResponse,
+      transformResponse: transformFavouritePropertiesResponse,
     }),
   }),
 });

@@ -4,6 +4,7 @@ import { UserProfile } from 'src/database/entities/user-profile.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
+import { Op } from 'sequelize';
 
 @Injectable()
 export class RoommateService {
@@ -27,18 +28,30 @@ export class RoommateService {
         return profile;
     }
 
+    async getProfileByUserId(userId: number): Promise<UserProfile> {
+        const profile = await this.userProfileModel.findOne({
+            where: {
+                userId: { [Op.eq]: userId },
+            },
+        });
+        if (!profile) throw new NotFoundException('Profile not found for this user');
+        return profile;
+    }
+
     async createProfile(
         userId: number,
         createUserProfileDto: CreateUserProfileDto,
     ): Promise<UserProfile> {
-        // Nếu đã có profile thì update, không thì create new
+        const totalScore = this.calculateTotalScore(createUserProfileDto);
+
         const [profile, created] = await this.userProfileModel.upsert({
             ...createUserProfileDto,
             userId,
+            totalScore, // Update total score after created profile
         });
+
         return profile;
     }
-
 
     private calculateTotalScore(profile: Partial<UserProfile>): number {
         let score = 0;
@@ -64,14 +77,17 @@ export class RoommateService {
         let scoreB = this.calculateTotalScore(profileB);
 
         if (Math.abs(profileA.age - profileB.age) <= 1) {
+            scoreA += 1;
             scoreB += 1;
         }
 
         if (this.getTimeGapInHours(profileA.wakeUpTime, profileB.wakeUpTime) <= 1) {
+            scoreA += 1;
             scoreB += 1;
         }
 
         if (this.getTimeGapInHours(profileA.bedTime, profileB.bedTime) <= 1) {
+            scoreA += 1;
             scoreB += 1;
         }
 
@@ -80,17 +96,23 @@ export class RoommateService {
     }
 
     async getRoommateSuggestions(userId: number, topN = 5): Promise<UserProfile[]> {
-        const currentUser = await this.userProfileModel.findOne({ where: { userId } });
+      
+        const currentUser = await this.userProfileModel.findOne({
+            where: {
+                userId: { [Op.eq]: userId },
+            },
+        });
+     
         if (!currentUser) {
             throw new Error('User profile not found');
         }
 
         const allProfiles = await this.userProfileModel.findAll({
             where: {
-                userId: { $ne: userId }, // exclude current user
+                userId: { [Op.ne]: userId }, // Exclude current user
             },
         });
-
+       
         const scoredProfiles = allProfiles.map(profile => ({
             profile,
             similarity: this.calculateSimilarityScore(currentUser, profile),

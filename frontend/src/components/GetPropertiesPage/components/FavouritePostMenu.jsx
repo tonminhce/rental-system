@@ -1,9 +1,8 @@
 import { useGetFavouritesQuery, useRemoveFromFavouriteMutation } from "@/redux/features/properties/propertyApi";
-import { CloseOutlined, DeleteOutline, FavoriteBorderOutlined } from "@mui/icons-material";
+import { CloseOutlined, FavoriteBorderOutlined } from "@mui/icons-material";
 import { Menu, Divider, Stack, Typography, CardMedia, Box, Button, Link, IconButton } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import Image from "next/image";
-import NextLink from "next/link";
 import { useEffect } from "react";
 
 function NoFavouritePostContent() {
@@ -25,7 +24,7 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
       {properties.map((property) => (
         <Stack
           direction="row"
-          key={property._id}
+          key={property.id}
           py={1}
           sx={{
             textDecoration: "none",
@@ -41,13 +40,13 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
           }}
         >
           <Box style={{ position: "relative", height: "80px", width: "100px" }}>
-            <Image src={property.thumbnail} width={100} height={80} alt={property.name} />
+            <Image src={property?.images[0]?.url} width={100} height={80} alt={property.name} />
           </Box>
-          <Typography key={property._id} variant="body2" ml={1} mr={3}>
+          <Typography key={property.id} variant="body2" ml={1} mr={3}>
             {property.name}
           </Typography>
           <CloseOutlined
-            onClick={() => onDeleteFavourite(property._id)}
+            onClick={() => onDeleteFavourite(property.id)}
             className="delete-icon"
             sx={{
               display: "none",
@@ -58,16 +57,6 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
           />
         </Stack>
       ))}
-      <Divider sx={{ my: 1 }} />
-
-      <Link
-        sx={{ margin: "6px auto 0", fontWeight: "roboto" }}
-        component={NextLink}
-        underline="none"
-        href="/favourites"
-      >
-        View all posts
-      </Link>
     </>
   );
 }
@@ -120,7 +109,6 @@ export default function FavouritePostMenu({ anchorEl, open, onCancel }) {
         </Typography>
 
         <Divider sx={{ my: 1 }} />
-
         {data && data?.properties?.length > 0 ? (
           <FavouritePostsContent properties={data.properties} onDeleteFavourite={handleDeleteFavourite} />
         ) : (

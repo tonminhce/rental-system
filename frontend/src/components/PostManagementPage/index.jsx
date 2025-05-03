@@ -1,12 +1,12 @@
 "use client";
 import { useDeletePostMutation, useGetMyPropertiesQuery } from "@/redux/features/landlord/api";
-import { DeleteOutline, EditNoteOutlined, VisibilityOffOutlined } from "@mui/icons-material";
-import { Box, Chip, IconButton, Stack, Tooltip, Typography, Snackbar } from "@mui/material";
+import { Box, Chip, Typography, Snackbar } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
 import NoRowsOverlay from "./components/NoRowsOverlay";
 import ActionButtons from "./components/ActonButtons";
 import ConfirmDialog from "../ConfirmDialog";
+import Image from "next/image";
 
 const columns = [
   { field: "id", headerName: "ID", width: 60 },
@@ -16,7 +16,7 @@ const columns = [
     headerName: "Thumbnail",
     width: 120,
     renderCell: (params) => (
-      <img width={100} height={100} style={{ paddingTop: 10, paddingBottom: 10 }} src={params.value} />
+      <Image width={100} height={100} style={{ paddingTop: 10, paddingBottom: 10 }} src={params.value} />
     ),
   },
   {
@@ -37,7 +37,7 @@ const columns = [
     sortable: false,
     width: 150,
     renderCell: (params) => {
-      return <ActionButtons postTitle={params.row.name} postId={params.row.postId} refetch={() => {}} />;
+      return <ActionButtons postTitle={params.row.name} postId={params.row.postId} refetch={() => { }} />;
     },
     disableClickEventBubbling: true,
   },
@@ -103,7 +103,7 @@ const PostManagementPage = () => {
 
   const rows = (data?.properties ?? []).map((property, index) => ({
     id: index + 1 + pagination.page * pagination.pageSize,
-    postId: property._id,
+    postId: property.id,
     thumbnail: property.thumbnail,
     name: property.name,
     status: "Active",
