@@ -29,6 +29,7 @@ export class PostService {
 
   async getPosts(getPostsDto: GetPostsDto, userId: number) {
     try {
+      loggerUtil.info(`${_serviceName}.getPosts start`, { getPostsDto, userId });
       const {
         page,
         limit,
@@ -106,7 +107,6 @@ export class PostService {
         whereConditions.bedrooms = { [Op.gte]: minBedrooms };
       }
 
-      // Location-based filtering using radius search
       if (
         centerLat !== undefined &&
         centerLng !== undefined &&
@@ -115,19 +115,36 @@ export class PostService {
         const haversine = `
           (
             6371 * acos(
-              cos(radians(${centerLat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${centerLng})) + 
-              sin(radians(${centerLat})) * sin(radians(latitude))
+              cos(radians(${centerLat})) * cos(radians(longitude)) * cos(radians(latitude) - radians(${centerLng})) + 
+              sin(radians(${centerLat})) * sin(radians(longitude))
             )
           )
         `;
 
         whereConditions[Op.and] = literal(`${haversine} <= ${radius}`);
       }
-      // Fallback to bounding box search
       else if (bounds) {
         const [minLat, minLng, maxLat, maxLng] = bounds.split(',').map(Number);
         whereConditions.latitude = { [Op.between]: [minLat, maxLat] };
         whereConditions.longitude = { [Op.between]: [minLng, maxLng] };
+      }
+
+      loggerUtil.info(`${_serviceName}.getPosts querying database`, { whereConditions, limit, offset });
+      
+      // Add distance calculation for sorting if center coordinates are provided
+      const orderClause = [];
+      if (centerLat !== undefined && centerLng !== undefined) {
+        const distanceCalculation = literal(`
+          (
+            6371 * acos(
+              cos(radians(${centerLat})) * cos(radians(longitude)) * cos(radians(latitude) - radians(${centerLng})) + 
+              sin(radians(${centerLat})) * sin(radians(longitude))
+            )
+          )
+        `);
+        orderClause.push([distanceCalculation, 'ASC']);
+      } else {
+        orderClause.push(['createdAt', 'DESC']);
       }
 
       const { rows, count } = await this.rentalPostModel.findAndCountAll({
@@ -140,12 +157,13 @@ export class PostService {
         ],
         limit,
         offset,
-        order: [['createdAt', 'DESC']],
+        order: orderClause,
         distinct: true,
       });
 
       let postsWithFavorites: any[] = [];
       if (userId) {
+        loggerUtil.info(`${_serviceName}.getPosts fetching favorites for user`, { userId });
         const favorites = await this.favoriteListModel.findAll({
           where: {
             userId,
@@ -180,6 +198,7 @@ export class PostService {
         });
       }
 
+      loggerUtil.info(`${_serviceName}.getPosts completed`, { totalPosts: count, returnedPosts: postsWithFavorites.length });
       return {
         data: postsWithFavorites,
         pagination: {
@@ -201,6 +220,7 @@ export class PostService {
 
   async getFavoritePosts(userId: number, page: number, limit: number) {
     try {
+      loggerUtil.info(`${_serviceName}.getFavoritePosts start`, { userId, page, limit });
       const offset = (page - 1) * limit;
 
       const { rows, count } = await this.rentalPostModel.findAndCountAll({
@@ -232,6 +252,7 @@ export class PostService {
         };
       });
 
+      loggerUtil.info(`${_serviceName}.getFavoritePosts completed`, { totalFavorites: count, returnedPosts: posts.length });
       return {
         posts,
         pagination: {
@@ -253,6 +274,7 @@ export class PostService {
 
   async getPost(id: number, userId: number | null) {
     try {
+      loggerUtil.info(`${_serviceName}.getPost start`, { id, userId });
       const post = await this.rentalPostModel.findByPk(id, {
         include: [
           {
@@ -263,6 +285,7 @@ export class PostService {
       });
 
       if (!post) {
+        loggerUtil.warn(`${_serviceName}.getPost post not found`, { id });
         throw new NotFoundException(`Post with ID ${id} not found`);
       }
 
@@ -270,6 +293,7 @@ export class PostService {
 
       // Add favorite status if user is logged in
       if (userId) {
+        loggerUtil.info(`${_serviceName}.getPost checking favorite status`, { id, userId });
         const favorite = await this.favoriteListModel.findOne({
           where: {
             rentalId: id,
@@ -292,6 +316,7 @@ export class PostService {
         street: plainPost.street
       };
 
+      loggerUtil.info(`${_serviceName}.getPost completed`, { id });
       return plainPost;
     } catch (error) {
       loggerUtil.error(`${_serviceName}.getPost error: ${error.message}`, error);
@@ -305,6 +330,7 @@ export class PostService {
 
   async createPost(createPostDto: CreatePostDto, userId: number) {
     try {
+      loggerUtil.info(`${_serviceName}.createPost start`, { createPostDto, userId });
       const { images, ...postData } = createPostDto;
 
       const post = await this.rentalPostModel.create({
@@ -321,6 +347,7 @@ export class PostService {
 
         await this.rentalImageModel.bulkCreate(imageRecords);
       }
+      loggerUtil.info(`${_serviceName}.createPost completed`, { postId: post.id });
       return this.getPost(post.id, userId);
     } catch (error) {
       loggerUtil.error(`${_serviceName}.createPost error: ${error.message}`, error);
@@ -335,9 +362,11 @@ export class PostService {
 
   async addFavorite(id: number, userId: number): Promise<"created" | "existed"> {
     try {
+      loggerUtil.info(`${_serviceName}.addFavorite start`, { id, userId });
       const post = await this.rentalPostModel.findByPk(id);
 
       if (!post) {
+        loggerUtil.warn(`${_serviceName}.addFavorite post not found`, { id });
         throw new NotFoundException(`Post with ID ${id} not found`);
       }
 
@@ -347,6 +376,7 @@ export class PostService {
           userId,
         },
       });
+
       // if post already in user's favorite list -> return "existed"
       if (existingFavorite) {
         return "existed";
@@ -357,6 +387,9 @@ export class PostService {
         userId,
       });
       return "created";
+
+      loggerUtil.info(`${_serviceName}.addFavorite completed`, { id, userId });
+      return true;
 
     } catch (error) {
       loggerUtil.error(`${_serviceName}.addFavorite error: ${error.message}`, error);
@@ -370,6 +403,7 @@ export class PostService {
 
   async removeFavorite(id: number, userId: number) {
     try {
+      loggerUtil.info(`${_serviceName}.removeFavorite start`, { id, userId });
       const favorite = await this.favoriteListModel.findOne({
         where: {
           rentalId: id,
@@ -378,9 +412,13 @@ export class PostService {
       });
 
       if (favorite) {
+        loggerUtil.info(`${_serviceName}.removeFavorite deleting favorite`, { id, userId });
         await favorite.destroy();
+      } else {
+        loggerUtil.info(`${_serviceName}.removeFavorite favorite not found`, { id, userId });
       }
 
+      loggerUtil.info(`${_serviceName}.removeFavorite completed`, { id, userId });
       return true;
     } catch (error) {
       loggerUtil.error(`${_serviceName}.removeFavorite error: ${error.message}`, error);

@@ -9,7 +9,6 @@ export default function useCreateMarkers(mapInstance, markers = [], onMarkerClic
     const customMarkers = markers.map((property) => {
       let hovered = false;
       const popup = new goongJs.Popup({ closeButton: false }).setHTML(getPopupContent(property));
-      console.log("property in create markers:", property.coordinates);
       const coordinates = property.coordinates.coordinates;
       const newCoordinates = coordinates[1] > 90 || coordinates[1] < -90 ? [coordinates[1], coordinates[0]] : coordinates;
       const marker = new goongJs.Marker().setPopup(popup).setLngLat(newCoordinates).addTo(mapInstance);

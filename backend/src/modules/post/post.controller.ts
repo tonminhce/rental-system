@@ -6,6 +6,7 @@ import { GetPostsDto } from './dto/get-posts.dto';
 import { responseUtil } from '../../shared/utils/response.util';
 import { Public } from '../../shared/decorators/public.decorator';
 import { IsRental } from '../../shared/decorators/is-rental.decorator';
+import { RequestContext } from '../../common/request-context';
 
 @ApiTags('Posts')
 @Controller('posts')
@@ -27,10 +28,18 @@ export class PostController {
 
   @ApiOperation({ summary: 'Get favorite posts of the logged-in user' })
   @ApiBearerAuth()
-  @Get('favorites')
-  async getFavoritePosts(@Query('page') page = 1, @Query('limit') limit = 10, @Request() req) {
-    const userId = req.user.id;
-    const result = await this.postService.getFavoritePosts(userId, page, limit);
+
+  @Get('favourites')
+  async getFavoritePosts(@Query('page') page = 1, @Query('limit') limit = 10) {
+    const user = RequestContext.get('user');
+    if (!user) {
+      throw new Error('User not found in request context');
+    }
+    const result = await this.postService.getFavoritePosts(
+      user.id,
+      page,
+      limit,
+    );
 
     return responseUtil.success({
       ...result,
@@ -67,11 +76,10 @@ export class PostController {
 
   @ApiOperation({ summary: 'Add a post to favorites' })
   @ApiBearerAuth()
-  @Post(':id/favorite')
+  @Post(':id/favourites')
   async addFavorite(@Param('id') id: number, @Request() req) {
     const userId = req.user.id;
     const result = await this.postService.addFavorite(id, userId);
-
     // if post existed in user's favorite list
     if (result === "existed") {
       return responseUtil.success({
@@ -79,6 +87,7 @@ export class PostController {
       });
     }
     // if don't
+    await this.postService.addFavorite(id, userId);
     return responseUtil.success({
       message: 'Post added to favorites',
     });
@@ -86,7 +95,7 @@ export class PostController {
 
   @ApiOperation({ summary: 'Remove a post from favorites' })
   @ApiBearerAuth()
-  @Delete(':id/favorite')
+  @Delete(':id/favourites')
   async removeFavorite(@Param('id') id: number, @Request() req) {
     const userId = req.user.id;
     await this.postService.removeFavorite(id, userId);

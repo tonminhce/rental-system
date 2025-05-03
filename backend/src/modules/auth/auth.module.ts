@@ -8,11 +8,12 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt-token.strategy';
 import { User } from 'src/database/entities/user.entity';
 import { Role } from 'src/database/entities/role.entity';
+import { RefreshToken } from 'src/database/entities/refresh-token.entity';
 
 @Module({
   imports: [
     PassportModule,
-    SequelizeModule.forFeature([User, Role]),
+    SequelizeModule.forFeature([User, Role, RefreshToken]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

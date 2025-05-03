@@ -3,7 +3,7 @@ import FullscreenLoading from "@/components/FullscreenLoading";
 import OwnerCard from "@/components/OwnerCard/OwnerCard";
 import PostMap from "@/components/PostMap";
 import PropertyImage from "@/components/PropertyImage/PropertyImage";
-import { useGetPropertyByIdQuery } from "@/redux/features/properties/propertyApi";
+import { useGetPropertyByIdQuery, useGetPropertiesQuery } from "@/redux/features/properties/propertyApi";
 import formatAddress from "@/utils/formatAddress";
 import {
   BathtubOutlined,
@@ -15,26 +15,79 @@ import {
   IosShare,
   MessageOutlined,
   PaidOutlined,
+  CompareArrows,
+  Close,
 } from "@mui/icons-material";
 import PhoneIcon from "@mui/icons-material/Phone";
-import { Typography } from "@mui/material";
+import { Typography, Drawer, List, ListItem, ListItemText, Button, Dialog, IconButton, DialogContent, Box } from "@mui/material";
 import "@scss/posts.scss";
 import _ from "lodash";
 import Link from "next/link";
+import { useState, useMemo, useEffect } from "react";
+import PostComparison from "@/components/PostComparison/PostComparison";
+import SimplePagination from "@/components/Pagination/SimplePagination";
 
 export default function PostDetailPage({ params }) {
-  const { data, error, isLoading } = useGetPropertyByIdQuery(params.slug);
+  const { data, isLoading } = useGetPropertyByIdQuery(params.slug);
   const post = data?.post;
-  console.log("post:", post);
+  const [isCompareDrawerOpen, setIsCompareDrawerOpen] = useState(false);
+  const [selectedPostForComparison, setSelectedPostForComparison] = useState(null);
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
+  // Fetch properties with pagination
+  const { data: propertiesData, isLoading: isLoadingProperties } = useGetPropertiesQuery({
+    page: currentPage,
+    limit: ITEMS_PER_PAGE,
+    propertyType: post?.propertyType,
+    transactionType: post?.transactionType,
+  });
+  
+  const otherProperties = useMemo(() => {
+    if (!propertiesData?.properties || !post) return [];
+    return propertiesData.properties.filter(p => p.id !== post.id);
+  }, [propertiesData?.properties, post]);
+
+  console.log("other properties: ", otherProperties);
 
   const getPostSummary = ({ propertyType, address }) => {
     return `${_.capitalize(propertyType)} in ${formatAddress(address)}`;
   };
 
+  const handleCompare = () => {
+    setIsComparisonModalOpen(true);
+    setIsCompareDrawerOpen(false);
+  };
+
+  const handleCloseModal = () => {
+    setIsComparisonModalOpen(false);
+  };
+
+  const handleSelectPostForComparison = (property) => {
+    setSelectedPostForComparison(property);
+  };
+
+  // Handle pagination - update to fetch new page from server
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  // Total pages comes from the API response now
+  const totalPages = useMemo(() => {
+    return propertiesData?.pagination?.total_pages || 1;
+  }, [propertiesData?.pagination]);
+  
+  useEffect(() => {
+    if (isCompareDrawerOpen) {
+      setCurrentPage(1);
+    }
+  }, [isCompareDrawerOpen]);
+
   const features = [
     {
       label: "Price",
-      value: post?.price ? `${post.price} million VND` : "Thoả thuận",
+      value: post?.price ? `${post.price} triệu/tháng` : "Thoả thuận",
       icon: PaidOutlined,
     },
     {
@@ -95,6 +148,10 @@ export default function PostDetailPage({ params }) {
                   <FavoriteBorder sx={{ fontSize: 20 }} />
                   Save
                 </div>
+                <div className="posts_action" onClick={() => setIsCompareDrawerOpen(true)}>
+                  <CompareArrows sx={{ fontSize: 20 }} />
+                  Compare
+                </div>
               </div>
             </div>
             {/* Features */}
@@ -124,7 +181,7 @@ export default function PostDetailPage({ params }) {
             <div className="posts_location">
               <h4>See on map</h4>
               <p>{formatAddress(post.address)}</p>
-              
+
               <PostMap coordinates={post.coordinates?.coordinates} address={post.address} />
             </div>
           </div>
@@ -147,6 +204,109 @@ export default function PostDetailPage({ params }) {
           </div>
         </div>
       </div>
+
+      {/* Comparison Drawer */}
+      <Drawer
+        anchor="right"
+        open={isCompareDrawerOpen}
+        onClose={() => setIsCompareDrawerOpen(false)}
+      >
+        <div style={{ width: 300, padding: 16, height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Typography variant="h6" gutterBottom>
+            Compare with
+          </Typography>
+          
+          {isLoadingProperties ? (
+            <Typography>Loading properties...</Typography>
+          ) : otherProperties.length === 0 ? (
+            <Typography>No other properties available for comparison</Typography>
+          ) : (
+            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              
+              <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+                <List>
+                  {otherProperties.map((property) => (
+                    <ListItem 
+                      button 
+                      key={property.id} 
+                      onClick={() => handleSelectPostForComparison(property)}
+                      selected={selectedPostForComparison?.id === property.id}
+                      sx={{
+                        borderRadius: 1,
+                        mb: 1,
+                        '&.Mui-selected': {
+                          backgroundColor: '#f0f7ff',
+                        },
+                      }}
+                    >
+                      <ListItemText 
+                        primary={property.name}
+                        secondary={`${property.price} triệu/tháng · ${property.area} m²`}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+
+              {totalPages > 1 && (
+                <Box sx={{ pt: 1, borderTop: '1px solid #eee' }}>
+                  <SimplePagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                    size="small"
+                    maxPageButtons={3}
+                  />
+                </Box>
+              )}
+            </Box>
+          )}
+          
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={handleCompare}
+            disabled={!selectedPostForComparison}
+            sx={{
+              mt: 2,
+              bgcolor: '#ff5722',
+              '&:hover': {
+                bgcolor: '#e64a19',
+              },
+            }}
+          >
+            Compare
+          </Button>
+        </div>
+      </Drawer>
+
+      {/* Comparison Modal */}
+      <Dialog
+        open={isComparisonModalOpen}
+        onClose={handleCloseModal}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogContent sx={{ p: 0, position: 'relative' }}>
+          <IconButton
+            onClick={handleCloseModal}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: 'grey.500',
+              bgcolor: 'white',
+              '&:hover': { bgcolor: 'grey.100' },
+              zIndex: 1,
+            }}
+          >
+            <Close />
+          </IconButton>
+          {selectedPostForComparison && (
+            <PostComparison post1={post} post2={selectedPostForComparison} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
