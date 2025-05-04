@@ -37,83 +37,29 @@ class ShowPropertiesTool(BaseTool):
     """
     args_schema: type[BaseModel] = ShowPropertiesInput
 
-    def format_property_display(self, property: Dict) -> Dict:
-        """Format a single property for better display"""
-        # Format price to include thousand separators
-        price = property.get("price", 0)
-        formatted_price = f"{price:,.2f}" if price else "N/A"
-        
-        # Format area with unit
-        area = property.get("area", 0)
-        formatted_area = f"{area} m²" if area else "N/A"
-        
-        # Format images with markdown display
-        images = property.get("images", [])
-        formatted_images = []
-        image_markdown = []
-        for idx, img in enumerate(images, 1):
-            url = img.get("url", "")
-            if url:
-                formatted_images.append({
-                    "thumbnail": url,
-                    "full_size": url,
-                    "alt_text": f"Property {property.get('name', 'Unknown')} - Image {idx}",
-                    "markdown": f"![Image {idx}]({url})"
-                })
-                image_markdown.append(f"![Image {idx}]({url})")
-        
-        # Format address components
-        address_parts = [
-            property.get("street", ""),
-            property.get("ward", ""),
-            property.get("district", ""),
-            property.get("province", "")
-        ]
-        formatted_address = ", ".join(filter(None, address_parts))
-        
-        # Create markdown display format
-        property_markdown = f"""
-🏠 **{property.get('name', 'Unknown Property')}**
-
-📍 **Location:**
-- Address: {formatted_address}
-- District: {property.get('district', 'N/A')}
-
-💰 **Price & Details:**
-- Price: {formatted_price} million VND/month
-- Area: {formatted_area}
-- Type: {property.get('propertyType', 'N/A').capitalize()}
-- Transaction: {property.get('transactionType', 'N/A').capitalize()}
-
-🛋 **Amenities:**
-- Bedrooms: {property.get('bedrooms', 0)}
-- Bathrooms: {property.get('bathrooms', 0)}
-
-📸 **Images:**
-{chr(10).join(image_markdown)}
-
-📞 **Contact:**
-- Name: {property.get('contactName', 'N/A')}
-- Phone: {property.get('contactPhone', 'N/A')}
-
-🔍 **Source:**
-- Source: {property.get('sourceUrl', 'N/A')}
-- Post URL: {property.get('postUrl', 'N/A')}
-"""
-        
+    def format_property_display(self, property_data):
+        """Format a single property for display"""
         return {
-            **property,
-            "formatted_price": formatted_price,
-            "formatted_area": formatted_area,
-            "formatted_address": formatted_address,
-            "formatted_images": formatted_images,
-            "markdown_display": property_markdown,
-            "amenities": {
-                "bedrooms": property.get("bedrooms", 0),
-                "bathrooms": property.get("bathrooms", 0),
-                "property_type": property.get("propertyType", "").capitalize(),
-                "transaction_type": property.get("transactionType", "").capitalize()
-            }
+            "id": property_data.get('id'),
+            "name": property_data.get('name', 'Chưa cập nhật'),
+            "type": property_data.get('type', 'Chưa cập nhật'),
+            "area": property_data.get('area', 'Chưa cập nhật'),
+            "bedrooms": property_data.get('bedrooms', 'Chưa cập nhật'),
+            "bathrooms": property_data.get('bathrooms', 'Chưa cập nhật'),
+            "address": property_data.get('address', 'Chưa cập nhật'),
+            "district": property_data.get('district', 'Chưa cập nhật'),
+            "price": property_data.get('price', 'Chưa cập nhật'),
+            "deposit": property_data.get('deposit', 'Chưa cập nhật'),
+            "furniture": property_data.get('furniture', 'Chưa cập nhật'),
+            "security": property_data.get('security', 'Chưa cập nhật'),
+            "facilities": property_data.get('facilities', 'Chưa cập nhật'),
+            "images": property_data.get('images', '[Chưa có hình ảnh]'),
+            "contact_name": property_data.get('contact_name', 'Chưa cập nhật'),
+            "contact_phone": property_data.get('contact_phone', 'Chưa cập nhật'),
+            "contact_time": property_data.get('contact_time', 'Liên hệ trong giờ hành chính'),
+            "listed_date": property_data.get('listed_date', 'Chưa cập nhật'),
+            "status": property_data.get('status', 'Đang cho thuê/bán'),
+            "source": property_data.get('source', 'Chưa cập nhật')
         }
 
     def _run(self, query: str = "") -> Dict:
@@ -125,26 +71,8 @@ class ShowPropertiesTool(BaseTool):
                 return {
                     "error": "No properties found",
                     "total_available": 0,
-                    "districts_available": [],
-                    "property_types": [],
-                    "transaction_types": [],
-                    "price_range": {"min": 0, "max": 0},
                     "properties": []
                 }
-            
-            # Get unique districts
-            districts = list(set(prop.get("district", "") for prop in available_properties))
-            
-            # Get unique property types
-            property_types = list(set(prop.get("propertyType", "") for prop in available_properties))
-            
-            # Get unique transaction types
-            transaction_types = list(set(prop.get("transactionType", "") for prop in available_properties))
-            
-            # Calculate price ranges (prices are in millions)
-            prices = [prop.get("price", 0) for prop in available_properties]
-            min_price = min(prices) if prices else 0
-            max_price = max(prices) if prices else 0
             
             # Format all properties
             formatted_properties = [
@@ -152,62 +80,20 @@ class ShowPropertiesTool(BaseTool):
                 for prop in available_properties
             ]
             
-            # Group properties by district for better organization
-            properties_by_district = {}
-            district_markdown = []
+            # Create overview text
+            overview = f"""Found {len(available_properties)} available properties:\n\n"""
             
-            for district in sorted(districts):
-                district_properties = [
-                    prop for prop in formatted_properties 
-                    if prop.get("district") == district
-                ]
-                if district_properties:
-                    properties_by_district[district] = district_properties
-                    
-                    # Create markdown summary for this district
-                    district_summary = f"""
-## 🏘 Properties in {district}
-Total properties: {len(district_properties)}
-
-{chr(10).join(prop["markdown_display"] for prop in district_properties)}
----
-"""
-                    district_markdown.append(district_summary)
-            
-            # Create overall markdown display
-            overview_markdown = f"""
-# 📊 Property Overview
-- Total Available: {len(available_properties)}
-- Districts: {", ".join(sorted(districts))}
-- Price Range: {min_price:,.2f}M - {max_price:,.2f}M VND
-- Property Types: {", ".join(sorted(property_types))}
-- Transaction Types: {", ".join(sorted(transaction_types))}
-
-{chr(10).join(district_markdown)}
-"""
-            
+            # Return all properties without limiting
             return {
                 "total_available": len(available_properties),
-                "districts_available": sorted(districts),
-                "property_types": sorted(property_types),
-                "transaction_types": sorted(transaction_types),
-                "price_range": {
-                    "min": min_price,
-                    "max": max_price
-                },
-                "properties_by_district": properties_by_district,
                 "formatted_properties": formatted_properties,
-                "markdown_display": overview_markdown
+                "overview": overview
             }
             
         except Exception as e:
             return {
                 "error": f"Error fetching properties: {str(e)}",
                 "total_available": 0,
-                "districts_available": [],
-                "property_types": [],
-                "transaction_types": [],
-                "price_range": {"min": 0, "max": 0},
                 "properties": []
             }
 
@@ -249,9 +135,33 @@ class CheckPropertiesDistrictTool(BaseTool):
     """
     args_schema: type[BaseModel] = CheckPropertiesDistrictInput
 
-    def _run(self, district: str) -> List[Dict]:
+    def format_property(self, prop: Dict) -> Dict:
+        """Format a single property for display"""
+        return {
+            "id": prop.get('id', 'Not specified'),
+            "name": prop.get('name', 'Unnamed Property'),
+            "district": prop.get('district', 'Not specified'),
+            "price": prop.get('price', 'Contact for price'),
+            "area": prop.get('area', 'Not specified'),
+            "bedrooms": prop.get('bedrooms', 'Not specified'),
+            "bathrooms": prop.get('bathrooms', 'Not specified'),
+            "contact_name": prop.get('contactName', 'Not specified'),
+            "contact_phone": prop.get('contactPhone', 'Not specified'),
+            "images": prop.get('images', [{'url': 'No image available'}])
+        }
+
+    def _run(self, district: str) -> Dict:
+        # Get properties from database
         properties = get_properties_by_district(district)
-        return properties
+        
+        # Format each property
+        formatted_properties = [self.format_property(prop) for prop in properties]
+        
+        return {
+            "district": district,
+            "total_found": len(formatted_properties),
+            "properties": formatted_properties
+        }
 
 class CheckPropertiesStatusTool(BaseTool):
     name: Annotated[str, Field(description="Tool name")] = "check_properties_status"

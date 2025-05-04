@@ -43,19 +43,25 @@ def get_properties_by_district(district: str) -> List[Dict]:
                     f"quan {district.lower()}"  # Without diacritics
                 ]
                 
+                # Build the WHERE clause for district variations
+                where_clause = " OR ".join(["p.district LIKE %s"] * len(district_variations))
+                
+                # Add wildcards to catch partial matches
+                search_patterns = [f"%{d}%" for d in district_variations]
+                
                 # Query with district variations
-                cursor.execute("""
+                query = f"""
                     SELECT 
                         p.*,
                         GROUP_CONCAT(pi.url) as image_urls
                     FROM properties p
                     LEFT JOIN property_images pi ON p.id = pi.property_id
-                    WHERE p.district IN (%s)
+                    WHERE {where_clause}
                     GROUP BY p.id
                     ORDER BY p.created_at DESC
-                """, (','.join(['%s'] * len(district_variations)),))
+                """
                 
-                cursor.execute(cursor.statement, district_variations)
+                cursor.execute(query, search_patterns)
                 results = cursor.fetchall()
                 
                 # Process image URLs
