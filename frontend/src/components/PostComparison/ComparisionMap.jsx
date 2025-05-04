@@ -280,6 +280,8 @@ const ComparisonMap = ({ post1, post2 }) => {
               inputValue={searchInput}
               onInputChange={(_, newInputValue) => setSearchInput(newInputValue)}
               options={suggestions}
+              filterOptions={(x) => x}
+              noOptionsText="No address found"
               getOptionLabel={(option) => option.description}
               isOptionEqualToValue={(option, value) => option.place_id === value.place_id}
               renderOption={(props, option) => (
