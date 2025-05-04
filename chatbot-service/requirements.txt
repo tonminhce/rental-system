@@ -1,0 +1,12 @@
+langchain>=0.3.7
+langchain-openai>=0.2.9
+pymongo>=4.6.2
+pydantic>=2.7.4
+python-dotenv>=1.0.1
+fastapi>=0.109.2
+uvicorn>=0.27.1
+openai>=1.12.0
+typing-extensions>=4.8.0
+aiohttp>=3.9.3
+python-multipart>=0.0.9
+requests>=2.31.0
