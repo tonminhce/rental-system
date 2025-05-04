@@ -38,13 +38,15 @@
     "react-dropzone": "^14.2.3",
     "react-hook-form": "^7.51.2",
     "react-leaflet": "^4.2.1",
+    "react-markdown": "^9.0.1",
     "react-rating-stars-component": "^2.2.0",
     "react-redux": "^9.1.0",
     "react-spinners": "^0.13.8",
     "redux-persist": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "socket.io-client": "^4.7.5",
     "use-query-params": "^2.2.1",
-    "uuidv4": "^6.2.13",
+    "uuid": "8.3.2",
     "yup": "^1.4.0"
   },
   "devDependencies": {

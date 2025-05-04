@@ -10,22 +10,26 @@ export class SetLoginUserGloballyMiddleware implements NestMiddleware {
   constructor(private readonly jwtService: JwtService, readonly configService: ConfigService) {}
   use(req: Request, res: Response, next: NextFunction) {
     const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) {
-      return next();
+
+    // Create a store with user information if available
+    const store = {};
+
+    if (token) {
+      try {
+        const user = this.jwtService.verify(token, { secret: this.configService.get<string>('TOKEN_SECRET') });
+        loggerUtil.info(
+          `SetLoginUserGloballyMiddleware verified jwt user: ${JSON.stringify(user)}`,
+        );
+
+        // Add user to the store
+        store['user'] = user;
+      } catch (error) {
+        loggerUtil.error(`JWT verification error: ${error.message}`);
+        // Don't throw error for invalid tokens, just continue without user
+      }
     }
-    try {
-      const user = this.jwtService.verify(token, { secret: this.configService.get<string>('TOKEN_SECRET') });
-      loggerUtil.info(
-        `SetLoginUserGloballyMiddleware verified jwt user: ${JSON.stringify(user)}`,
-      );
-      const store = {
-        user: user,
-      };
-      // Store user in AsyncLocalStorage
-      RequestContext.run(store, () => next());
-    } catch (error) {
-      loggerUtil.error(error)
-      next();
-    }
+
+    // Always run in RequestContext, even for public routes without a token
+    RequestContext.run(store, () => next());
   }
 }
