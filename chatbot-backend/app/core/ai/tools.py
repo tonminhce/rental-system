@@ -22,30 +22,18 @@ from ..location_utils import LocationUtils
 #         return get_product_by_name(product_name)
 
 class ShowPropertiesInput(BaseModel):
-    pass  # Remove limit parameter
+    query: Optional[str] = Field(default="", description="Optional search query to filter properties")
 
 class ShowPropertiesTool(BaseTool):
     name: Annotated[str, Field(description="Tool name")] = "show_properties"
     description: Annotated[str, Field(description="Tool description")] = """
-    Show an overview of available properties with different options.
-    Returns a summary of properties including:
-    - Total number of available properties
-    - Properties by district
-    - Properties by type (room, apartment, house)
-    - Price ranges available
-    - Available transaction types (rent/sale)
-    - All available properties with full details and formatted images
+    Show an overview of available properties.
+    Use this tool when users want to:
+    - See all available properties
+    - Get a general overview of properties
+    - View property listings without specific filters
     
-    Each property includes:
-    - Basic info: id, name, description
-    - Price and details: price (in millions VND), area (m2), property_type, transaction_type, status
-    - Location: street, ward, district, province, displayedAddress
-    - Contact: contactName, contactPhone
-    - Source: sourceUrl, postUrl
-    - Images: List of image URLs with thumbnails and full-size options
-    - Metadata: createdAt, updatedAt
-    
-    Use this tool when users ask to see property options or want an overview of available properties.
+    No parameters needed - just call the tool directly.
     """
     args_schema: type[BaseModel] = ShowPropertiesInput
 
@@ -128,7 +116,7 @@ class ShowPropertiesTool(BaseTool):
             }
         }
 
-    def _run(self) -> Dict:
+    def _run(self, query: str = "") -> Dict:
         try:
             # Get all available properties
             available_properties = get_properties_by_status("active")
@@ -205,24 +193,22 @@ Total properties: {len(district_properties)}
                 "transaction_types": sorted(transaction_types),
                 "price_range": {
                     "min": min_price,
-                    "max": max_price,
-                    "formatted": f"{min_price:,.2f}M - {max_price:,.2f}M VND"
+                    "max": max_price
                 },
                 "properties_by_district": properties_by_district,
-                "properties": formatted_properties,
+                "formatted_properties": formatted_properties,
                 "markdown_display": overview_markdown
             }
+            
         except Exception as e:
-            print(f"Error in ShowPropertiesTool: {str(e)}")
             return {
-                "error": f"Failed to fetch properties: {str(e)}",
+                "error": f"Error fetching properties: {str(e)}",
                 "total_available": 0,
                 "districts_available": [],
                 "property_types": [],
                 "transaction_types": [],
                 "price_range": {"min": 0, "max": 0},
-                "properties": [],
-                "markdown_display": "Error: Failed to fetch properties"
+                "properties": []
             }
 
 class CheckPropertiesDistrictInput(BaseModel):

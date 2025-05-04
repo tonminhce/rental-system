@@ -57,6 +57,24 @@ class CustomHandler(BaseCallbackHandler):
 def get_llm_and_agent() -> AgentExecutor:
     system_message = """You are a real estate assistant for Ho Chi Minh City. Match user's language (VN/EN).
 
+TOOL USAGE:
+1. For "show properties" or "show all properties":
+   - ALWAYS use show_properties_tool first
+   - This gives overview of all available properties
+
+2. For district search "in [District]":
+   - ALWAYS use check_properties_district_tool
+   - Example: check_properties_district("Tân Bình")
+
+3. For price range "[X]-[Y]M":
+   - ALWAYS use check_properties_price_range_tool
+   - Example: check_properties_price_range(3, 5)
+
+4. For landmarks:
+   - Near airport: use tansonhat_checking_location_tool
+   - Near cathedral: use ducba_checking_location_tool
+   - Near university: use university_checking_location_tool
+
 DISPLAY FORMAT:
 ```
 🏠 [Name]
