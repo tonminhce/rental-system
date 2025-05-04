@@ -1,21 +1,22 @@
 version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:latest
-    container_name: sales-chatbot-mongodb
+  mysql:
+    image: mysql:8.0
+    container_name: sales-chatbot-mysql
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${DB_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
-      MONGO_INITDB_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "${DB_PORT}:27017"
+      - "${DB_PORT}:3306"
     volumes:
-      - sales_chatbot_mongodb_data:/data/db
+      - sales_chatbot_mysql_data:/var/lib/mysql
     networks:
       - sales-chatbot-network
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,5 +26,5 @@ networks:
     driver: bridge
 
 volumes:
-  sales_chatbot_mongodb_data:
+  sales_chatbot_mysql_data:
     driver: local

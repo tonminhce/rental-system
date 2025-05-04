@@ -1,218 +1,154 @@
 from typing import List, Dict, Optional
-from app.database.chat_history_service import get_db_connection
+from app.database.db_connection import get_db_connection
 from decimal import Decimal
 from datetime import datetime
 import os
 
 def init_properties_table():
     """
-    Khởi tạo collection rentals trong MongoDB nếu chưa tồn tại
-    Collection này lưu trữ thông tin về các bất động sản bao gồm:
-    - ID
-    - Tên bất động sản
-    - Mô tả
-    - Giá (triệu đồng)
-    - Loại bất động sản (room, apartment, house)
-    - Loại giao dịch (rent, sale)
-    - Trạng thái (active, inactive)
-    - Số phòng ngủ
-    - Số phòng tắm
-    - Diện tích (m2)
-    - Thông tin liên hệ
-    - Địa chỉ chi tiết
-    - Tọa độ
-    - Nguồn và URL
-    - Hình ảnh
+    Initialize properties and property_images tables in MySQL if they don't exist
     """
     try:
-        client = get_db_connection()
-        db = client[os.getenv('DB_NAME')]
-        
-        # Tạo collection nếu chưa tồn tại
-        if 'rentals' not in db.list_collection_names():
-            db.create_collection('rentals')
-            
-        # Tạo các index cần thiết
-        db.rentals.create_index('district')
-        db.rentals.create_index('status')
-        db.rentals.create_index([('createdAt', -1)])
-        
-        print("Properties table initialized successfully")
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Tables are created by schema.sql
+                print("Properties tables initialized successfully")
     except Exception as e:
         print(f"Error initializing properties table: {str(e)}")
-    finally:
-        client.close()
 
 def get_properties_by_district(district: str) -> List[Dict]:
     """
-    Tìm kiếm bất động sản theo quận/huyện
+    Search for properties in a specific district
     
     Args:
-        district (str): Tên quận/huyện cần tìm
+        district (str): District name to search for
         
     Returns:
-        List[Dict]: Danh sách bất động sản trong quận/huyện đó
+        List[Dict]: List of properties in that district
     """
     try:
-        client = get_db_connection()
-        db = client[os.getenv('DB_NAME')]
-        
-        # Chuẩn hóa tên quận
-        district = district.strip()
-        
-        # Xử lý các biến thể tên quận
-        district_variations = [
-            district,  # Tên gốc
-            district.lower(),  # Chữ thường
-            district.upper(),  # Chữ hoa
-            f"Quận {district}",  # Thêm prefix Quận
-            f"quận {district.lower()}",  # Thêm prefix quận
-            f"Quan {district}",  # Không dấu
-            f"quan {district.lower()}"  # Không dấu
-        ]
-        
-        # Query với nhiều biến thể tên quận
-        results = list(db.rentals.find(
-            {'district': {'$in': district_variations}},
-            {
-                '_id': 0,
-                'id': 1,
-                'name': 1,
-                'description': 1,
-                'price': 1,
-                'propertyType': 1,
-                'transactionType': 1,
-                'status': 1,
-                'bedrooms': 1,
-                'bathrooms': 1,
-                'area': 1,
-                'contactName': 1,
-                'contactPhone': 1,
-                'street': 1,
-                'ward': 1,
-                'district': 1,
-                'province': 1,
-                'displayedAddress': 1,
-                'latitude': 1,
-                'longitude': 1,
-                'sourceUrl': 1,
-                'postUrl': 1,
-                'images': 1,
-                'createdAt': 1,
-                'updatedAt': 1
-            }
-        ).sort('createdAt', -1))
-            
-        return results
-    finally:
-        client.close()
+        with get_db_connection() as conn:
+            with conn.cursor(dictionary=True) as cursor:
+                # Normalize district name
+                district = district.strip()
+                
+                # Handle district name variations
+                district_variations = [
+                    district,  # Original name
+                    district.lower(),  # Lowercase
+                    district.upper(),  # Uppercase
+                    f"Quận {district}",  # With Quận prefix
+                    f"quận {district.lower()}",  # With quận prefix
+                    f"Quan {district}",  # Without diacritics
+                    f"quan {district.lower()}"  # Without diacritics
+                ]
+                
+                # Query with district variations
+                cursor.execute("""
+                    SELECT 
+                        p.*,
+                        GROUP_CONCAT(pi.url) as image_urls
+                    FROM properties p
+                    LEFT JOIN property_images pi ON p.id = pi.property_id
+                    WHERE p.district IN (%s)
+                    GROUP BY p.id
+                    ORDER BY p.created_at DESC
+                """, (','.join(['%s'] * len(district_variations)),))
+                
+                cursor.execute(cursor.statement, district_variations)
+                results = cursor.fetchall()
+                
+                # Process image URLs
+                for result in results:
+                    if result['image_urls']:
+                        result['images'] = [{'url': url} for url in result['image_urls'].split(',')]
+                    else:
+                        result['images'] = []
+                    del result['image_urls']
+                
+                return results
+    except Exception as e:
+        print(f"Error in get_properties_by_district: {str(e)}")
+        return []
 
 def get_properties_by_status(status: str) -> List[Dict]:
     """
-    Tìm kiếm bất động sản theo trạng thái
+    Search for properties by status
     
     Args:
-        status (str): Trạng thái của bất động sản (active, inactive)
+        status (str): Property status (active, inactive)
         
     Returns:
-        List[Dict]: Danh sách bất động sản có trạng thái tương ứng
+        List[Dict]: List of properties with matching status
     """
     try:
-        client = get_db_connection()
-        db = client[os.getenv('DB_NAME')]
-        
-        # Sử dụng regex để tìm kiếm không phân biệt hoa thường
-        status_pattern = {'$regex': f'^{status}$', '$options': 'i'}
-        
-        results = list(db.rentals.find(
-            {'status': status_pattern},
-            {
-                '_id': 0,
-                'id': 1,
-                'name': 1,
-                'description': 1,
-                'price': 1,
-                'propertyType': 1,
-                'transactionType': 1,
-                'status': 1,
-                'bedrooms': 1,
-                'bathrooms': 1,
-                'area': 1,
-                'contactName': 1,
-                'contactPhone': 1,
-                'street': 1,
-                'ward': 1,
-                'district': 1,
-                'province': 1,
-                'displayedAddress': 1,
-                'latitude': 1,
-                'longitude': 1,
-                'sourceUrl': 1,
-                'postUrl': 1,
-                'images': 1,
-                'createdAt': 1,
-                'updatedAt': 1
-            }
-        ).sort('createdAt', -1))
-            
-        return results
-    finally:
-        client.close()
+        with get_db_connection() as conn:
+            with conn.cursor(dictionary=True) as cursor:
+                cursor.execute("""
+                    SELECT 
+                        p.*,
+                        GROUP_CONCAT(pi.url) as image_urls
+                    FROM properties p
+                    LEFT JOIN property_images pi ON p.id = pi.property_id
+                    WHERE p.status = %s
+                    GROUP BY p.id
+                    ORDER BY p.created_at DESC
+                """, (status,))
+                
+                results = cursor.fetchall()
+                
+                # Process image URLs
+                for result in results:
+                    if result['image_urls']:
+                        result['images'] = [{'url': url} for url in result['image_urls'].split(',')]
+                    else:
+                        result['images'] = []
+                    del result['image_urls']
+                
+                return results
+    except Exception as e:
+        print(f"Error in get_properties_by_status: {str(e)}")
+        return []
 
 def get_properties_by_price_range(min_price: float, max_price: float) -> List[Dict]:
     """
-    Tìm bất động sản trong khoảng giá
+    Find properties within a price range
     
     Args:
-        min_price (float): Giá tối thiểu (triệu đồng)
-        max_price (float): Giá tối đa (triệu đồng)
+        min_price (float): Minimum price in millions VND
+        max_price (float): Maximum price in millions VND
         
     Returns:
-        List[Dict]: Danh sách bất động sản trong khoảng giá
+        List[Dict]: List of properties within the price range
     """
     try:
-        client = get_db_connection()
-        db = client[os.getenv('DB_NAME')]
-        
-        results = list(db.rentals.find(
-            {
-                'price': {
-                    '$gte': min_price,
-                    '$lte': max_price
-                }
-            },
-            {
-                '_id': 0,
-                'id': 1,
-                'name': 1,
-                'description': 1,
-                'price': 1,
-                'propertyType': 1,
-                'transactionType': 1,
-                'status': 1,
-                'bedrooms': 1,
-                'bathrooms': 1,
-                'area': 1,
-                'contactName': 1,
-                'contactPhone': 1,
-                'street': 1,
-                'ward': 1,
-                'district': 1,
-                'province': 1,
-                'displayedAddress': 1,
-                'latitude': 1,
-                'longitude': 1,
-                'sourceUrl': 1,
-                'postUrl': 1,
-                'images': 1,
-                'createdAt': 1,
-                'updatedAt': 1
-            }
-        ).sort('createdAt', -1))
-            
-        return results
-    finally:
-        client.close()
+        with get_db_connection() as conn:
+            with conn.cursor(dictionary=True) as cursor:
+                cursor.execute("""
+                    SELECT 
+                        p.*,
+                        GROUP_CONCAT(pi.url) as image_urls
+                    FROM properties p
+                    LEFT JOIN property_images pi ON p.id = pi.property_id
+                    WHERE p.price BETWEEN %s AND %s
+                    GROUP BY p.id
+                    ORDER BY p.price ASC
+                """, (min_price, max_price))
+                
+                results = cursor.fetchall()
+                
+                # Process image URLs
+                for result in results:
+                    if result['image_urls']:
+                        result['images'] = [{'url': url} for url in result['image_urls'].split(',')]
+                    else:
+                        result['images'] = []
+                    del result['image_urls']
+                
+                return results
+    except Exception as e:
+        print(f"Error in get_properties_by_price_range: {str(e)}")
+        return []
 
 def main():
     """
