@@ -145,8 +145,8 @@ class CheckPropertiesDistrictTool(BaseTool):
             "area": prop.get('area', 'Not specified'),
             "bedrooms": prop.get('bedrooms', 'Not specified'),
             "bathrooms": prop.get('bathrooms', 'Not specified'),
-            "contact_name": prop.get('contactName', 'Not specified'),
-            "contact_phone": prop.get('contactPhone', 'Not specified'),
+            "contact_name": prop.get('contact_name', 'Not specified'),
+            "contact_phone": prop.get('contact_phone', 'Not specified'),
             "images": prop.get('images', [{'url': 'No image available'}])
         }
 
