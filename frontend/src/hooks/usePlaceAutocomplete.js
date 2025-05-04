@@ -6,13 +6,23 @@ export default function usePlaceAutocomplete() {
   const [options, setOptions] = useState([]);
 
   const getAddressOptions = debounce(async () => {
-    const response = await fetch(`/api/places/autocomplete?input=${input}`);
+    if (!input || input.trim() === "") {
+      setOptions([]);
+      return;
+    }
+
+    const encodedInput = encodeURIComponent(input.trim());
+    const response = await fetch(`/api/places/autocomplete?input=${encodedInput}`);
     const data = await response.json();
     setOptions(data?.predictions || []);
   }, 500);
 
   useEffect(() => {
-    if (input) getAddressOptions();
+    if (input && input.trim() !== "") {
+      getAddressOptions();
+    } else {
+      setOptions([]);
+    }
 
     return () => {
       getAddressOptions.cancel();
