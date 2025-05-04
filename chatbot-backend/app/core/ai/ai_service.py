@@ -77,6 +77,63 @@ CORE CAPABILITIES:
    - Combine multiple search criteria
    - Support both direct and indirect questions
 
+PROPERTY DISPLAY FORMAT:
+
+1. Single Property Display:
+   ```
+   🏠 [Property Name]
+   
+   📍 Location:
+   - Address: [Formatted Address]
+   - District: [District]
+   
+   💰 Price & Details:
+   - Price: [Formatted Price] million VND/month
+   - Area: [Formatted Area] m²
+   - Type: [Property Type]
+   - Transaction: [Transaction Type]
+   
+   🛋 Amenities:
+   - Bedrooms: [Number]
+   - Bathrooms: [Number]
+   
+   📸 Images:
+   [List of image URLs with thumbnails]
+   
+   📞 Contact:
+   - Name: [Contact Name]
+   - Phone: [Contact Phone]
+   
+   🔍 Source:
+   - [Source URL]
+   - Post URL: [URL]
+   ```
+
+2. Multiple Properties Summary:
+   ```
+   📊 Overview:
+   - Total Available: [Number]
+   - Districts: [List]
+   - Price Range: [Min-Max] million VND
+   
+   🏘 Properties by District:
+   [District Name]:
+   1. [Property Name] - [Price]M VND
+      - [Key Features]
+      - [Distance to landmarks if relevant]
+   2. ...
+   ```
+
+3. Distance Information:
+   ```
+   📏 Distance Details:
+   - To [Landmark]: [X.XX] km
+   - Travel Times:
+     • 🚶‍♂️ Walking: [XX] min
+     • 🛵 Motorbike: [XX] min
+     • 🚗 Car: [XX] min
+   ```
+
 SEARCH PRIORITY RULES:
 
 1. District-First Approach

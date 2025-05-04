@@ -34,7 +34,7 @@ class ShowPropertiesTool(BaseTool):
     - Properties by type (room, apartment, house)
     - Price ranges available
     - Available transaction types (rent/sale)
-    - All available properties with full details
+    - All available properties with full details and formatted images
     
     Each property includes:
     - Basic info: id, name, description
@@ -42,12 +42,57 @@ class ShowPropertiesTool(BaseTool):
     - Location: street, ward, district, province, displayedAddress
     - Contact: contactName, contactPhone
     - Source: sourceUrl, postUrl
-    - Images: List of image URLs
+    - Images: List of image URLs with thumbnails and full-size options
     - Metadata: createdAt, updatedAt
     
     Use this tool when users ask to see property options or want an overview of available properties.
     """
     args_schema: type[BaseModel] = ShowPropertiesInput
+
+    def format_property_display(self, property: Dict) -> Dict:
+        """Format a single property for better display"""
+        # Format price to include thousand separators
+        price = property.get("price", 0)
+        formatted_price = f"{price:,.2f}" if price else "N/A"
+        
+        # Format area with unit
+        area = property.get("area", 0)
+        formatted_area = f"{area} m²" if area else "N/A"
+        
+        # Format images with thumbnails
+        images = property.get("images", [])
+        formatted_images = []
+        for img in images:
+            url = img.get("url", "")
+            if url:
+                formatted_images.append({
+                    "thumbnail": url,  # You can add thumbnail generation logic here
+                    "full_size": url,
+                    "alt_text": f"Property {property.get('name', 'Unknown')} image"
+                })
+        
+        # Format address components
+        address_parts = [
+            property.get("street", ""),
+            property.get("ward", ""),
+            property.get("district", ""),
+            property.get("province", "")
+        ]
+        formatted_address = ", ".join(filter(None, address_parts))
+        
+        return {
+            **property,
+            "formatted_price": formatted_price,
+            "formatted_area": formatted_area,
+            "formatted_address": formatted_address,
+            "formatted_images": formatted_images,
+            "amenities": {
+                "bedrooms": property.get("bedrooms", 0),
+                "bathrooms": property.get("bathrooms", 0),
+                "property_type": property.get("propertyType", "").capitalize(),
+                "transaction_type": property.get("transactionType", "").capitalize()
+            }
+        }
 
     def _run(self) -> Dict:
         try:
@@ -79,6 +124,20 @@ class ShowPropertiesTool(BaseTool):
             min_price = min(prices) if prices else 0
             max_price = max(prices) if prices else 0
             
+            # Format all properties
+            formatted_properties = [
+                self.format_property_display(prop) 
+                for prop in available_properties
+            ]
+            
+            # Group properties by district for better organization
+            properties_by_district = {}
+            for prop in formatted_properties:
+                district = prop.get("district", "Unknown")
+                if district not in properties_by_district:
+                    properties_by_district[district] = []
+                properties_by_district[district].append(prop)
+            
             return {
                 "total_available": len(available_properties),
                 "districts_available": sorted(districts),
@@ -86,9 +145,11 @@ class ShowPropertiesTool(BaseTool):
                 "transaction_types": sorted(transaction_types),
                 "price_range": {
                     "min": min_price,
-                    "max": max_price
+                    "max": max_price,
+                    "formatted": f"{min_price:,.2f}M - {max_price:,.2f}M VND"
                 },
-                "properties": available_properties  # Return all properties
+                "properties_by_district": properties_by_district,
+                "properties": formatted_properties
             }
         except Exception as e:
             print(f"Error in ShowPropertiesTool: {str(e)}")
