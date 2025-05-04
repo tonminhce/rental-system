@@ -25,9 +25,8 @@ const Map = ({ center = [107.6416527, 11.295036], markerList = [] }) => {
     setSelected(null);
   }, [markerList, centerLat, centerLng, boundary, center]);
 
-  console.log("selected:", selected);
   const selectedMarkerCoordinates = selected && selected.coordinates?.coordinates?.length >= 2
-    ? `${selected.coordinates.coordinates[1]},${selected.coordinates.coordinates[0]}`
+    ? `${selected.coordinates.coordinates[0]},${selected.coordinates.coordinates[1]}`
     : "";
   useRenderRoute(mapInstance, `${lat},${lng}`, selectedMarkerCoordinates);
   useCreateMarkers(mapInstance, markerList, (marker) => setSelected(marker));
