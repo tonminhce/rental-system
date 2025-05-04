@@ -59,17 +59,20 @@ class ShowPropertiesTool(BaseTool):
         area = property.get("area", 0)
         formatted_area = f"{area} m²" if area else "N/A"
         
-        # Format images with thumbnails
+        # Format images with markdown display
         images = property.get("images", [])
         formatted_images = []
-        for img in images:
+        image_markdown = []
+        for idx, img in enumerate(images, 1):
             url = img.get("url", "")
             if url:
                 formatted_images.append({
-                    "thumbnail": url,  # You can add thumbnail generation logic here
+                    "thumbnail": url,
                     "full_size": url,
-                    "alt_text": f"Property {property.get('name', 'Unknown')} image"
+                    "alt_text": f"Property {property.get('name', 'Unknown')} - Image {idx}",
+                    "markdown": f"![Image {idx}]({url})"
                 })
+                image_markdown.append(f"![Image {idx}]({url})")
         
         # Format address components
         address_parts = [
@@ -80,12 +83,43 @@ class ShowPropertiesTool(BaseTool):
         ]
         formatted_address = ", ".join(filter(None, address_parts))
         
+        # Create markdown display format
+        property_markdown = f"""
+🏠 **{property.get('name', 'Unknown Property')}**
+
+📍 **Location:**
+- Address: {formatted_address}
+- District: {property.get('district', 'N/A')}
+
+💰 **Price & Details:**
+- Price: {formatted_price} million VND/month
+- Area: {formatted_area}
+- Type: {property.get('propertyType', 'N/A').capitalize()}
+- Transaction: {property.get('transactionType', 'N/A').capitalize()}
+
+🛋 **Amenities:**
+- Bedrooms: {property.get('bedrooms', 0)}
+- Bathrooms: {property.get('bathrooms', 0)}
+
+📸 **Images:**
+{chr(10).join(image_markdown)}
+
+📞 **Contact:**
+- Name: {property.get('contactName', 'N/A')}
+- Phone: {property.get('contactPhone', 'N/A')}
+
+🔍 **Source:**
+- Source: {property.get('sourceUrl', 'N/A')}
+- Post URL: {property.get('postUrl', 'N/A')}
+"""
+        
         return {
             **property,
             "formatted_price": formatted_price,
             "formatted_area": formatted_area,
             "formatted_address": formatted_address,
             "formatted_images": formatted_images,
+            "markdown_display": property_markdown,
             "amenities": {
                 "bedrooms": property.get("bedrooms", 0),
                 "bathrooms": property.get("bathrooms", 0),
@@ -132,11 +166,37 @@ class ShowPropertiesTool(BaseTool):
             
             # Group properties by district for better organization
             properties_by_district = {}
-            for prop in formatted_properties:
-                district = prop.get("district", "Unknown")
-                if district not in properties_by_district:
-                    properties_by_district[district] = []
-                properties_by_district[district].append(prop)
+            district_markdown = []
+            
+            for district in sorted(districts):
+                district_properties = [
+                    prop for prop in formatted_properties 
+                    if prop.get("district") == district
+                ]
+                if district_properties:
+                    properties_by_district[district] = district_properties
+                    
+                    # Create markdown summary for this district
+                    district_summary = f"""
+## 🏘 Properties in {district}
+Total properties: {len(district_properties)}
+
+{chr(10).join(prop["markdown_display"] for prop in district_properties)}
+---
+"""
+                    district_markdown.append(district_summary)
+            
+            # Create overall markdown display
+            overview_markdown = f"""
+# 📊 Property Overview
+- Total Available: {len(available_properties)}
+- Districts: {", ".join(sorted(districts))}
+- Price Range: {min_price:,.2f}M - {max_price:,.2f}M VND
+- Property Types: {", ".join(sorted(property_types))}
+- Transaction Types: {", ".join(sorted(transaction_types))}
+
+{chr(10).join(district_markdown)}
+"""
             
             return {
                 "total_available": len(available_properties),
@@ -149,7 +209,8 @@ class ShowPropertiesTool(BaseTool):
                     "formatted": f"{min_price:,.2f}M - {max_price:,.2f}M VND"
                 },
                 "properties_by_district": properties_by_district,
-                "properties": formatted_properties
+                "properties": formatted_properties,
+                "markdown_display": overview_markdown
             }
         except Exception as e:
             print(f"Error in ShowPropertiesTool: {str(e)}")
@@ -160,7 +221,8 @@ class ShowPropertiesTool(BaseTool):
                 "property_types": [],
                 "transaction_types": [],
                 "price_range": {"min": 0, "max": 0},
-                "properties": []
+                "properties": [],
+                "markdown_display": "Error: Failed to fetch properties"
             }
 
 class CheckPropertiesDistrictInput(BaseModel):
