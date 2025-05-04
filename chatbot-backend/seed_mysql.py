@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 from app.database.db_connection import get_db_connection
+from app.database.db_connection import init_database
 
 # Load environment variables
 load_dotenv()
@@ -12,6 +13,8 @@ def seed_data():
     Import data from JSON file into MySQL database
     """
     print("Starting data seeding process...")
+    print("run init")
+    init_database()
     
     try:
         # Get the current script directory
