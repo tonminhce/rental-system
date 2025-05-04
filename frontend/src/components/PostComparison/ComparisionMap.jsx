@@ -28,6 +28,9 @@ const ComparisonMap = ({ post1, post2 }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
   
+  const startMarker1Ref = useRef(null);
+  const startMarker2Ref = useRef(null);
+  
   const [searchInput, setSearchInput, suggestions] = usePlaceAutocomplete();
   
   useEffect(() => {
@@ -48,7 +51,6 @@ const ComparisonMap = ({ post1, post2 }) => {
       center: map1Coordinates
     });
     
-    // Add marker for property 1 location
     new goongJs.Marker({
       color: '#4285F4' 
     })
@@ -63,9 +65,8 @@ const ComparisonMap = ({ post1, post2 }) => {
       center: map2Coordinates
     });
     
-    // Add marker for property 2 location
     new goongJs.Marker({
-      color: '#EA4335' // Red marker for property 2
+      color: '#EA4335'
     })
       .setLngLat(map2Coordinates)
       .addTo(map2);
@@ -79,7 +80,6 @@ const ComparisonMap = ({ post1, post2 }) => {
     };
   }, [post1, post2]);
 
-  // Handle suggestion selection
   const handlePlaceSelect = (event, place) => {
     if (place) {
       setSelectedPlace(place);
@@ -87,7 +87,6 @@ const ComparisonMap = ({ post1, post2 }) => {
     }
   };
 
-  // Handle geocoding and route rendering
   const handleSearch = async () => {
     if (!selectedPlace) {
       setError('Please select a starting location');
@@ -98,7 +97,6 @@ const ComparisonMap = ({ post1, post2 }) => {
     setError('');
 
     try {
-      // Get coordinates from the selected place
       const encodedAddress = encodeURIComponent(selectedPlace.description);
       const response = await fetch(`/api/geocode?address=${encodedAddress}`);
       const geocodeData = await response.json();
@@ -113,11 +111,9 @@ const ComparisonMap = ({ post1, post2 }) => {
       const startCoords = [location.geometry.location.lng, location.geometry.location.lat];
       setStartCoordinates(startCoords);
 
-      // Add green marker for starting point on both maps
       addStartMarker(map1Ref.current, startCoords);
       addStartMarker(map2Ref.current, startCoords);
 
-      // Now get routes for both properties using the backend API
       const getDestCoords = (post) => {
         if (!post?.coordinates?.coordinates) return null;
         return [post.coordinates.coordinates[1], post.coordinates.coordinates[0]];
@@ -129,14 +125,12 @@ const ComparisonMap = ({ post1, post2 }) => {
       if (dest1Coords) {
         const originStr = `${startCoords[1]},${startCoords[0]}`;
         const destStr = `${dest1Coords[1]},${dest1Coords[0]}`;
-        // Use bike as default vehicle
         renderRouteWithVehicle(map1Ref.current, originStr, destStr, 'bike', '#4285F4');
       }
       
       if (dest2Coords) {
         const originStr = `${startCoords[1]},${startCoords[0]}`;
         const destStr = `${dest2Coords[1]},${dest2Coords[0]}`;
-        // Use bike as default vehicle
         renderRouteWithVehicle(map2Ref.current, originStr, destStr, 'bike', '#EA4335');
       }
     } catch (error) {
@@ -161,7 +155,6 @@ const ComparisonMap = ({ post1, post2 }) => {
     
     const renderRouteWithParams = async () => {
       try {
-        // Always use bike as the vehicle type
         const routeUrl = `/api/direction?origin=${origin}&destination=${destination}&vehicle=bike`;
         const routeResponse = await fetch(routeUrl);
         const routeData = await routeResponse.json();
@@ -229,20 +222,20 @@ const ComparisonMap = ({ post1, post2 }) => {
     renderRouteWithParams();
   };
 
-  // Cải thiện hàm addStartMarker để đảm bảo marker hiển thị trên cả hai map
   const addStartMarker = (mapInstance, coords) => {
-    // Tạo marker mới cho mỗi map, không xóa marker cũ
-    // Sử dụng ID duy nhất cho mỗi instance để tránh xung đột
-    const markerId = mapInstance === map1Ref.current ? 'start-marker-1' : 'start-marker-2';
+    const markerRef = mapInstance === map1Ref.current ? startMarker1Ref : startMarker2Ref;
     
-    // Tạo marker mới
+    if (markerRef.current) {
+      markerRef.current.remove();
+    }
+    
     const marker = new goongJs.Marker({
       color: '#34A853',
-      element: createMarkerElement(markerId, 'Start')
+      element: createMarkerElement('start-marker', 'Start')
     });
     
-    // Thêm vào map
     marker.setLngLat(coords).addTo(mapInstance);
+    markerRef.current = marker;
   };
 
   const createMarkerElement = (className, label) => {
