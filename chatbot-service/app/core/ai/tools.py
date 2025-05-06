@@ -65,7 +65,7 @@ class ShowPropertiesTool(BaseTool):
             # Build query parameters
             params = {
                 "page": 1,
-                "limit": 20,  # Show a reasonable number of properties
+                "limit": 10,  # Show a reasonable number of properties
                 "status": "active"  # Only show active properties
             }
             

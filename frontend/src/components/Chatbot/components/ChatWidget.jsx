@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import ChatMessage from "./ChatMessage";
+import { useSelector } from "react-redux";
 
 const ChatbotContainer = styled(Box)(({ theme }) => ({
   position: "fixed",
@@ -16,6 +17,7 @@ const ChatbotContainer = styled(Box)(({ theme }) => ({
   mx: "auto",
   mt: 5,
   zIndex: 1000,
+  display: "none", // Ẩn mặc định, sẽ hiển thị qua CSS khi được kích hoạt
 }));
 
 const ChatHeader = styled(Box)(({ theme }) => ({
@@ -55,16 +57,26 @@ const ChatInputContainer = styled(Box)(({ theme }) => ({
 }));
 
 const ChatWidget = () => {
+  // Kiểm tra trạng thái chat có mở hay không từ Redux
+  const isChatOpened = useSelector((state) => state.system.isChatOpened);
+  
   // Generate a new UUID on every page refresh
   // Use both useState and useEffect to ensure we get a new UUID on refresh
   const [threadId, setThreadId] = useState('');
   
   // Generate new UUID on component mount (which happens on refresh)
   useEffect(() => {
-    setThreadId(uuidv4());
-    // We can also clear messages when generating a new thread
-    sessionStorage.removeItem("chatMessages");
-  }, []);
+    if (isChatOpened) {
+      setThreadId(uuidv4());
+      // We can also clear messages when generating a new thread
+      sessionStorage.removeItem("chatMessages");
+    }
+  }, [isChatOpened]);
+  
+  // Debug: log trạng thái chat
+  useEffect(() => {
+    console.log("ChatWidget rendered, isChatOpened =", isChatOpened);
+  }, [isChatOpened]);
   
   // Create ref for streaming message
   const streamedMessageRef = useRef('');
@@ -78,28 +90,36 @@ const ChatWidget = () => {
 
   // Load previous messages from session storage
   useEffect(() => {
-    if (threadId) {
+    if (threadId && isChatOpened) {
       const storedMessages = JSON.parse(sessionStorage.getItem("chatMessages") ?? "[]");
-      setMessages(storedMessages);
+      if (storedMessages.length === 0) {
+        // Thêm tin nhắn chào mừng chỉ khi không có tin nhắn nào
+        setMessages([{ 
+          text: "Hello! How can i help you today?",
+          sender: "bot" 
+        }]);
+      } else {
+        setMessages(storedMessages);
+      }
     }
-  }, [threadId]);
+  }, [threadId, isChatOpened]);
 
   // Save messages to session storage
   useEffect(() => {
-    if (messages.length > 0) {
+    if (messages.length > 0 && isChatOpened) {
       sessionStorage.setItem("chatMessages", JSON.stringify(messages));
     }
-  }, [messages]);
+  }, [messages, isChatOpened]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    if (lastMessageEl.current) {
+    if (lastMessageEl.current && isChatOpened) {
       lastMessageEl.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, isChatOpened]);
 
   const handleSend = async () => {
-    if (input.trim() === "" || isTyping || !threadId) return;
+    if (input.trim() === "" || isTyping || !threadId || !isChatOpened) return;
 
     // Add the user's message to the chat
     const userMessage = input.trim();
@@ -126,7 +146,9 @@ const ChatWidget = () => {
           setMessages(prev => {
             const newMessages = [...prev];
             const lastMessage = newMessages[newMessages.length - 1];
-            lastMessage.text = streamedMessageRef.current;
+            if (lastMessage) {
+              lastMessage.text = streamedMessageRef.current;
+            }
             return newMessages;
           });
         },
@@ -134,10 +156,11 @@ const ChatWidget = () => {
           console.error("Chat error:", error);
           setMessages(prev => {
             const newMessages = [...prev];
-            newMessages[newMessages.length - 1] = {
-              text: "Sorry, there was an error processing your request.", 
-              sender: "bot"
-            };
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage) {
+              lastMessage.text = "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.";
+              lastMessage.isPartial = false;
+            }
             return newMessages;
           });
         }
@@ -147,7 +170,7 @@ const ChatWidget = () => {
       setMessages(prev => {
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
-        if (lastMessage.isPartial) {
+        if (lastMessage && lastMessage.isPartial) {
           lastMessage.isPartial = false;
         }
         return newMessages;
@@ -159,14 +182,14 @@ const ChatWidget = () => {
         if (prev.length > 0 && prev[prev.length - 1].isPartial) {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = {
-            text: "Sorry, there was an error processing your request.",
+            text: "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.",
             sender: "bot"
           };
           return newMessages;
         }
         // Otherwise add a new error message
         return [...prev, { 
-          text: "Sorry, there was an error processing your request.", 
+          text: "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.", 
           sender: "bot" 
         }];
       });
@@ -175,8 +198,13 @@ const ChatWidget = () => {
     }
   };
 
+  // Không cần phải render gì nếu chat chưa được mở
+  if (!isChatOpened) {
+    return null;
+  }
+
   return (
-    <ChatbotContainer>
+    <ChatbotContainer sx={{ display: isChatOpened ? 'block' : 'none' }}>
       <Paper 
         sx={{ 
           display: "flex", 
@@ -189,37 +217,27 @@ const ChatWidget = () => {
       >
         <ChatHeader>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Property Assistant
-          </Typography>
+Rental Assistant          </Typography>
         </ChatHeader>
 
         <ChatMessagesContainer>
-          {messages.length === 0 ? (
-            <ListItem disableGutters sx={{ display: 'block', mb: 2 }}>
+          {messages.map((message, index) => (
+            <ListItem 
+              key={index} 
+              disableGutters 
+              disablePadding
+              sx={{ 
+                display: 'block',
+                mb: index === messages.length - 1 ? 0 : 1 
+              }}
+            >
               <ChatMessage 
-                message="Hi there! How can I help you?" 
-                sender="bot"
+                message={message.text} 
+                sender={message.sender}
+                isPartial={message.isPartial}
               />
             </ListItem>
-          ) : (
-            messages.map((message, index) => (
-              <ListItem 
-                key={index} 
-                disableGutters 
-                disablePadding
-                sx={{ 
-                  display: 'block',
-                  mb: index === messages.length - 1 ? 0 : 1 
-                }}
-              >
-                <ChatMessage 
-                  message={message.text} 
-                  sender={message.sender}
-                  isPartial={message.isPartial}
-                />
-              </ListItem>
-            ))
-          )}
+          ))}
           {isTyping && !messages[messages.length - 1]?.isPartial && (
             <ListItem disableGutters sx={{ display: 'block' }}>
               <ChatMessage 
@@ -238,7 +256,7 @@ const ChatWidget = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Enter your message..."
+            placeholder="Nhập tin nhắn..."
             disabled={isTyping}
             size="small"
             sx={{
