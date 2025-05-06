@@ -74,7 +74,10 @@ export default function GetPropertiesPage({ transaction_type = "rent" }) {
     price: property.price,
     image: property.images?.length > 0 ? property.images[0].url : "https://www.pngitem.com/pimgs/m/152-1527570_default-house-icon-hd-png-download.png",
     id: property.id,
-    displayed_address: property.displayedAddress
+    displayed_address: property.displayedAddress,
+    area: property.area || 0,
+    bedrooms: property.bedrooms || 1,
+    bathrooms: property.bathrooms || 1
   }));
 
   return (
