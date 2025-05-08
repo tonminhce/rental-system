@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from app.core.ai.ai_service import get_answer, get_answer_stream
 import logging
 import json
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional, Dict, Any
 
 router = APIRouter()
 
@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 class ChatRequest(BaseModel):
     question: str
     thread_id: str
+    query_params: Optional[Dict[str, Any]] = None
 
 class ChatResponse(BaseModel):
     answer: str
@@ -22,7 +23,14 @@ class ChatResponse(BaseModel):
 async def chat(request: ChatRequest):
     try:
         logger.info(f"Received question: {request.question} for thread: {request.thread_id}")
-        result = get_answer(request.question, request.thread_id)
+        
+        # Print query parameters for debugging
+        print(f"\n==== CHAT FILTER PARAMETERS ====")
+        print(f"Received query parameters: {json.dumps(request.query_params, indent=2)}")
+        print(f"============================\n")
+        
+        logger.info(f"Query parameters: {request.query_params}")
+        result = get_answer(request.question, request.thread_id, request.query_params)
         logger.info(f"Got result: {result}")
         
         if not isinstance(result, dict) or "output" not in result:
@@ -36,13 +44,13 @@ async def chat(request: ChatRequest):
             detail=f"Internal server error: {str(e)}"
         )
 
-async def event_generator(question: str, thread_id: str) -> AsyncGenerator[str, None]:
+async def event_generator(question: str, thread_id: str, query_params: Optional[Dict[str, Any]] = None) -> AsyncGenerator[str, None]:
     try:
         # Send initial event to establish connection
         yield f"data: {json.dumps({'status': 'connected'})}\n\n"
         
-        # Stream the response
-        async for chunk in get_answer_stream(question, thread_id):
+        # Stream the response with query parameters
+        async for chunk in get_answer_stream(question, thread_id, query_params):
             if chunk:  # Only yield if there's content
                 # Ensure proper field names for contact information
                 yield f"data: {json.dumps({'content': chunk})}\n\n"
@@ -60,6 +68,13 @@ async def chat_stream(request: ChatRequest, req: Request = None):
     client_host = req.client.host if req and req.client else "Unknown"
     logger.info(f"Stream request from {client_host} - Question: {request.question[:30]}... for thread: {request.thread_id}")
     
+    # Print query parameters in a more visible format for debugging
+    print(f"\n==== STREAM CHAT FILTER PARAMETERS ====")
+    print(f"Received query parameters: {json.dumps(request.query_params, indent=2)}")
+    print(f"======================================\n")
+    
+    logger.info(f"Query parameters: {request.query_params}")
+    
     # Set proper SSE headers
     response_headers = {
         "Content-Type": "text/event-stream",
@@ -70,7 +85,7 @@ async def chat_stream(request: ChatRequest, req: Request = None):
     }
     
     return StreamingResponse(
-        event_generator(request.question, request.thread_id),
+        event_generator(request.question, request.thread_id, request.query_params),
         media_type="text/event-stream",
         headers=response_headers
     ) 

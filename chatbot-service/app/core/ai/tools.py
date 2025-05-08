@@ -13,6 +13,8 @@ import requests
 import json
 from requests.adapters import HTTPAdapter
 from urllib.parse import urlparse, urlunparse
+import os
+from urllib.parse import quote
 
 # class ProductSearchInput(BaseModel):
 #     product_name: str = Field(..., description="The name of the product to search for")
@@ -27,6 +29,7 @@ from urllib.parse import urlparse, urlunparse
 
 class ShowPropertiesInput(BaseModel):
     query: Optional[str] = Field(default="", description="Optional search query to filter properties")
+    page: Optional[int] = Field(default=1, description="Page number for pagination")
 
 class ShowPropertiesTool(BaseTool):
     name: Annotated[str, Field(description="Tool name")] = "show_properties"
@@ -36,13 +39,18 @@ class ShowPropertiesTool(BaseTool):
     - See all available properties
     - Get a general overview of properties
     - View property listings without specific filters
+    - Show more properties by specifying a page number greater than 1
     
-    No parameters needed - just call the tool directly.
+    When users ask to "show more properties", increment the page parameter.
     """
     args_schema: type[BaseModel] = ShowPropertiesInput
 
     def format_property_display(self, property_data):
         """Format a single property for display"""
+        # Get only the first image to save tokens
+        images = property_data.get('images', [{'url': 'Chưa có hình ảnh'}])
+        first_image = images[0] if images else {'url': 'Chưa có hình ảnh'}
+        
         return {
             "id": property_data.get('id'),
             "name": property_data.get('name', 'Chưa cập nhật'),
@@ -55,18 +63,17 @@ class ShowPropertiesTool(BaseTool):
             "price": property_data.get('price', 'Chưa cập nhật'),
             "contact_name": property_data.get('contactName', 'Chưa cập nhật'),
             "contact_phone": property_data.get('contactPhone', 'Chưa cập nhật'),
-            "images": property_data.get('images', [{'url': 'Chưa có hình ảnh'}])
+            "images": first_image
         }
 
-    def _run(self, query: str = "") -> Dict:
+    def _run(self, query: str = "", page: int = 1) -> Dict:
         try:
-            print("\n[DEBUG] ShowPropertiesTool making API call")
+            print(f"\n[DEBUG] ShowPropertiesTool making API call (page: {page})")
             
-            # Build query parameters
             params = {
-                "page": 1,
-                "limit": 10,  # Show a reasonable number of properties
-                "status": "active"  # Only show active properties
+                "page": page,
+                "limit": 10, 
+                "status": "active" 
             }
             
             # Print API call information
@@ -96,14 +103,24 @@ class ShowPropertiesTool(BaseTool):
             response_data = response.json()
             
             if "data" in response_data and "data" in response_data["data"]:
+                # Get properties from current page
                 available_properties = response_data["data"]["data"]
-                print(f"[DEBUG] Found {len(available_properties)} available properties via API")
+                print(f"[DEBUG] Found {len(available_properties)} properties on page {page} via API")
+                
+                # Get pagination info
+                pagination = response_data["data"].get("pagination", {})
+                total_records = pagination.get("total_records", len(available_properties))
+                current_page = pagination.get("current_page", page)
+                total_pages = pagination.get("total_pages", 1)
+                
+                print(f"[DEBUG] Pagination info: total_records={total_records}, current_page={current_page}, total_pages={total_pages}")
                 
                 if not available_properties:
                     return {
                         "error": "No properties found",
                         "total_available": 0,
-                        "properties": []
+                        "properties": [],
+                        "pagination": pagination
                     }
                 
                 # Format all properties
@@ -112,14 +129,20 @@ class ShowPropertiesTool(BaseTool):
                     for prop in available_properties
                 ]
                 
-                # Create overview text
-                overview = f"""Found {len(available_properties)} available properties:\n\n"""
+                # Create overview text reflecting total count
+                overview = f"""Found {total_records} available properties (showing page {current_page} of {total_pages}):\n\n"""
                 
-                # Return all properties without limiting
+                # Return properties with pagination info
                 return {
-                    "total_available": len(available_properties),
+                    "total_available": total_records,
+                    "properties_on_page": len(available_properties),
                     "formatted_properties": formatted_properties,
-                    "overview": overview
+                    "overview": overview,
+                    "pagination": {
+                        "current_page": current_page,
+                        "total_pages": total_pages,
+                        "has_more": current_page < total_pages
+                    }
                 }
             else:
                 return {
@@ -141,6 +164,7 @@ class CheckPropertiesDistrictInput(BaseModel):
         ..., 
         description="District name to search for properties. Examples: Quận 1, Bình Thạnh, Thủ Đức"
     )
+    page: Optional[int] = Field(default=1, description="Page number for pagination")
 
 class CheckPropertiesStatusInput(BaseModel):
     status: str = Field(
@@ -169,6 +193,7 @@ class CheckPropertiesDistrictTool(BaseTool):
     - Users ask about properties in a specific district
     - Need to filter properties by location
     - Want to compare properties in the same area
+    - Show more properties by specifying a page number greater than 1
     
     Example districts: Quận 1, Bình Thạnh, Thủ Đức
     """
@@ -176,6 +201,10 @@ class CheckPropertiesDistrictTool(BaseTool):
 
     def format_property(self, prop: Dict) -> Dict:
         """Format a single property for display"""
+        # Get only the first image to save tokens
+        images = prop.get('images', [{'url': 'No image available'}])
+        first_image = images[0] if images else {'url': 'No image available'}
+        
         return {
             "id": prop.get('id', 'Not specified'),
             "name": prop.get('name', 'Unnamed Property'),
@@ -186,7 +215,7 @@ class CheckPropertiesDistrictTool(BaseTool):
             "bathrooms": prop.get('bathrooms', 'Not specified'),
             "contact_name": prop.get('contactName', 'Not specified'),
             "contact_phone": prop.get('contactPhone', 'Not specified'),
-            "images": prop.get('images', [{'url': 'No image available'}])
+            "images": first_image,  # Only include the first image to save tokens
         }
 
     def _normalize_district(self, district: str) -> str:
@@ -215,8 +244,8 @@ class CheckPropertiesDistrictTool(BaseTool):
         # Giữ nguyên các quận/huyện khác
         return district
 
-    def _run(self, district: str) -> Dict:
-        print(f"\n[DEBUG] CheckPropertiesDistrictTool called with district: {district}")
+    def _run(self, district: str, page: int = 1) -> Dict:
+        print(f"\n[DEBUG] CheckPropertiesDistrictTool called with district: {district}, page: {page}")
         
         # Normalize district parameter
         normalized_district = self._normalize_district(district)
@@ -226,8 +255,8 @@ class CheckPropertiesDistrictTool(BaseTool):
             # Using API instead of direct database access
             # Build query parameters - using district as filter
             params = {
-                "page": 1,
-                "limit": 50,  # Get more items to show comprehensive results
+                "page": page,
+                "limit": 10,  # Get more items to show comprehensive results
                 "district": normalized_district
             }
             
@@ -270,19 +299,35 @@ class CheckPropertiesDistrictTool(BaseTool):
             
             if "data" in response_data and "data" in response_data["data"]:
                 properties = response_data["data"]["data"]
-                print(f"[DEBUG] Found {len(properties)} properties in district {district} via API")
+                print(f"[DEBUG] Found {len(properties)} properties on page {page} for district {district} via API")
+                
+                # Get pagination info
+                pagination = response_data["data"].get("pagination", {})
+                total_records = pagination.get("total_records", len(properties))
+                current_page = pagination.get("current_page", page)
+                total_pages = pagination.get("total_pages", 1)
+                
+                print(f"[DEBUG] Pagination info: total_records={total_records}, current_page={current_page}, total_pages={total_pages}")
                 
                 # Format each property
                 formatted_properties = [self.format_property(prop) for prop in properties]
                 
                 return {
                     "district": district,
-                    "total_found": len(formatted_properties),
-                    "properties": formatted_properties
+                    "district_normalized": normalized_district,
+                    "total_found": total_records,
+                    "properties_on_page": len(formatted_properties),
+                    "properties": formatted_properties,
+                    "pagination": {
+                        "current_page": current_page,
+                        "total_pages": total_pages,
+                        "has_more": current_page < total_pages
+                    }
                 }
             else:
                 return {
                     "district": district,
+                    "district_normalized": normalized_district,
                     "total_found": 0,
                     "properties": [],
                     "error": "No properties found or unexpected API response format"
@@ -292,6 +337,7 @@ class CheckPropertiesDistrictTool(BaseTool):
             print(f"[DEBUG] Error in CheckPropertiesDistrictTool: {str(e)}")
             return {
                 "district": district,
+                "district_normalized": normalized_district,
                 "total_found": 0,
                 "properties": [],
                 "error": f"Error fetching properties: {str(e)}"
@@ -454,14 +500,12 @@ class CheckPropertiesPriceRangeTool(BaseTool):
                     "properties": []
                 }
             
-            # Parse response
             response_data = response.json()
             
             if "data" in response_data and "data" in response_data["data"]:
                 properties = response_data["data"]["data"]
                 print(f"[DEBUG] Found {len(properties)} properties in price range {min_price}-{max_price} million via API")
                 
-                # Sort properties by price
                 properties.sort(key=lambda x: x.get('price', float('inf')))
                 
                 return {
@@ -488,15 +532,6 @@ class CheckPropertiesPriceRangeTool(BaseTool):
                 "total_properties": 0,
                 "properties": []
             }
-
-class DucbaCheckingLocationInput(BaseModel):
-    pass  # Remove all parameters since coordinates are predefined
-
-class TanSonNhatCheckingLocationInput(BaseModel):
-    pass  # Remove all parameters since coordinates are predefined
-
-class UniversityCheckingLocationInput(BaseModel):
-    university_name: str = Field(..., description="Name of the university to search properties around. Examples: HCMUS, Bách Khoa, HUTECH, UEH, etc.")
 
 class LocationBaseMixin:
     """
@@ -693,461 +728,11 @@ class LocationBaseMixin:
             key=lambda x: (x["distance_km"] is None, x["distance_km"] if x["distance_km"] is not None else float('inf'))
         )
 
-class DucbaCheckingLocationTool(BaseTool, LocationBaseMixin):
-    name: Annotated[str, Field(description="Tool name")] = "ducba_checking_location"
-    description: Annotated[str, Field(description="Tool description")] = """
-    Find properties near Notre Dame Cathedral (Nhà thờ Đức Bà).
-    Uses Haversine formula to calculate distances.
-    Returns ALL properties sorted by distance from the cathedral.
-    
-    Reference Point:
-    - Cathedral Main Entrance: 10.779814°N, 106.699150°E
-    - Address: 01 Công xã Paris, Bến Nghé, District 1, HCMC
-    
-    Each property includes:
-    - Exact distance from cathedral in kilometers
-    - Travel times by different modes (walking, motorbike, car)
-    - Basic property information and features
-    - Price and contact details
-    """
-    
-    # Predefined coordinates for Notre Dame Cathedral
-    CATHEDRAL_LAT: ClassVar[float] = 10.779814
-    CATHEDRAL_LON: ClassVar[float] = 106.699150
-    CATHEDRAL_ADDRESS: ClassVar[str] = "01 Công xã Paris, Bến Nghé, District 1, HCMC"
-
-    def _run(self) -> Dict:
-        print(f"\n[DEBUG] DucbaCheckingLocationTool called")
-        
-        try:
-            # Build query parameters - using centerLat/centerLng might be more appropriate
-            # but we'll get all properties and calculate distances manually for flexibility
-            params = {
-                "page": 1,
-                "limit": 100,  # Get a larger set of properties
-                "status": "active",
-                # Could add centerLat, centerLng, and radius if API supports it
-            }
-            
-            # Print API call information
-            print(f"[DEBUG] URL: http://localhost:8080/api/posts")
-            print(f"[DEBUG] Params: {params}")
-            
-            # Use a session with the debugging adapter
-            session = requests.Session()
-            session.mount('http://', DebuggingAdapter())
-            session.mount('https://', DebuggingAdapter())
-            
-            # Make API call using the session
-            response = session.get(
-                "http://localhost:8080/api/posts",
-                params=params
-            )
-            
-            if response.status_code != 200:
-                print(f"[DEBUG] API call failed with status code {response.status_code}: {response.text}")
-                return {
-                    "error": f"API call failed with status code {response.status_code}",
-                    "reference_point": {
-                        "name": "Notre Dame Cathedral",
-                        "address": self.CATHEDRAL_ADDRESS,
-                        "coordinates": {"lat": self.CATHEDRAL_LAT, "lon": self.CATHEDRAL_LON}
-                    },
-                    "total_properties": 0,
-                    "properties": []
-                }
-            
-            # Parse response
-            response_data = response.json()
-            
-            if "data" in response_data and "data" in response_data["data"]:
-                properties = response_data["data"]["data"]
-                print(f"[DEBUG] Found {len(properties)} active properties via API")
-                
-                # Process properties and calculate distances
-                all_properties = self.process_properties_with_distance(
-                    properties, self.CATHEDRAL_LAT, self.CATHEDRAL_LON
-                )
-                
-                return {
-                    "reference_point": {
-                        "name": "Notre Dame Cathedral",
-                        "address": self.CATHEDRAL_ADDRESS,
-                        "coordinates": {
-                            "lat": self.CATHEDRAL_LAT,
-                            "lon": self.CATHEDRAL_LON
-                        }
-                    },
-                    "total_properties": len(all_properties),
-                    "properties": all_properties
-                }
-            else:
-                return {
-                    "reference_point": {
-                        "name": "Notre Dame Cathedral",
-                        "address": self.CATHEDRAL_ADDRESS,
-                        "coordinates": {"lat": self.CATHEDRAL_LAT, "lon": self.CATHEDRAL_LON}
-                    },
-                    "total_properties": 0,
-                    "properties": [],
-                    "error": "No properties found or unexpected API response format"
-                }
-                
-        except Exception as e:
-            print(f"[DEBUG] Error in DucbaCheckingLocationTool: {str(e)}")
-            return {
-                "error": f"Error processing properties: {str(e)}",
-                "reference_point": {
-                    "name": "Notre Dame Cathedral",
-                    "address": self.CATHEDRAL_ADDRESS,
-                    "coordinates": {"lat": self.CATHEDRAL_LAT, "lon": self.CATHEDRAL_LON}
-                },
-                "total_properties": 0,
-                "properties": []
-            }
-
-class TanSonNhatCheckingLocationTool(BaseTool, LocationBaseMixin):
-    name: Annotated[str, Field(description="Tool name")] = "tansonhat_checking_location"
-    description: Annotated[str, Field(description="Tool description")] = """
-    Calculate distances from all properties to Tan Son Nhat Airport.
-    Uses Haversine formula to calculate distances.
-    Returns ALL properties with their exact distance from the airport.
-    
-    Reference Point:
-    - Main Terminal: 10.818663°N, 106.654835°E
-    - Address: Trường Sơn, P.2, Q.Tân Bình, HCMC
-    
-    Each property includes:
-    - Exact distance from airport in kilometers
-    - Travel times by different modes
-    - Basic property information
-    - Price and contact details
-    
-    Note: Shows ALL properties with their distances, no distance filtering
-    """
-    
-    # Predefined coordinates for Tan Son Nhat Airport
-    AIRPORT_LAT: ClassVar[float] = 10.818663
-    AIRPORT_LON: ClassVar[float] = 106.654835
-    AIRPORT_ADDRESS: ClassVar[str] = "Trường Sơn, P.2, Q.Tân Bình, HCMC"
-
-    def _run(self) -> Dict:
-        print(f"\n[DEBUG] TanSonNhatCheckingLocationTool called")
-        
-        try:
-            # Build query parameters - fetch all active properties
-            params = {
-                "page": 1,
-                "limit": 100,  # Get a larger set of properties
-                "status": "active",
-                # Could add centerLat, centerLng, and radius if API supports it
-            }
-            
-            # Print API call information
-            print(f"[DEBUG] URL: http://localhost:8080/api/posts")
-            print(f"[DEBUG] Params: {params}")
-            
-            # Use a session with the debugging adapter
-            session = requests.Session()
-            session.mount('http://', DebuggingAdapter())
-            session.mount('https://', DebuggingAdapter())
-            
-            # Make API call using the session
-            response = session.get(
-                "http://localhost:8080/api/posts",
-                params=params
-            )
-            
-            if response.status_code != 200:
-                print(f"[DEBUG] API call failed with status code {response.status_code}: {response.text}")
-                return {
-                    "error": f"API call failed with status code {response.status_code}",
-                    "reference_point": {
-                        "name": "Tan Son Nhat Airport",
-                        "address": self.AIRPORT_ADDRESS,
-                        "coordinates": {"lat": self.AIRPORT_LAT, "lon": self.AIRPORT_LON}
-                    },
-                    "total_properties": 0,
-                    "properties": []
-                }
-            
-            # Parse response
-            response_data = response.json()
-            
-            if "data" in response_data and "data" in response_data["data"]:
-                properties = response_data["data"]["data"]
-                print(f"[DEBUG] Found {len(properties)} active properties via API")
-                
-                # Process properties and calculate distances
-                all_properties = self.process_properties_with_distance(
-                    properties, self.AIRPORT_LAT, self.AIRPORT_LON
-                )
-                
-                return {
-                    "reference_point": {
-                        "name": "Tan Son Nhat Airport",
-                        "address": self.AIRPORT_ADDRESS,
-                        "coordinates": {
-                            "lat": self.AIRPORT_LAT,
-                            "lon": self.AIRPORT_LON
-                        }
-                    },
-                    "total_properties": len(all_properties),
-                    "properties": all_properties
-                }
-            else:
-                return {
-                    "reference_point": {
-                        "name": "Tan Son Nhat Airport",
-                        "address": self.AIRPORT_ADDRESS,
-                        "coordinates": {"lat": self.AIRPORT_LAT, "lon": self.AIRPORT_LON}
-                    },
-                    "total_properties": 0,
-                    "properties": [],
-                    "error": "No properties found or unexpected API response format"
-                }
-                
-        except Exception as e:
-            print(f"[DEBUG] Error in TanSonNhatCheckingLocationTool: {str(e)}")
-            return {
-                "error": f"Error processing properties: {str(e)}",
-                "reference_point": {
-                    "name": "Tan Son Nhat Airport",
-                    "address": self.AIRPORT_ADDRESS,
-                    "coordinates": {"lat": self.AIRPORT_LAT, "lon": self.AIRPORT_LON}
-                },
-                "total_properties": 0,
-                "properties": []
-            }
-
 class LocationCheckingInput(BaseModel):
     landmark_type: str = Field(
         default="tsn_main",
         description="Type of landmark to check distance from. Options: tsn_main, tsn_domestic, tsn_international"
     )
-
-class UniversityCheckingLocationTool(BaseTool, LocationBaseMixin):
-    name: Annotated[str, Field(description="Tool name")] = "university_checking_location"
-    description: Annotated[str, Field(description="Tool description")] = """
-    Find properties near specified university campuses in Ho Chi Minh City.
-    Uses Haversine formula to calculate distances.
-    Returns ALL properties sorted by distance from the selected campus.
-    
-    Available Universities:
-    1. HCMUS (Đại học Khoa học Tự nhiên):
-       - Q5 Campus: 227 Nguyen Van Cu, District 5
-       - Thu Duc Campus: Quarter 6, Linh Trung, Thu Duc (part of VNU)
-    
-    2. HCMUT (Đại học Bách Khoa):
-       - Q10 Campus: 268 Ly Thuong Kiet, District 10
-       - Di An Campus: Dĩ An, Bình Dương (part of VNU)
-    
-    3. HUTECH (Đại học Công nghệ TP.HCM):
-       - Binh Thanh Campus: 475A Dien Bien Phu
-    
-    4. UEH (Đại học Kinh tế TP.HCM):
-       - District 3 Campus: 59C Nguyen Dinh Chieu
-    
-    5. VNU (Đại học Quốc gia):
-       - Thu Duc Campus: Linh Trung, Thu Duc
-       - Includes: HCMUS, HCMUT, UIT, USSH, IU, UEL
-       - KTX khu B: Dong Hoa, Di An, Binh Duong
-    
-    Each property includes:
-    - Distance from campus in kilometers
-    - Travel times by different modes (walking, bicycle, motorbike, car)
-    - Basic info: id, name, description
-    - Price and details: price (in millions VND), area (m2), propertyType, transactionType
-    - Location and contact information
-    """
-    args_schema: type[BaseModel] = UniversityCheckingLocationInput
-
-    # Predefined university coordinates
-    UNIVERSITIES: ClassVar[Dict[str, Dict[str, Any]]] = {
-        "hcmus_q5": {
-            "name": "Đại học Khoa học Tự nhiên - Cơ sở Quận 5",
-            "address": "227 Nguyễn Văn Cừ, Quận 5",
-            "lat": 10.76307801155418,
-            "lon": 106.68243948006412
-        },
-        "hcmut_q10": {
-            "name": "Đại học Bách Khoa - Cơ sở Lý Thường Kiệt",
-            "address": "268 Lý Thường Kiệt, Quận 10",
-            "lat": 10.775702458108402,
-            "lon": 106.66015796004943
-        },
-        "hutech_bt": {
-            "name": "Đại học Công nghệ TP.HCM - Cơ sở Điện Biên Phủ",
-            "address": "475A Điện Biên Phủ, Bình Thạnh",
-            "lat": 10.80788664124126,
-            "lon": 106.71447352020371
-        },
-        "ueh_q3": {
-            "name": "Đại học Kinh tế TP.HCM - Cơ sở Nguyễn Đình Chiểu",
-            "address": "59C Nguyễn Đình Chiểu, Quận 3",
-            "lat": 10.783300549788201,
-            "lon": 106.69466826701431
-        },
-        "vnu_ktx_b": {
-            "name": "Ký túc xá khu B - ĐHQG",
-            "address": "Đông Hòa, Dĩ An, Bình Dương",
-            "lat": 10.882348255938583,
-            "lon": 106.78251202424775,
-            "note": "Đây là KTX của Đại học Quốc gia, gần các trường thành viên như: ĐHQG (khu phố Đại học), ĐH Khoa học Tự nhiên (CS Thủ Đức), ĐH Bách Khoa (CS Dĩ An), ĐH Công nghệ Thông tin, ĐH Khoa học Xã hội và Nhân văn (CS Thủ Đức), ĐH Quốc tế, ĐH Kinh tế - Luật",
-            "aliases": [
-                "đại học quốc gia", "dhqg", "ktx dhqg", "ktx khu b",
-                "đại học khoa học tự nhiên thủ đức", "khtn thủ đức",
-                "đại học bách khoa dĩ an", "bách khoa dĩ an",
-                "đại học công nghệ thông tin", "uit",
-                "đại học nhân văn thủ đức", "khxh&nv",
-                "đại học kinh tế luật", "uel",
-                "khu phố đại học", "làng đại học",
-                "đại học quốc gia thủ đức", "đại học quốc gia dĩ an"
-            ]
-        }
-    }
-
-    def _find_matching_university(self, search_key: str) -> Optional[Dict[str, Any]]:
-        """
-        Tìm trường đại học phù hợp với từ khóa tìm kiếm
-        
-        Args:
-            search_key (str): Từ khóa tìm kiếm (đã được chuẩn hóa)
-            
-        Returns:
-            Optional[Dict[str, Any]]: Thông tin trường đại học nếu tìm thấy
-        """
-        # Special case for VNU/ĐHQG queries
-        vnu_keywords = ["vnu", "dhqg", "daihocquocgia", "vietnam national university", "ktxkhub"]
-        if any(keyword.lower() in search_key for keyword in vnu_keywords):
-            return self.UNIVERSITIES["vnu_ktx_b"]
-            
-        # Tìm campus phù hợp
-        for key, univ in self.UNIVERSITIES.items():
-            if (key in search_key or 
-                search_key in key.lower() or 
-                search_key in univ["name"].lower().replace(" ", "").replace("-", "").replace("đ", "d") or
-                (
-                    "aliases" in univ and 
-                    any(alias.lower().replace(" ", "") in search_key or 
-                        search_key in alias.lower().replace(" ", "")
-                        for alias in univ["aliases"])
-                )):
-                return univ
-                
-        return None
-
-    def _run(self, university_name: str) -> Dict:
-        print(f"\n[DEBUG] UniversityCheckingLocationTool called with university: {university_name}")
-        
-        # Chuẩn hóa từ khóa tìm kiếm
-        search_key = university_name.lower().replace(" ", "").replace("-", "").replace("đ", "d")
-        
-        # Tìm trường đại học phù hợp
-        matched_university = self._find_matching_university(search_key)
-        
-        if not matched_university:
-            return {
-                "error": "University campus not found",
-                "available_campuses": [
-                    f"{key.upper()}: {univ['name']} ({univ['address']})"
-                    for key, univ in self.UNIVERSITIES.items()
-                ]
-            }
-        
-        # Lấy tọa độ trường
-        univ_lat = matched_university["lat"]
-        univ_lon = matched_university["lon"]
-        
-        try:
-            # Build query parameters
-            params = {
-                "page": 1,
-                "limit": 100,  # Get a larger set of properties
-                "status": "active",
-                # Could add centerLat, centerLng, and radius if API supports it
-            }
-            
-            # Print API call information
-            print(f"[DEBUG] URL: http://localhost:8080/api/posts")
-            print(f"[DEBUG] Params: {params}")
-            
-            # Use a session with the debugging adapter
-            session = requests.Session()
-            session.mount('http://', DebuggingAdapter())
-            session.mount('https://', DebuggingAdapter())
-            
-            # Make API call using the session
-            response = session.get(
-                "http://localhost:8080/api/posts",
-                params=params
-            )
-            
-            if response.status_code != 200:
-                print(f"[DEBUG] API call failed with status code {response.status_code}: {response.text}")
-                return {
-                    "error": f"API call failed with status code {response.status_code}",
-                    "university": {
-                        "name": matched_university["name"],
-                        "address": matched_university["address"],
-                        "coordinates": {"lat": univ_lat, "lon": univ_lon},
-                        "note": matched_university.get("note", "")
-                    },
-                    "total_properties": 0,
-                    "properties": []
-                }
-            
-            # Parse response
-            response_data = response.json()
-            
-            if "data" in response_data and "data" in response_data["data"]:
-                properties = response_data["data"]["data"]
-                print(f"[DEBUG] Found {len(properties)} active properties via API")
-                
-                # Process properties and calculate distances from university
-                all_properties = self.process_properties_with_distance(
-                    properties, univ_lat, univ_lon
-                )
-                
-                return {
-                    "university": {
-                        "name": matched_university["name"],
-                        "address": matched_university["address"],
-                        "coordinates": {
-                            "lat": univ_lat,
-                            "lon": univ_lon
-                        },
-                        "note": matched_university.get("note", "")  # Add note if available
-                    },
-                    "total_properties": len(all_properties),
-                    "properties": all_properties
-                }
-            else:
-                return {
-                    "university": {
-                        "name": matched_university["name"],
-                        "address": matched_university["address"],
-                        "coordinates": {"lat": univ_lat, "lon": univ_lon}, 
-                        "note": matched_university.get("note", "")
-                    },
-                    "total_properties": 0,
-                    "properties": [],
-                    "error": "No properties found or unexpected API response format"
-                }
-                
-        except Exception as e:
-            print(f"[DEBUG] Error in UniversityCheckingLocationTool: {str(e)}")
-            return {
-                "error": f"Error processing properties: {str(e)}",
-                "university": {
-                    "name": matched_university["name"],
-                    "address": matched_university["address"],
-                    "coordinates": {"lat": univ_lat, "lon": univ_lon}, 
-                    "note": matched_university.get("note", "")
-                },
-                "total_properties": 0,
-                "properties": []
-            }
 
 class SearchPostsInput(BaseModel):
     page: int = Field(default=1, description="Page number for pagination")
@@ -1172,7 +757,6 @@ class SearchPostsInput(BaseModel):
 class DebuggingAdapter(HTTPAdapter):
     def add_headers(self, request, **kwargs):
         super().add_headers(request, **kwargs)
-        # Print full request details
         print(f"\n[DEBUG] ============ FULL REQUEST DETAILS ============")
         print(f"[DEBUG] Request method: {request.method}")
         print(f"[DEBUG] Request URL: {request.url}")
@@ -1502,4 +1086,480 @@ class SearchPostsTool(BaseTool):
         """Async implementation of _run"""
         return self._run(page, limit, min_price, max_price, min_area, max_area,
                        property_type, transaction_type, province, district, ward,
-                       min_bedrooms, min_bathrooms, center_lat, center_lng, radius, bounds) 
+                       min_bedrooms, min_bathrooms, center_lat, center_lng, radius, bounds)
+
+def get_properties_with_filters(query_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Get properties with filters from the rental service
+    
+    Args:
+        query_params (Dict[str, Any]): Query parameters for filtering properties
+        
+    Returns:
+        List[Dict[str, Any]]: List of properties matching the filters
+    """
+    try:
+        print("\n==== GET_PROPERTIES_WITH_FILTERS CALLED ====")
+        print(f"Filter parameters: {json.dumps(query_params, indent=2)}")
+        print("========================================\n")
+        
+        # Convert query parameters to URL query string
+        query_string = "?" + "&".join([f"{k}={v}" for k, v in query_params.items() if v is not None])
+        
+        # Make request to rental service
+        response = requests.get(f"{RENTAL_SERVICE_URL}/posts{query_string}")
+        response.raise_for_status()
+        
+        # Parse response
+        data = response.json()
+        
+        # Print the results
+        properties = data.get("data", {}).get("posts", [])
+        print(f"Found {len(properties)} properties with filters")
+        
+        return properties
+    except Exception as e:
+        print(f"Error getting properties with filters: {str(e)}")
+        return []
+
+RENTAL_SERVICE_URL = "http://localhost:8080/api"
+
+class FilteredPropertySearchInput(BaseModel):
+    max_price_constraint: Optional[float] = Field(default=None, description="Maximum price constraint in millions VND")
+    min_bedrooms: Optional[int] = Field(default=None, description="Minimum number of bedrooms required")
+    min_bathrooms: Optional[int] = Field(default=None, description="Minimum number of bathrooms required")
+    page: Optional[int] = Field(default=1, description="Page number for pagination")
+
+# Global context for sharing data between tools and AI service
+GLOBAL_CONTEXT = {}
+
+class FilteredPropertySearchTool(BaseTool):
+    name: Annotated[str, Field(description="Tool name")] = "filtered_property_search"
+    description: Annotated[str, Field(description="Tool description")] = """
+    Search for properties based on the user's current filter selection plus additional constraints.
+    
+    This tool uses the current filter parameters from the frontend (location, price range, etc.)
+    and allows adding additional constraints like maximum price, min bedrooms, etc.
+    
+    Use this tool when:
+    - The user asks to find properties based on "current selection" or "current filters"
+    - The user wants to add constraints to their current search (e.g., "below 5 million")
+    - The user refers to properties in their current location/area view
+    
+    The tool combines the frontend filters with the additional constraints specified.
+    """
+    args_schema: type[BaseModel] = FilteredPropertySearchInput
+    
+    def format_property(self, prop: Dict) -> Dict:
+        """Format a single property for display"""
+        # Get only the first image to save tokens
+        images = prop.get('images', [{'url': 'No image available'}])
+        first_image = images[0] if images else {'url': 'No image available'}
+        
+        return {
+            "id": prop.get('id', 'Not specified'),
+            "name": prop.get('name', 'Unnamed Property'),
+            "district": prop.get('district', 'Not specified'),
+            "price": prop.get('price', 'Contact for price'),
+            "area": prop.get('area', 'Not specified'),
+            "bedrooms": prop.get('bedrooms', 'Not specified'),
+            "bathrooms": prop.get('bathrooms', 'Not specified'),
+            "contact_name": prop.get('contactName', 'Not specified'),
+            "contact_phone": prop.get('contactPhone', 'Not specified'),
+            "images": first_image,  # Only include the first image to save tokens
+            "address": prop.get('displayedAddress', 'Not specified'),
+        }
+    
+    def _run(self, 
+             max_price_constraint: Optional[float] = None,
+             min_bedrooms: Optional[int] = None, 
+             min_bathrooms: Optional[int] = None,
+             page: int = 1) -> Dict:
+        """
+        Search for properties using the current filter parameters plus additional constraints
+        
+        Args:
+            max_price_constraint: Maximum price in millions VND (overrides the current filter if lower)
+            min_bedrooms: Minimum number of bedrooms required
+            min_bathrooms: Minimum number of bathrooms required
+            page: Page number for pagination
+            
+        Returns:
+            Dict: Search results with properties matching all criteria
+        """
+        print(f"\n[DEBUG] FilteredPropertySearchTool called with constraints:")
+        print(f"[DEBUG] max_price_constraint: {max_price_constraint}")
+        print(f"[DEBUG] min_bedrooms: {min_bedrooms}")
+        print(f"[DEBUG] min_bathrooms: {min_bathrooms}")
+        print(f"[DEBUG] page: {page}")
+        
+        try:
+            # Get the current filter parameters from the global context
+            current_filters = {}
+            
+            if GLOBAL_CONTEXT and "query_params" in GLOBAL_CONTEXT:
+                current_filters = GLOBAL_CONTEXT["query_params"]
+                print(f"[DEBUG] Current filters from frontend: {json.dumps(current_filters, indent=2)}")
+            else:
+                print("[DEBUG] No current filters found from frontend")
+            
+            # Create a combined filter with both current filters and new constraints
+            combined_filters = dict(current_filters)
+            
+            # Handle pagination
+            combined_filters["page"] = page
+            combined_filters["limit"] = 10
+            
+            # Apply max price constraint if provided (and more restrictive than current)
+            if max_price_constraint is not None:
+                current_max_price = float(combined_filters.get("maxPrice", float('inf')))
+                # Use the more restrictive of the two max prices
+                if max_price_constraint < current_max_price or current_max_price == float('inf'):
+                    combined_filters["maxPrice"] = max_price_constraint
+                print(f"[DEBUG] Applied max price constraint: {combined_filters.get('maxPrice')}")
+            
+            # Apply bedroom/bathroom constraints if provided
+            if min_bedrooms is not None:
+                combined_filters["minBedrooms"] = min_bedrooms
+                print(f"[DEBUG] Applied min bedrooms constraint: {min_bedrooms}")
+            
+            if min_bathrooms is not None:
+                combined_filters["minBathrooms"] = min_bathrooms
+                print(f"[DEBUG] Applied min bathrooms constraint: {min_bathrooms}")
+            
+            # Print the final combined filters
+            print(f"[DEBUG] Final combined filters: {json.dumps(combined_filters, indent=2)}")
+            
+            # Make the API request with the combined filters
+            response = requests.get(
+                f"{RENTAL_SERVICE_URL}/posts", 
+                params=combined_filters
+            )
+            
+            if response.status_code != 200:
+                print(f"[DEBUG] API call failed with status code {response.status_code}: {response.text}")
+                return {
+                    "success": False,
+                    "error": f"API call failed with status code {response.status_code}",
+                    "properties": [],
+                    "filters_used": combined_filters  # Include the used filters in the response
+                }
+            
+            # Process the response
+            response_data = response.json()
+            
+            if "data" in response_data and "data" in response_data["data"]:
+                properties = response_data["data"]["data"]
+                pagination = response_data["data"].get("pagination", {})
+                total_records = pagination.get("total_records", len(properties))
+                total_pages = pagination.get("total_pages", 1)
+                
+                print(f"[DEBUG] Found {len(properties)} properties on page {page} of {total_pages}")
+                print(f"[DEBUG] Total records: {total_records}")
+                
+                # Format the properties
+                formatted_properties = [self.format_property(prop) for prop in properties]
+                
+                # Generate a summary of the results
+                price_ranges = set()
+                districts = set()
+                
+                for prop in properties:
+                    if prop.get("price"):
+                        price_ranges.add(float(prop.get("price")))
+                    if prop.get("district"):
+                        districts.add(prop.get("district"))
+                
+                min_price = min(price_ranges) if price_ranges else "N/A"
+                max_price = max(price_ranges) if price_ranges else "N/A"
+                
+                # List of unique property types
+                property_types = set(p.get("propertyType", "") for p in properties if p.get("propertyType"))
+                
+                summary = {
+                    "price_range": f"{min_price} - {max_price} million VND",
+                    "districts": list(districts),
+                    "property_types": list(property_types),
+                    "total_found": total_records,
+                    "page_info": f"Page {page} of {total_pages}"
+                }
+                
+                return {
+                    "success": True,
+                    "properties": formatted_properties,
+                    "summary": summary,
+                    "pagination": {
+                        "current_page": page,
+                        "total_pages": total_pages,
+                        "total_records": total_records,
+                        "has_more": page < total_pages
+                    },
+                    "filters_used": combined_filters  # Include the used filters in the response
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Unexpected API response format",
+                    "properties": [],
+                    "filters_used": combined_filters  # Include the used filters in the response
+                }
+        except Exception as e:
+            print(f"[DEBUG] Error in FilteredPropertySearchTool: {str(e)}")
+            return {
+                "success": False,
+                "error": f"Error: {str(e)}",
+                "properties": [],
+                "filters_used": {"maxPrice": max_price_constraint} if max_price_constraint is not None else {}
+            }
+
+class NearbyLocationSearchInput(BaseModel):
+    location_name: str = Field(..., description="Name of the location to search for properties nearby")
+    radius: Optional[int] = Field(default=2, description="Search radius in kilometers")
+    max_price: Optional[float] = Field(default=None, description="Maximum price in millions VND")
+    min_price: Optional[float] = Field(default=None, description="Minimum price in millions VND")
+    page: Optional[int] = Field(default=1, description="Page number for pagination")
+    property_type: Optional[str] = Field(default=None, description="Type of property (room, apartment, house, etc.)")
+
+class NearbyLocationSearchTool(BaseTool):
+    name: Annotated[str, Field(description="Tool name")] = "nearby_location_search"
+    description: Annotated[str, Field(description="Tool description")] = """
+    Search for properties near a specific location by name.
+    
+    This tool will:
+    1. Search for a location using its name
+    2. Get the coordinates of that location
+    3. Find properties within the specified radius of that location
+    
+    Use this tool when users ask for properties:
+    - Near a specific place (e.g. "near CMC Creative Space")
+    - Close to an address or landmark
+    - Within walking distance of a location
+    - In the vicinity/area of a place
+    
+    Parameters:
+    - location_name: Name of the place to search near (e.g. "CMC Creative Space", "Landmark 81")
+    - radius: Search radius in kilometers (default: 2)
+    - max_price: Maximum price filter (optional)
+    - min_price: Minimum price filter (optional)
+    - page: Page number for pagination
+    - property_type: Type of property filter (optional)
+    """
+    args_schema: type[BaseModel] = NearbyLocationSearchInput
+    
+    def format_property(self, prop: Dict) -> Dict:
+        """Format a single property for display"""
+        return {
+            "id": prop.get('id', 'Not specified'),
+            "name": prop.get('name', 'Unnamed Property'),
+            "district": prop.get('district', 'Not specified'),
+            "price": prop.get('price', 'Contact for price'),
+            "area": prop.get('area', 'Not specified'),
+            "bedrooms": prop.get('bedrooms', 'Not specified'),
+            "bathrooms": prop.get('bathrooms', 'Not specified'),
+            "contact_name": prop.get('contactName', 'Not specified'),
+            "contact_phone": prop.get('contactPhone', 'Not specified'),
+            "image": prop.get('images', [{'url': 'No image available'}])[0],  # Only include the first image to save tokens
+            "address": prop.get('displayedAddress', 'Not specified'),
+        }
+    
+    def _run(self, 
+             location_name: str,
+             radius: int = 2,
+             max_price: Optional[float] = None,
+             min_price: Optional[float] = None,
+             page: int = 1,
+             property_type: Optional[str] = None) -> Dict:
+        """
+        Search for properties near a specific location
+        
+        Args:
+            location_name: Name of the place to search near
+            radius: Search radius in kilometers
+            max_price: Maximum price filter (optional)
+            min_price: Minimum price filter (optional)
+            page: Page number for pagination
+            property_type: Type of property filter (optional)
+            
+        Returns:
+            Dict: Search results with properties near the specified location
+        """
+        # Goong API key - should be set in an environment variable
+        goong_api_key = os.getenv("GOONG_API_KEY", "JHIeym2SpVnWISoW6ZfalFvRibdkYfpzRRCwQ1nG")
+        
+        print(f"\n[DEBUG] NearbyLocationSearchTool called with location: {location_name}")
+        print(f"[DEBUG] Search radius: {radius} km")
+        
+        try:
+            # Step 1: Call Goong Autocomplete API to get place_id
+            encoded_location = quote(location_name)
+            autocomplete_url = f"https://rsapi.goong.io/Place/AutoComplete?input={encoded_location}&api_key={goong_api_key}"
+            
+            print(f"[DEBUG] Calling Goong Autocomplete API: {autocomplete_url}")
+            
+            autocomplete_response = requests.get(autocomplete_url)
+            if autocomplete_response.status_code != 200:
+                print(f"[DEBUG] Autocomplete API call failed: {autocomplete_response.status_code}")
+                return {
+                    "success": False,
+                    "error": f"Autocomplete API call failed: {autocomplete_response.status_code}",
+                    "properties": []
+                }
+            
+            autocomplete_data = autocomplete_response.json()
+            if not autocomplete_data.get("predictions"):
+                print(f"[DEBUG] No locations found for '{location_name}'")
+                return {
+                    "success": False,
+                    "error": f"No locations found for '{location_name}'",
+                    "properties": []
+                }
+            
+            # Get the first prediction's place_id
+            place_id = autocomplete_data["predictions"][0].get("place_id")
+            matched_location = autocomplete_data["predictions"][0].get("description", location_name)
+            print(f"[DEBUG] Found place_id: {place_id}")
+            print(f"[DEBUG] Matched location: {matched_location}")
+            
+            # Step 2: Call Goong Geocode API to get coordinates
+            geocode_url = f"https://rsapi.goong.io/geocode?place_id={place_id}&api_key={goong_api_key}"
+            
+            print(f"[DEBUG] Calling Goong Geocode API")
+            
+            geocode_response = requests.get(geocode_url)
+            if geocode_response.status_code != 200:
+                print(f"[DEBUG] Geocode API call failed: {geocode_response.status_code}")
+                return {
+                    "success": False,
+                    "error": f"Geocode API call failed: {geocode_response.status_code}",
+                    "properties": []
+                }
+            
+            geocode_data = geocode_response.json()
+            if not geocode_data.get("results"):
+                print(f"[DEBUG] No geocode results found")
+                return {
+                    "success": False,
+                    "error": "No geocode results found",
+                    "properties": []
+                }
+            
+            # Extract lat and lng from the first result
+            location = geocode_data["results"][0].get("geometry", {}).get("location", {})
+            lat = location.get("lat")
+            lng = location.get("lng")
+            
+            if not lat or not lng:
+                print(f"[DEBUG] No coordinates found in geocode response")
+                return {
+                    "success": False,
+                    "error": "No coordinates found in geocode response",
+                    "properties": []
+                }
+            
+            print(f"[DEBUG] Location coordinates: lat={lat}, lng={lng}")
+            
+            # Step 3: Search for properties near these coordinates
+            # Build query parameters
+            params = {
+                "page": page,
+                "limit": 10,
+                "centerLat": lat,
+                "centerLng": lng,
+                "radius": radius,
+                "status": "active"
+            }
+            
+            # Add optional filters if provided
+            if max_price is not None:
+                params["maxPrice"] = max_price
+            
+            if min_price is not None:
+                params["minPrice"] = min_price
+            
+            if property_type is not None:
+                params["propertyType"] = property_type
+            
+            print(f"[DEBUG] Searching for properties with params: {params}")
+            
+            # Make the API call to the rental service
+            response = requests.get(f"{RENTAL_SERVICE_URL}/posts", params=params)
+            
+            if response.status_code != 200:
+                print(f"[DEBUG] API call failed with status code {response.status_code}: {response.text}")
+                return {
+                    "success": False,
+                    "error": f"API call failed with status code {response.status_code}",
+                    "location_name": matched_location,
+                    "coordinates": {"lat": lat, "lng": lng},
+                    "properties": []
+                }
+            
+            response_data = response.json()
+            
+            if "data" in response_data and "data" in response_data["data"]:
+                properties = response_data["data"]["data"]
+                pagination = response_data["data"].get("pagination", {})
+                total_records = pagination.get("total_records", len(properties))
+                total_pages = pagination.get("total_pages", 1)
+                
+                print(f"[DEBUG] Found {len(properties)} properties near {matched_location}")
+                
+                formatted_properties = [self.format_property(prop) for prop in properties]
+                
+                for i, prop in enumerate(formatted_properties):
+                    if "coordinates" in properties[i]:
+                        prop_lat = properties[i]["coordinates"].get("latitude")
+                        prop_lng = properties[i]["coordinates"].get("longitude")
+                        if prop_lat and prop_lng:
+                            from math import radians, cos, sin, asin, sqrt
+                            
+                            def haversine(lat1, lon1, lat2, lon2):
+                                # Convert decimal degrees to radians
+                                lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+                                
+                                # Haversine formula
+                                dlon = lon2 - lon1
+                                dlat = lat2 - lat1
+                                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                                c = 2 * asin(sqrt(a))
+                                r = 6371  
+                                return round(c * r, 2)
+                            
+                            distance = haversine(lat, lng, prop_lat, prop_lng)
+                            prop["distance_km"] = distance
+                
+                # Sort properties by distance if distance is available
+                formatted_properties = sorted(
+                    formatted_properties,
+                    key=lambda x: x.get("distance_km", float('inf'))
+                )
+                
+                return {
+                    "success": True,
+                    "location_name": matched_location,
+                    "coordinates": {"lat": lat, "lng": lng},
+                    "search_radius_km": radius,
+                    "properties": formatted_properties,
+                    "total_found": total_records,
+                    "pagination": {
+                        "current_page": page,
+                        "total_pages": total_pages,
+                        "has_more": page < total_pages
+                    }
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Unexpected API response format",
+                    "location_name": matched_location,
+                    "coordinates": {"lat": lat, "lng": lng},
+                    "properties": []
+                }
+        
+        except Exception as e:
+            print(f"[DEBUG] Error in NearbyLocationSearchTool: {str(e)}")
+            return {
+                "success": False,
+                "error": f"Error: {str(e)}",
+                "properties": []
+            }

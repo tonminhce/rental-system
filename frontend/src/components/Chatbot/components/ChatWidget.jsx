@@ -2,11 +2,11 @@ import { chatService } from "@/utils/chatService";
 import SendIcon from "@mui/icons-material/Send";
 import { Box, IconButton, List, ListItem, Paper, styled, TextField, Typography, Tooltip } from "@mui/material";
 import { grey } from "@mui/material/colors";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import ChatMessage from "./ChatMessage";
 import { useSelector } from "react-redux";
+import eventBus, { CHATBOT_EVENTS } from '@/utils/chatbotEventBus';
 
 const ChatbotContainer = styled(Box)(({ theme }) => ({
   position: "fixed",
@@ -17,7 +17,7 @@ const ChatbotContainer = styled(Box)(({ theme }) => ({
   mx: "auto",
   mt: 5,
   zIndex: 1000,
-  display: "none", // Ẩn mặc định, sẽ hiển thị qua CSS khi được kích hoạt
+  display: "none", 
 }));
 
 const ChatHeader = styled(Box)(({ theme }) => ({
@@ -57,43 +57,30 @@ const ChatInputContainer = styled(Box)(({ theme }) => ({
 }));
 
 const ChatWidget = () => {
-  // Kiểm tra trạng thái chat có mở hay không từ Redux
-  const isChatOpened = useSelector((state) => state.system.isChatOpened);
+  const filterState = useSelector((state) => state.filter);
   
-  // Generate a new UUID on every page refresh
-  // Use both useState and useEffect to ensure we get a new UUID on refresh
+  const isChatOpened = useSelector((state) => state.system.isChatOpened);
   const [threadId, setThreadId] = useState('');
   
-  // Generate new UUID on component mount (which happens on refresh)
   useEffect(() => {
     if (isChatOpened) {
       setThreadId(uuidv4());
-      // We can also clear messages when generating a new thread
       sessionStorage.removeItem("chatMessages");
     }
   }, [isChatOpened]);
-  
-  // Debug: log trạng thái chat
-  useEffect(() => {
-    console.log("ChatWidget rendered, isChatOpened =", isChatOpened);
-  }, [isChatOpened]);
-  
-  // Create ref for streaming message
+
   const streamedMessageRef = useRef('');
   
   const lastMessageEl = useRef(null);
-  const router = useRouter();
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  // Load previous messages from session storage
   useEffect(() => {
     if (threadId && isChatOpened) {
       const storedMessages = JSON.parse(sessionStorage.getItem("chatMessages") ?? "[]");
       if (storedMessages.length === 0) {
-        // Thêm tin nhắn chào mừng chỉ khi không có tin nhắn nào
         setMessages([{ 
           text: "Hello! How can i help you today?",
           sender: "bot" 
@@ -104,19 +91,72 @@ const ChatWidget = () => {
     }
   }, [threadId, isChatOpened]);
 
-  // Save messages to session storage
   useEffect(() => {
     if (messages.length > 0 && isChatOpened) {
       sessionStorage.setItem("chatMessages", JSON.stringify(messages));
     }
   }, [messages, isChatOpened]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (lastMessageEl.current && isChatOpened) {
       lastMessageEl.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isChatOpened]);
+
+  const processChatbotResponse = (content) => {
+    try {
+      let processedContent = content;
+      let didUpdate = false;
+      
+      if (processedContent.includes("__LOCATION_UPDATE__")) {
+        const locationRegex = /__LOCATION_UPDATE__\s*({[\s\S]*?})\s*__END_LOCATION_UPDATE__/;
+        const match = processedContent.match(locationRegex);
+        
+        if (match && match[1]) {
+          const locationData = JSON.parse(match[1]);
+          
+          if (locationData.centerLat && locationData.centerLng) {
+            eventBus.publish(CHATBOT_EVENTS.UPDATE_MAP_LOCATION, {
+              centerLat: locationData.centerLat,
+              centerLng: locationData.centerLng,
+              radius: locationData.radius || 1,
+              locationName: locationData.locationName || "Searched Location"
+            });
+            
+            eventBus.publish(CHATBOT_EVENTS.UPDATE_FILTERS, {
+              centerLat: locationData.centerLat,
+              centerLng: locationData.centerLng,
+              radius: locationData.radius || 1,
+              minPrice: locationData.minPrice,
+              maxPrice: locationData.maxPrice,
+              propertyType: locationData.propertyType,
+              transactionType: locationData.transactionType || 'rent'
+            });
+            
+            didUpdate = true;
+          }
+          
+          processedContent = processedContent.replace(locationRegex, "");
+        }
+      }
+      
+      if (processedContent.includes("__FILTER_UPDATE__")) {
+        const filterRegex = /__FILTER_UPDATE__\s*({[\s\S]*?})\s*__END_FILTER_UPDATE__/;
+        const match = processedContent.match(filterRegex);
+        
+        if (match && match[1]) {
+          const filterData = JSON.parse(match[1]);
+          eventBus.publish(CHATBOT_EVENTS.UPDATE_FILTERS, filterData);
+          didUpdate = true;
+          processedContent = processedContent.replace(filterRegex, "");
+        }
+      }
+      return processedContent;
+    } catch (error) {
+      console.error("Error processing chatbot response for updates:", error);
+    }
+        return content;
+  };
 
   const handleSend = async () => {
     if (input.trim() === "" || isTyping || !threadId || !isChatOpened) return;
@@ -127,22 +167,26 @@ const ChatWidget = () => {
     setInput("");
     setIsTyping(true);
     
-    // Reset streaming message content
     streamedMessageRef.current = '';
     
     try {
-      // Add an empty bot message to show streaming
       setMessages(prev => [...prev, { text: '', sender: "bot", isPartial: true }]);
       
-      // Use chat service streaming function to get response
+      const queryParams = Object.keys(filterState).reduce((params, key) => {
+        if (filterState[key] !== null && filterState[key] !== undefined && filterState[key] !== '') {
+          params[key] = filterState[key];
+        }
+        return params;
+      }, {});
+      
+      
       await chatService.sendMessageStream(
         userMessage,
         threadId,
+        queryParams,
         (token) => {
-          // Handle each token as it comes in
-          streamedMessageRef.current += token;
-          
-          // Update the last message with new content
+          const processedToken = processChatbotResponse(token);
+          streamedMessageRef.current += processedToken;
           setMessages(prev => {
             const newMessages = [...prev];
             const lastMessage = newMessages[newMessages.length - 1];
@@ -166,7 +210,6 @@ const ChatWidget = () => {
         }
       );
 
-      // Once stream is complete, finalize the message (remove isPartial flag)
       setMessages(prev => {
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
@@ -198,7 +241,6 @@ const ChatWidget = () => {
     }
   };
 
-  // Không cần phải render gì nếu chat chưa được mở
   if (!isChatOpened) {
     return null;
   }
@@ -295,3 +337,4 @@ Rental Assistant          </Typography>
 };
 
 export default ChatWidget;
+

@@ -37,7 +37,6 @@ export default function PropertyCard({
   },
 }) {
   const [isFavouriteState, setIsFavouriteState] = useState(isFavourite);
-  console.log("thumbnail:", thumbnail);
   const formatAddress = ({ street, district, province }) => {
     return `${street}, ${district}, ${province}`;
   };

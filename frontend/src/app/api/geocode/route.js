@@ -9,7 +9,6 @@ export async function GET(request) {
   try {
     const requestURL = new URL('https://rsapi.goong.io/Geocode');
     
-    // Use the server-side API key
     requestURL.searchParams.append('api_key', process.env.GOONG_API_KEY);
     requestURL.searchParams.append('address', address);
     

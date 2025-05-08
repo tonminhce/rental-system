@@ -213,7 +213,7 @@ input::-webkit-inner-spin-button {
   }
   
   .mapboxgl-popup-close-button {
-    display: none;
+    display: block !important;
   }
 }
 

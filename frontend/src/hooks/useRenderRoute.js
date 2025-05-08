@@ -1,15 +1,12 @@
-import calculateBoundsForRoute from "@/utils/getRouteBoundary";
 import polyline from "@mapbox/polyline";
 import { useEffect } from "react";
 import goongJs from "@goongmaps/goong-js";
 
 export default function useRenderRoute(mapInstance, originCoord, destinationCoord, onRouteComplete) {
   useEffect(() => {
-    // Make sure map exists
     if (!mapInstance) return;
 
     try {
-      // Only continue with route operations if the map is in a state to handle them
       const safelyRemoveLayer = () => {
         try {
           if (mapInstance.getLayer && mapInstance.getLayer("route-layer")) {
@@ -23,7 +20,7 @@ export default function useRenderRoute(mapInstance, originCoord, destinationCoor
       const safelyRemoveSource = () => {
         try {
           if (mapInstance.getSource && mapInstance.getSource("route")) {
-            safelyRemoveLayer(); // Remove layer first
+            safelyRemoveLayer();
             mapInstance.removeSource("route");
           }
         } catch (e) {
@@ -33,7 +30,6 @@ export default function useRenderRoute(mapInstance, originCoord, destinationCoor
       
       const safelyRemovePopup = () => {
         try {
-          // Remove existing route popup if it exists
           const existingPopup = document.querySelector('.route-info-popup');
           if (existingPopup) {
             existingPopup.remove();
@@ -56,9 +52,6 @@ export default function useRenderRoute(mapInstance, originCoord, destinationCoor
         if (onRouteComplete) onRouteComplete(null);
         return;
       }
-
-      console.log("originCoord:", originCoord);
-      console.log("destinationCoord:", destinationCoord);
       
       const getRouteData = async () => {
         const url = `/api/direction?origin=${originCoord}&destination=${destinationCoord}&vehicle=bike`;
@@ -74,7 +67,6 @@ export default function useRenderRoute(mapInstance, originCoord, destinationCoor
             return;
           }
           
-          console.log(data);
           const route = data.routes[0];
           const polylineStr = route.overview_polyline.points;
           const decoded = polyline.decode(polylineStr);
@@ -137,12 +129,17 @@ export default function useRenderRoute(mapInstance, originCoord, destinationCoor
             const distanceKm = (route.legs[0].distance.value / 1000).toFixed(1);
             const durationMins = Math.round(route.legs[0].duration.value / 60);
             
+            // Calculate middle point of the route
+            const middleIndex = Math.floor(decoded.length / 2);
+            const middlePoint = decoded[middleIndex];
+            
             const popup = new goongJs.Popup({ 
-              closeButton: false, 
+              closeButton: true, 
               closeOnClick: false,
-              className: 'route-info-popup'
+              className: 'route-info-popup',
+              maxWidth: '200px'
             })
-              .setLngLat([destParts[1], destParts[0]])
+              .setLngLat([middlePoint[1], middlePoint[0]])
               .setHTML(`
                 <div style="font-family: Arial, sans-serif; padding: 8px; border-radius: 6px; min-width: 150px;">
                   <strong>Distance:</strong> ${distanceKm} km<br>
@@ -152,48 +149,21 @@ export default function useRenderRoute(mapInstance, originCoord, destinationCoor
               .addTo(mapInstance);
           }
           
-          // Use a small timeout to ensure popup content has rendered
-          setTimeout(() => {
-            try {
-              // First zoom out to see the whole route
-              mapInstance.fitBounds(newBounds, {
-                padding: { top: 100, bottom: 100, left: 100, right: 100 },
-                maxZoom: 16,
-                duration: 800,
-                linear: false 
-              });
-              
-              // Force maximum padding on smaller screens to ensure visibility
-              setTimeout(() => {
-                // Ensure we're not too zoomed in
-                const currentZoom = mapInstance.getZoom();
-                if (currentZoom > 15) {
-                  mapInstance.easeTo({
-                    zoom: 14,
-                    duration: 500
-                  });
-                }
-                
-                // Call the callback when route is complete
-                if (onRouteComplete) onRouteComplete(data);
-              }, 900);
-            } catch (error) {
-              console.error("Error adjusting map view:", error);
-              // Fallback to simple zoom out
-              try {
-                mapInstance.easeTo({
-                  zoom: 14,
-                  duration: 600
-                });
-                
-                // Still call the callback with data
-                if (onRouteComplete) onRouteComplete(data);
-              } catch (e) {
-                console.error("Fallback zoom failed:", e);
-                if (onRouteComplete) onRouteComplete(data);
-              }
-            }
-          }, 400);
+          try {
+            mapInstance.fitBounds(newBounds, {
+              padding: { top: 80, bottom: 80, left: 80, right: 80 },
+              maxZoom: 15,
+              duration: 1000,
+              linear: true
+            });
+            
+            setTimeout(() => {
+              if (onRouteComplete) onRouteComplete(data);
+            }, 1000);
+          } catch (error) {
+            console.error("Error adjusting map view:", error);
+            if (onRouteComplete) onRouteComplete(data);
+          }
         })
         .catch((error) => {
           console.error("Route data fetch error:", error);
