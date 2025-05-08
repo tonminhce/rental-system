@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import os
-from typing import List, Dict, AsyncGenerator, Any
+from typing import List, Dict, AsyncGenerator, Any, Optional
 from dotenv import load_dotenv
 from app.database.chat_history_service import save_chat_history, get_recent_chat_history, format_chat_history
 from pydantic import BaseModel, Field
@@ -14,12 +14,14 @@ from .tools import (
     CheckPropertiesStatusTool,
     CheckPropertiesPriceRangeTool,
     ShowPropertiesTool, 
-    DucbaCheckingLocationTool,
-    TanSonNhatCheckingLocationTool,
-    UniversityCheckingLocationTool,
-    SearchPostsTool
+    SearchPostsTool,
+    FilteredPropertySearchTool,
+    NearbyLocationSearchTool,
+    GLOBAL_CONTEXT
 )
 import time
+import json
+from datetime import datetime
 
 load_dotenv()
 
@@ -33,10 +35,9 @@ check_properties_district_tool = CheckPropertiesDistrictTool()
 check_properties_status_tool = CheckPropertiesStatusTool()
 check_properties_price_range_tool = CheckPropertiesPriceRangeTool()
 show_properties_tool = ShowPropertiesTool()
-ducba_checking_location_tool = DucbaCheckingLocationTool()
-tansonhat_checking_location_tool = TanSonNhatCheckingLocationTool()
-university_checking_location_tool = UniversityCheckingLocationTool()
 search_posts_tool = SearchPostsTool()
+filtered_property_search_tool = FilteredPropertySearchTool()
+nearby_location_search_tool = NearbyLocationSearchTool()
 # create_order_tool = CreateOrderTool()
 # update_order_status_tool = UpdateOrderStatusTool()
 
@@ -152,21 +153,26 @@ When asked about district properties:
 - Contact: [property["contactName"]] - [property["contactPhone"]]
 - [property["images"][0]["url"]]
 
-3. SEARCH BY PRICE RANGE (check_properties_price_range)
-When asked about price range:
-- Call: check_properties_price_range(min_price=[min], max_price=[max])
-- From result, use: result["properties"][:5]
-- Start response with: "Found properties between [min]-[max] million VND:"
+3. SEARCH BY PRICE RANGE (filtered_property_search)
+When asked about price range or properties below/above a certain price:
+- For queries like "below X million", "under X million", "less than X million": 
+  Call: filtered_property_search(max_price_constraint=X)
+- For queries like "above X million", "over X million", "more than X million": 
+  Call: filtered_property_search(min_price=X)
+- For queries like "between X and Y million":
+  Call: filtered_property_search(min_price=X, max_price=Y)
+- From result, use: result["properties"]
+- Start response with: "Found properties [below/above/between] [X] million VND:"
 - For each property, display same format as above
 
 4. SEARCH BY LOCATION
-For properties near landmarks:
+For properties near specific locations:
 
-a) Near Airport (tansonhat_checking_location):
-- Call: tansonhat_checking_location()
-- From result, use: result["properties"][:5]
-- Sort by result["distance_km"]
-- Start response with: "Properties near Tan Son Nhat Airport:"
+a) Near specific location (nearby_location_search):
+- Call: nearby_location_search(location_name="[location]", radius=[radius])
+- From result, use: result["properties"]
+- Sort by distance if available
+- Start response with: "Properties near [location]:"
 - For each property, display:
 
 [property["name"]] (ID: #[property["id"]])
@@ -177,16 +183,6 @@ a) Near Airport (tansonhat_checking_location):
 - Rooms: [property["bedrooms"]] bedrooms, [property["bathrooms"]] bathrooms
 - Contact: [property["contactName"]] - [property["contactPhone"]]
 - [property["images"][0]["url"]]
-
-b) Near Cathedral (ducba_checking_location):
-- Call: ducba_checking_location()
-- Format same as airport, but start with "Properties near Notre-Dame Cathedral:"
-
-c) Near Universities (university_checking_location):
-- Call: university_checking_location(university_name="[name]")
-- From result, use: result["properties"][:5]
-- Start with: "Properties near [result["university"]["name"]]:"
-- Format same as other location searches
 
 5. SEARCH POSTS (search_posts)
 When asked about searching properties with specific filters:
@@ -229,6 +225,9 @@ QUERY UNDERSTANDING:
 - "Show properties in Tan Binh" → Convert to "Tân Bình" and use check_properties_district
 - "Properties in District 1" → Convert to "Quận 1" and use check_properties_district
 - "Find houses in Thu Duc" → Convert to "Thủ Đức" and use check_properties_district
+- "Properties below 5 million" → Use filtered_property_search with max_price_constraint=5
+- "Properties over 10 million" → Use filtered_property_search with min_price=10
+- "Properties between 5 and 10 million" → Use filtered_property_search with min_price=5, max_price=10
 
 IMPORTANT RESPONSE PROCESSING:
 1. For district search:
@@ -269,10 +268,9 @@ Always maintain a professional tone and be ready to provide more details about a
         check_properties_district_tool,
         check_properties_status_tool,
         check_properties_price_range_tool,
-        ducba_checking_location_tool,
-        tansonhat_checking_location_tool,
-        university_checking_location_tool,
-        search_posts_tool
+        search_posts_tool,
+        filtered_property_search_tool,
+        nearby_location_search_tool
     ]
 
     prompt = ChatPromptTemplate.from_messages([
@@ -297,85 +295,264 @@ Always maintain a professional tone and be ready to provide more details about a
 
     return agent_executor
 
-def get_answer(question: str, thread_id: str) -> Dict:
-    """
-    Hàm lấy câu trả lời cho một câu hỏi
-    
-    Args:
-        question (str): Câu hỏi của người dùng
-        thread_id (str): ID của cuộc trò chuyện
-        
-    Returns:
-        str: Câu trả lời từ AI
-    """
+def get_response(question: str, context: Dict[str, Any]) -> str:
+    """Get a single response from the agent"""
     agent = get_llm_and_agent()
     
+    
+    # Print query parameters for debugging
+    print("\n==== AI SERVICE GET_RESPONSE FILTER PARAMETERS ====")
+    print(f"Processing query parameters: {json.dumps(context.get('query_params', {}), indent=2)}")
+    print("===============================================\n")
+    
+    # Set global context for tools to access
+    global GLOBAL_CONTEXT
+    GLOBAL_CONTEXT.clear()
+    GLOBAL_CONTEXT.update(context)
+    
     # Get recent chat history
-    history = get_recent_chat_history(thread_id)
+    history = get_recent_chat_history(context["thread_id"])
     chat_history = format_chat_history(history)
     
+    # Add query parameters to the input if available
+    input_text = question
+    if context.get("query_params"):
+        input_text = f"{question} (Current filters: {context['query_params']})"
+    
+    # Get the response with intermediate steps
     result = agent.invoke({
-        "input": question,
+        "input": input_text,
         "chat_history": chat_history
     })
     
-    # Save chat history to database
-    if isinstance(result, dict) and "output" in result:
-        save_chat_history(thread_id, question, result["output"])
+    # Extract the final response text
+    response_text = result.get("output", "")
     
-    return result
+    # Track data to inject
+    location_data_to_inject = None
+    filter_data_to_inject = None
+    
+    # Check for tool results
+    if "intermediate_steps" in result:
+        for step in result["intermediate_steps"]:
+            if len(step) >= 2:
+                action = step[0]
+                tool_output = step[1]
+                
+                if hasattr(action, "tool") and action.tool == "nearby_location_search" and isinstance(tool_output, dict):
+                    print("Found nearby_location_search tool usage in non-streaming response")
+                    
+                    if tool_output.get("success") and tool_output.get("coordinates"):
+                        coords = tool_output["coordinates"]
+                        location_data_to_inject = {
+                            "centerLat": coords.get("lat"),
+                            "centerLng": coords.get("lng"),
+                            "radius": tool_output.get("search_radius_km", 5),
+                            "locationName": tool_output.get("location_name", "Searched Location")
+                        }
+                        
+                        if "maxPrice" in context.get("query_params", {}):
+                            location_data_to_inject["maxPrice"] = context["query_params"]["maxPrice"]
+                            
+                        if "minPrice" in context.get("query_params", {}):
+                            location_data_to_inject["minPrice"] = context["query_params"]["minPrice"]
+                            
+                        if "propertyType" in context.get("query_params", {}):
+                            location_data_to_inject["propertyType"] = context["query_params"]["propertyType"]
+                        
+                        print(f"Prepared location data to inject in non-streaming response: {json.dumps(location_data_to_inject)}")
+                
+                elif hasattr(action, "tool") and action.tool == "filtered_property_search" and isinstance(tool_output, dict):
+                    print("Found filtered_property_search tool usage in non-streaming response")
+                    
+                    filter_data = {}
+                    
+                    if hasattr(action, "tool_input") and isinstance(action.tool_input, dict):
+                        if "max_price_constraint" in action.tool_input and action.tool_input["max_price_constraint"] is not None:
+                            filter_data["maxPrice"] = action.tool_input["max_price_constraint"]
+                        
+                        for param in ["minPrice", "maxPrice", "propertyType", "minArea", "maxArea"]:
+                            param_snake = param.lower()
+                            if param_snake in action.tool_input and action.tool_input[param_snake] is not None:
+                                filter_data[param] = action.tool_input[param_snake]
+                    
+                    if context.get("query_params"):
+                        for key, value in context["query_params"].items():
+                            if key not in filter_data and value:
+                                filter_data[key] = value
+                    
+                    if filter_data:
+                        filter_data_to_inject = filter_data
+                        print(f"Prepared filter data to inject in non-streaming response: {json.dumps(filter_data_to_inject)}")
+    
+    # If we have location data to inject and it wasn't already included
+    if location_data_to_inject and "__LOCATION_UPDATE__" not in response_text:
+        location_update_marker = f"\n\n__LOCATION_UPDATE__{json.dumps(location_data_to_inject)}__END_LOCATION_UPDATE__\n\n"
+        print(f"Injecting location update marker to non-streaming response: {location_update_marker}")
+        response_text += location_update_marker
+    
+    if filter_data_to_inject and "__FILTER_UPDATE__" not in response_text:
+        filter_update_marker = f"\n\n__FILTER_UPDATE__{json.dumps(filter_data_to_inject)}__END_FILTER_UPDATE__\n\n"
+        print(f"Injecting filter update marker to non-streaming response: {filter_update_marker}")
+        response_text += filter_update_marker
+    
+    save_chat_history(context["thread_id"], question, response_text)
+    
+    return response_text
 
-async def get_answer_stream(question: str, thread_id: str) -> AsyncGenerator[Dict, None]:
-    """
-    Hàm lấy câu trả lời dạng stream cho một câu hỏi
-    
-    Quy trình xử lý:
-    1. Khởi tạo agent với các tools cần thiết
-    2. Lấy lịch sử chat gần đây
-    3. Gọi agent để xử lý câu hỏi
-    4. Stream từng phần của câu trả lời về client
-    5. Lưu câu trả lời hoàn chỉnh vào database
-    
-    Args:
-        question (str): Câu hỏi của người dùng
-        thread_id (str): ID phiên chat
-        
-    Returns:
-        AsyncGenerator[str, None]: Generator trả về từng phần của câu trả lời
-    """
-    # Khởi tạo agent với các tools cần thiết
+async def get_streaming_response(question: str, context: Dict[str, Any]) -> AsyncGenerator[str, None]:
+    """Get a streaming response from the agent"""
     agent = get_llm_and_agent()
     
-    # Lấy lịch sử chat gần đây
-    history = get_recent_chat_history(thread_id)
+    # Print query parameters for debugging
+    print("\n==== AI SERVICE STREAMING FILTER PARAMETERS ====")
+    print(f"Processing query parameters: {json.dumps(context.get('query_params', {}), indent=2)}")
+    print("===============================================\n")
+    
+    # Set global context for tools to access
+    global GLOBAL_CONTEXT
+    GLOBAL_CONTEXT.clear()
+    GLOBAL_CONTEXT.update(context)
+    
+    # Get recent chat history
+    history = get_recent_chat_history(context["thread_id"])
     chat_history = format_chat_history(history)
     
-    # Biến lưu câu trả lời hoàn chỉnh
-    final_answer = ""
+    # Add query parameters to the input if available
+    input_text = question
+    if context.get("query_params"):
+        input_text = f"{question} (Current filters: {context['query_params']})"
     
-    # Stream từng phần của câu trả lời
+    # Print modified input text
+    print(f"Modified input with filters: {input_text}")
+    
+    # Track if we need to inject data
+    location_data_to_inject = None
+    filter_data_to_inject = None
+    
+    # Stream the response with context
+    final_answer = ""
     async for event in agent.astream_events(
         {
-            "input": question,
+            "input": input_text,
             "chat_history": chat_history,
+            "context": context  # Pass the context to make it available to tools
         },
         version="v2"
-    ):       
-        # Lấy loại sự kiện
-        kind = event["event"]
-        # Nếu là sự kiện stream từ model
-        if kind == "on_chat_model_stream":
-            # Lấy nội dung token
+    ):
+        # Capture tool results that contain location data
+        if event["event"] == "on_tool_end":
+            tool_name = event.get("name", "")
+            tool_output = event.get("data", {}).get("output", {})
+            tool_input = event.get("data", {}).get("input", {})
+            
+            
+            print(f"Tool execution completed: {tool_name}")
+            if tool_name == "nearby_location_search" and isinstance(tool_output, dict):
+                print("Found nearby_location_search tool result, processing for location update")
+                
+                # Extract the coordinates and other data
+                if tool_output.get("success") and tool_output.get("coordinates"):
+                    coords = tool_output["coordinates"]
+                    location_data_to_inject = {
+                        "centerLat": coords.get("lat"),
+                        "centerLng": coords.get("lng"),
+                        "radius": tool_output.get("search_radius_km", 5),
+                        "locationName": tool_output.get("location_name", "Searched Location")
+                    }
+                    
+                    # Include any additional filter data if present
+                    if "maxPrice" in context.get("query_params", {}):
+                        location_data_to_inject["maxPrice"] = context["query_params"]["maxPrice"]
+                        
+                    if "minPrice" in context.get("query_params", {}):
+                        location_data_to_inject["minPrice"] = context["query_params"]["minPrice"]
+                        
+                    if "propertyType" in context.get("query_params", {}):
+                        location_data_to_inject["propertyType"] = context["query_params"]["propertyType"]
+                    
+                    print(f"Prepared location data to inject: {json.dumps(location_data_to_inject)}")
+                    
+                    # Immediately yield the location update - don't wait for the end
+                    location_update_marker = f"\n\n__LOCATION_UPDATE__{json.dumps(location_data_to_inject)}__END_LOCATION_UPDATE__\n\n"
+                    print(f"Immediately injecting location update marker: {location_update_marker}")
+                    yield location_update_marker
+            
+            elif tool_name == "filtered_property_search" and isinstance(tool_input, dict):
+                print("Found filtered_property_search tool result, processing for filter update")
+                
+                # Extract the filter data that was used
+                filter_data = {}
+                
+                # Check for max_price_constraint specifically and map it to maxPrice
+                if "max_price_constraint" in tool_input and tool_input["max_price_constraint"] is not None:
+                    filter_data["maxPrice"] = tool_input["max_price_constraint"]
+                
+                # Extract params from the FilteredPropertySearchTool input
+                for param in ["min_price", "max_price", "property_type", "min_area", "max_area"]:
+                    if param in tool_input and tool_input[param] is not None:
+                        # Convert snake_case to camelCase for frontend
+                        camel_param = param.replace('_', ' ').title().replace(' ', '')
+                        camel_param = camel_param[0].lower() + camel_param[1:]
+                        filter_data[camel_param] = tool_input[param]
+                
+                # Include existing query parameters
+                if context.get("query_params"):
+                    # Add any additional parameters from the current context
+                    for key, value in context["query_params"].items():
+                        if key not in filter_data and value:
+                            filter_data[key] = value
+                
+                if filter_data:
+                    filter_data_to_inject = filter_data
+                    print(f"Prepared filter data to inject: {json.dumps(filter_data_to_inject)}")
+                    
+                    # Immediately yield the filter update - don't wait for the end
+                    filter_update_marker = f"\n\n__FILTER_UPDATE__{json.dumps(filter_data_to_inject)}__END_FILTER_UPDATE__\n\n"
+                    print(f"Immediately injecting filter update marker: {filter_update_marker}")
+                    yield filter_update_marker
+        
+        # Process text chunks from the model
+        if event["event"] == "on_chat_model_stream":
             content = event['data']['chunk'].content
-            if content:  # Chỉ yield nếu có nội dung
-                # Cộng dồn vào câu trả lời hoàn chỉnh
+            if content:
                 final_answer += content
-                # Trả về token cho client
                 yield content
     
-    # Lưu câu trả lời hoàn chỉnh vào database
+    
+    # Save chat history to database
     if final_answer:
-        save_chat_history(thread_id, question, final_answer)
+        save_chat_history(context["thread_id"], question, final_answer)
+
+def get_answer(question: str, thread_id: str, query_params: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
+    try:
+        # Add query parameters to the context
+        context = {
+            "thread_id": thread_id,
+            "query_params": query_params or {}
+        }
+        
+        # Get the answer with context
+        response = get_response(question, context)
+        return {"output": response}
+    except Exception as e:
+        print(f"Error in get_answer: {str(e)}")
+        raise
+
+async def get_answer_stream(question: str, thread_id: str, query_params: Optional[Dict[str, Any]] = None) -> AsyncGenerator[str, None]:
+    try:
+        # Add query parameters to the context
+        context = {
+            "thread_id": thread_id,
+            "query_params": query_params or {}
+        }
+        
+        # Get the answer stream with context
+        async for chunk in get_streaming_response(question, context):
+            yield chunk
+    except Exception as e:
+        print(f"Error in get_answer_stream: {str(e)}")
+        yield f"Error: {str(e)}"
 
 if __name__ == "__main__":
     import asyncio

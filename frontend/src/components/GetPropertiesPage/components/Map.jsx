@@ -24,8 +24,6 @@ const Map = ({ center = [107.6416527, 11.295036], markerList = [] }) => {
   const [selected, setSelected] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
 
-  // Reset selected property when markerList changes (e.g., when filters are cleared)
-  // Also reset when center, lat/lng or boundary changes
   useEffect(() => {
     setSelected(null);
   }, [markerList, centerLat, centerLng, boundary, center]);
@@ -34,7 +32,6 @@ const Map = ({ center = [107.6416527, 11.295036], markerList = [] }) => {
     ? `${selected.coordinates.coordinates[0]},${selected.coordinates.coordinates[1]}`
     : "";
 
-  // Show loading when a marker is selected and route is being calculated
   useEffect(() => {
     if (selectedMarkerCoordinates && mapInstance) {
       setIsRouteLoading(true);
@@ -51,23 +48,17 @@ const Map = ({ center = [107.6416527, 11.295036], markerList = [] }) => {
     if (!mapContainerRef.current) return;
 
     setIsLoading(true);
-    goongJs.accessToken = process.env.NEXT_PUBLIC_GOONG_MAPTILES_KEY; // Set Goong Maps key
-
+    goongJs.accessToken = process.env.NEXT_PUBLIC_GOONG_MAPTILES_KEY; 
     const map = new goongJs.Map({
       container: mapContainerRef.current,
       style: "https://tiles.goong.io/assets/goong_light_v2.json",
       center: [lng, lat],
     });
 
-    // Wait for map to load before saving the instance
     map.on('load', () => {
       setIsLoading(false);
       setMapInstance(map);
-
-      // Thêm marker đỏ tại trung tâm
       new goongJs.Marker({ color: "red" }).setLngLat([lng, lat]).addTo(map);
-
-      // Sử dụng centerLat và centerLng nếu có, nếu không thì dùng giá trị mặc định
       const mapCenter = centerLat && centerLng
         ? [parseFloat(centerLng), parseFloat(centerLat)]
         : [106.660172, 10.762622];
@@ -90,8 +81,8 @@ const Map = ({ center = [107.6416527, 11.295036], markerList = [] }) => {
         source: "boundary",
         layout: {},
         paint: {
-          "fill-color": "#088",
-          "fill-opacity": 0.4,
+          "fill-color": "#4285F4",
+          "fill-opacity": 0.2,
         },
       });
 
@@ -105,8 +96,9 @@ const Map = ({ center = [107.6416527, 11.295036], markerList = [] }) => {
         source: "outerbox",
         layout: {},
         paint: {
-          "line-color": "#888",
-          "line-width": 3,
+          "line-color": "#4285F4",
+          "line-width": 2,
+          "line-opacity": 0.7
         },
       });
     });
@@ -143,7 +135,6 @@ const Map = ({ center = [107.6416527, 11.295036], markerList = [] }) => {
         </Box>
       </Fade>
 
-      {/* Loading overlay for route calculation */}
       <Fade in={isRouteLoading && !isLoading}>
         <Paper elevation={4} sx={{
           position: "absolute",
@@ -181,7 +172,6 @@ const Map = ({ center = [107.6416527, 11.295036], markerList = [] }) => {
         </Paper>
       </Fade>
 
-      {/* Info box for route display (visible when a route is shown) */}
       {selected && (
         <Paper elevation={2} sx={{
           position: "absolute",

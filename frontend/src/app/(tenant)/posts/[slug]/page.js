@@ -17,15 +17,64 @@ import {
   PaidOutlined,
   CompareArrows,
   Close,
+  TrendingUp,
+  TrendingDown,
 } from "@mui/icons-material";
 import PhoneIcon from "@mui/icons-material/Phone";
-import { Typography, Drawer, List, ListItem, ListItemText, Button, Dialog, IconButton, DialogContent, Box } from "@mui/material";
+import { Typography, Drawer, List, ListItem, ListItemText, Button, Dialog, IconButton, DialogContent, Box, Tooltip, CircularProgress } from "@mui/material";
 import "@scss/posts.scss";
 import _ from "lodash";
 import Link from "next/link";
 import { useState, useMemo, useEffect } from "react";
 import PostComparison from "@/components/PostComparison/PostComparison";
 import SimplePagination from "@/components/Pagination/SimplePagination";
+import usePricePrediction from "@/hooks/usePricePrediction";
+
+const priceTagStyles = {
+  badge: {
+    fontSize: '0.8rem',
+    marginLeft: '8px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '4px 8px',
+    borderRadius: '16px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+    }
+  },
+  higher: {
+    color: '#f44336',
+    backgroundColor: 'rgba(244, 67, 54, 0.08)',
+    border: '1px solid rgba(244, 67, 54, 0.2)',
+    '&:hover': {
+      backgroundColor: 'rgba(244, 67, 54, 0.12)',
+      borderColor: 'rgba(244, 67, 54, 0.3)'
+    }
+  },
+  lower: {
+    color: '#4caf50',
+    backgroundColor: 'rgba(76, 175, 80, 0.08)',
+    border: '1px solid rgba(76, 175, 80, 0.2)',
+    '&:hover': {
+      backgroundColor: 'rgba(76, 175, 80, 0.12)',
+      borderColor: 'rgba(76, 175, 80, 0.3)'
+    }
+  },
+  tooltip: {
+    maxWidth: 220,
+    backgroundColor: '#fff',
+    color: 'rgba(0, 0, 0, 0.87)',
+    boxShadow: '0px 5px 15px rgba(0, 0, 0, 0.2)',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    '& .MuiTooltip-arrow': {
+      color: '#fff'
+    }
+  }
+};
 
 export default function PostDetailPage({ params }) {
   const { data, isLoading } = useGetPropertyByIdQuery(params.slug);
@@ -35,6 +84,13 @@ export default function PostDetailPage({ params }) {
   const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
+  
+  const {
+    predictedPrice,
+    isPredicting,
+    priceDifference,
+    getPriceDifferenceText
+  } = usePricePrediction(post);
 
   // Fetch properties with pagination
   const { data: propertiesData, isLoading: isLoadingProperties } = useGetPropertiesQuery({
@@ -43,13 +99,11 @@ export default function PostDetailPage({ params }) {
     propertyType: post?.propertyType,
     transactionType: post?.transactionType,
   });
-  
+
   const otherProperties = useMemo(() => {
     if (!propertiesData?.properties || !post) return [];
     return propertiesData.properties.filter(p => p.id !== post.id);
   }, [propertiesData?.properties, post]);
-
-  console.log("other properties: ", otherProperties);
 
   const getPostSummary = ({ propertyType, address }) => {
     return `${_.capitalize(propertyType)} in ${formatAddress(address)}`;
@@ -89,6 +143,67 @@ export default function PostDetailPage({ params }) {
       label: "Price",
       value: post?.price ? `${post.price} triệu/tháng` : "Thoả thuận",
       icon: PaidOutlined,
+      prediction: isPredicting ? (
+        <CircularProgress size={16} />
+      ) : priceDifference !== null ? (
+        <Tooltip
+          title={
+            <Box sx={{ p: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Predicted Price
+              </Typography>
+              <Typography variant="body2">
+                {predictedPrice?.toFixed(2)} triệu/tháng
+              </Typography>
+            </Box>
+          }
+          arrow
+          placement="right"
+          sx={priceTagStyles.tooltip}
+        >
+          <span 
+            style={{ 
+              fontSize: '0.8rem', 
+              marginLeft: '8px',
+              color: priceDifference > 0 ? '#f44336' : '#4caf50',
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '4px 8px',
+              borderRadius: '16px',
+              backgroundColor: priceDifference > 0 ? 'rgba(244, 67, 54, 0.08)' : 'rgba(76, 175, 80, 0.08)',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              border: `1px solid ${priceDifference > 0 ? 'rgba(244, 67, 54, 0.2)' : 'rgba(76, 175, 80, 0.2)'}`,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              fontWeight: 500
+            }}
+            className="price-difference-badge"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+              e.currentTarget.style.backgroundColor = priceDifference > 0 
+                ? 'rgba(244, 67, 54, 0.12)' 
+                : 'rgba(76, 175, 80, 0.12)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+              e.currentTarget.style.backgroundColor = priceDifference > 0 
+                ? 'rgba(244, 67, 54, 0.08)' 
+                : 'rgba(76, 175, 80, 0.08)';
+            }}
+          >
+            {priceDifference > 0 ? (
+              <TrendingUp sx={{ fontSize: 16, marginRight: '4px' }} />
+            ) : (
+              <TrendingDown sx={{ fontSize: 16, marginRight: '4px' }} />
+            )}
+            <span style={{ fontSize: '0.85rem' }}>
+              {getPriceDifferenceText()}
+            </span>
+          </span>
+        </Tooltip>
+      ) : null,
     },
     {
       label: "Bedroom",
@@ -138,7 +253,72 @@ export default function PostDetailPage({ params }) {
             {/* Overview */}
             <div className="posts_info">
               <h4 className="posts_summary">{getPostSummary(post)}</h4>
-              <p className="posts_price">{post.price + " triệu/tháng"}</p>
+              <p className="posts_price">
+                {post.price + " triệu/tháng"}
+                {priceDifference !== null && (
+                  <Tooltip
+                    title={
+                      <Box sx={{ p: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                          Predicted Price
+                        </Typography>
+                        <Typography variant="body2">
+                          {predictedPrice?.toFixed(2)} triệu/tháng
+                        </Typography>
+                      </Box>
+                    }
+                    arrow
+                    placement="right"
+                    sx={priceTagStyles.tooltip}
+                  >
+                    <span 
+                      sx={{
+                        ...priceTagStyles.badge,
+                        ...(priceDifference > 0 ? priceTagStyles.higher : priceTagStyles.lower)
+                      }}
+                      style={{ 
+                        fontSize: '0.8rem', 
+                        marginLeft: '8px',
+                        color: priceDifference > 0 ? '#f44336' : '#4caf50',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '4px 8px',
+                        borderRadius: '16px',
+                        backgroundColor: priceDifference > 0 ? 'rgba(244, 67, 54, 0.08)' : 'rgba(76, 175, 80, 0.08)',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        border: `1px solid ${priceDifference > 0 ? 'rgba(244, 67, 54, 0.2)' : 'rgba(76, 175, 80, 0.2)'}`,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                        fontWeight: 500
+                      }}
+                      className="price-difference-badge"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                        e.currentTarget.style.backgroundColor = priceDifference > 0 
+                          ? 'rgba(244, 67, 54, 0.12)' 
+                          : 'rgba(76, 175, 80, 0.12)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                        e.currentTarget.style.backgroundColor = priceDifference > 0 
+                          ? 'rgba(244, 67, 54, 0.08)' 
+                          : 'rgba(76, 175, 80, 0.08)';
+                      }}
+                    >
+                      {priceDifference > 0 ? (
+                        <TrendingUp sx={{ fontSize: 16, marginRight: '4px' }} />
+                      ) : (
+                        <TrendingDown sx={{ fontSize: 16, marginRight: '4px' }} />
+                      )}
+                      <span style={{ fontSize: '0.85rem' }}>
+                        {getPriceDifferenceText()}
+                      </span>
+                    </span>
+                  </Tooltip>
+                )}
+              </p>
               <div className="posts_actions">
                 <div className="posts_action">
                   <IosShare sx={{ fontSize: 20 }} />
@@ -164,7 +344,9 @@ export default function PostDetailPage({ params }) {
                       {feature.icon && <feature.icon sx={{ fontSize: 20 }} />}
                       {feature.label}
                     </p>
-                    <p className="posts_featureValue">{feature.value}</p>
+                    <div className="posts_featureValue">
+                      {feature.value}
+                    </div>
                   </div>
                 ))}
               </div>

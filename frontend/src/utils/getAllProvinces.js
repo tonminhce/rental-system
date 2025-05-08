@@ -10,6 +10,4 @@ export default async function getAllProvinces() {
   const data = await response.json();
 
   const provinces = data.map((province) => removeProvincePrefix(province.Name));
-
-  console.log(provinces);
 }
