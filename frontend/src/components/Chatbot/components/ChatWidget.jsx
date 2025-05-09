@@ -2,10 +2,11 @@ import { chatService } from "@/utils/chatService";
 import SendIcon from "@mui/icons-material/Send";
 import { Box, IconButton, List, ListItem, Paper, styled, TextField, Typography, Tooltip } from "@mui/material";
 import { grey } from "@mui/material/colors";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import ChatMessage from "./ChatMessage";
+import { useSelector } from "react-redux";
+import eventBus, { CHATBOT_EVENTS } from '@/utils/chatbotEventBus';
 
 const ChatbotContainer = styled(Box)(({ theme }) => ({
   position: "fixed",
@@ -16,6 +17,7 @@ const ChatbotContainer = styled(Box)(({ theme }) => ({
   mx: "auto",
   mt: 5,
   zIndex: 1000,
+  display: "none", 
 }));
 
 const ChatHeader = styled(Box)(({ theme }) => ({
@@ -55,51 +57,109 @@ const ChatInputContainer = styled(Box)(({ theme }) => ({
 }));
 
 const ChatWidget = () => {
-  // Generate a new UUID on every page refresh
-  // Use both useState and useEffect to ensure we get a new UUID on refresh
+  const filterState = useSelector((state) => state.filter);
+  
+  const isChatOpened = useSelector((state) => state.system.isChatOpened);
   const [threadId, setThreadId] = useState('');
   
-  // Generate new UUID on component mount (which happens on refresh)
   useEffect(() => {
-    setThreadId(uuidv4());
-    // We can also clear messages when generating a new thread
-    sessionStorage.removeItem("chatMessages");
-  }, []);
-  
-  // Create ref for streaming message
+    if (isChatOpened) {
+      setThreadId(uuidv4());
+      sessionStorage.removeItem("chatMessages");
+    }
+  }, [isChatOpened]);
+
   const streamedMessageRef = useRef('');
   
   const lastMessageEl = useRef(null);
-  const router = useRouter();
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  // Load previous messages from session storage
   useEffect(() => {
-    if (threadId) {
+    if (threadId && isChatOpened) {
       const storedMessages = JSON.parse(sessionStorage.getItem("chatMessages") ?? "[]");
-      setMessages(storedMessages);
+      if (storedMessages.length === 0) {
+        setMessages([{ 
+          text: "Hello! How can i help you today?",
+          sender: "bot" 
+        }]);
+      } else {
+        setMessages(storedMessages);
+      }
     }
-  }, [threadId]);
+  }, [threadId, isChatOpened]);
 
-  // Save messages to session storage
   useEffect(() => {
-    if (messages.length > 0) {
+    if (messages.length > 0 && isChatOpened) {
       sessionStorage.setItem("chatMessages", JSON.stringify(messages));
     }
-  }, [messages]);
+  }, [messages, isChatOpened]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
-    if (lastMessageEl.current) {
+    if (lastMessageEl.current && isChatOpened) {
       lastMessageEl.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, isChatOpened]);
+
+  const processChatbotResponse = (content) => {
+    try {
+      let processedContent = content;
+      let didUpdate = false;
+      
+      if (processedContent.includes("__LOCATION_UPDATE__")) {
+        const locationRegex = /__LOCATION_UPDATE__\s*({[\s\S]*?})\s*__END_LOCATION_UPDATE__/;
+        const match = processedContent.match(locationRegex);
+        
+        if (match && match[1]) {
+          const locationData = JSON.parse(match[1]);
+          
+          if (locationData.centerLat && locationData.centerLng) {
+            eventBus.publish(CHATBOT_EVENTS.UPDATE_MAP_LOCATION, {
+              centerLat: locationData.centerLat,
+              centerLng: locationData.centerLng,
+              radius: locationData.radius || 1,
+              locationName: locationData.locationName || "Searched Location"
+            });
+            
+            eventBus.publish(CHATBOT_EVENTS.UPDATE_FILTERS, {
+              centerLat: locationData.centerLat,
+              centerLng: locationData.centerLng,
+              radius: locationData.radius || 1,
+              minPrice: locationData.minPrice,
+              maxPrice: locationData.maxPrice,
+              propertyType: locationData.propertyType,
+              transactionType: locationData.transactionType || 'rent'
+            });
+            
+            didUpdate = true;
+          }
+          
+          processedContent = processedContent.replace(locationRegex, "");
+        }
+      }
+      
+      if (processedContent.includes("__FILTER_UPDATE__")) {
+        const filterRegex = /__FILTER_UPDATE__\s*({[\s\S]*?})\s*__END_FILTER_UPDATE__/;
+        const match = processedContent.match(filterRegex);
+        
+        if (match && match[1]) {
+          const filterData = JSON.parse(match[1]);
+          eventBus.publish(CHATBOT_EVENTS.UPDATE_FILTERS, filterData);
+          didUpdate = true;
+          processedContent = processedContent.replace(filterRegex, "");
+        }
+      }
+      return processedContent;
+    } catch (error) {
+      console.error("Error processing chatbot response for updates:", error);
+    }
+        return content;
+  };
 
   const handleSend = async () => {
-    if (input.trim() === "" || isTyping || !threadId) return;
+    if (input.trim() === "" || isTyping || !threadId || !isChatOpened) return;
 
     // Add the user's message to the chat
     const userMessage = input.trim();
@@ -107,26 +167,32 @@ const ChatWidget = () => {
     setInput("");
     setIsTyping(true);
     
-    // Reset streaming message content
     streamedMessageRef.current = '';
     
     try {
-      // Add an empty bot message to show streaming
       setMessages(prev => [...prev, { text: '', sender: "bot", isPartial: true }]);
       
-      // Use chat service streaming function to get response
+      const queryParams = Object.keys(filterState).reduce((params, key) => {
+        if (filterState[key] !== null && filterState[key] !== undefined && filterState[key] !== '') {
+          params[key] = filterState[key];
+        }
+        return params;
+      }, {});
+      
+      
       await chatService.sendMessageStream(
         userMessage,
         threadId,
+        queryParams,
         (token) => {
-          // Handle each token as it comes in
-          streamedMessageRef.current += token;
-          
-          // Update the last message with new content
+          const processedToken = processChatbotResponse(token);
+          streamedMessageRef.current += processedToken;
           setMessages(prev => {
             const newMessages = [...prev];
             const lastMessage = newMessages[newMessages.length - 1];
-            lastMessage.text = streamedMessageRef.current;
+            if (lastMessage) {
+              lastMessage.text = streamedMessageRef.current;
+            }
             return newMessages;
           });
         },
@@ -134,20 +200,20 @@ const ChatWidget = () => {
           console.error("Chat error:", error);
           setMessages(prev => {
             const newMessages = [...prev];
-            newMessages[newMessages.length - 1] = {
-              text: "Sorry, there was an error processing your request.", 
-              sender: "bot"
-            };
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage) {
+              lastMessage.text = "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.";
+              lastMessage.isPartial = false;
+            }
             return newMessages;
           });
         }
       );
 
-      // Once stream is complete, finalize the message (remove isPartial flag)
       setMessages(prev => {
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
-        if (lastMessage.isPartial) {
+        if (lastMessage && lastMessage.isPartial) {
           lastMessage.isPartial = false;
         }
         return newMessages;
@@ -159,14 +225,14 @@ const ChatWidget = () => {
         if (prev.length > 0 && prev[prev.length - 1].isPartial) {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = {
-            text: "Sorry, there was an error processing your request.",
+            text: "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.",
             sender: "bot"
           };
           return newMessages;
         }
         // Otherwise add a new error message
         return [...prev, { 
-          text: "Sorry, there was an error processing your request.", 
+          text: "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.", 
           sender: "bot" 
         }];
       });
@@ -175,8 +241,12 @@ const ChatWidget = () => {
     }
   };
 
+  if (!isChatOpened) {
+    return null;
+  }
+
   return (
-    <ChatbotContainer>
+    <ChatbotContainer sx={{ display: isChatOpened ? 'block' : 'none' }}>
       <Paper 
         sx={{ 
           display: "flex", 
@@ -189,37 +259,27 @@ const ChatWidget = () => {
       >
         <ChatHeader>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Property Assistant
-          </Typography>
+Rental Assistant          </Typography>
         </ChatHeader>
 
         <ChatMessagesContainer>
-          {messages.length === 0 ? (
-            <ListItem disableGutters sx={{ display: 'block', mb: 2 }}>
+          {messages.map((message, index) => (
+            <ListItem 
+              key={index} 
+              disableGutters 
+              disablePadding
+              sx={{ 
+                display: 'block',
+                mb: index === messages.length - 1 ? 0 : 1 
+              }}
+            >
               <ChatMessage 
-                message="Hi there! How can I help you?" 
-                sender="bot"
+                message={message.text} 
+                sender={message.sender}
+                isPartial={message.isPartial}
               />
             </ListItem>
-          ) : (
-            messages.map((message, index) => (
-              <ListItem 
-                key={index} 
-                disableGutters 
-                disablePadding
-                sx={{ 
-                  display: 'block',
-                  mb: index === messages.length - 1 ? 0 : 1 
-                }}
-              >
-                <ChatMessage 
-                  message={message.text} 
-                  sender={message.sender}
-                  isPartial={message.isPartial}
-                />
-              </ListItem>
-            ))
-          )}
+          ))}
           {isTyping && !messages[messages.length - 1]?.isPartial && (
             <ListItem disableGutters sx={{ display: 'block' }}>
               <ChatMessage 
@@ -238,7 +298,7 @@ const ChatWidget = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Enter your message..."
+            placeholder="Nhập tin nhắn..."
             disabled={isTyping}
             size="small"
             sx={{
@@ -277,3 +337,4 @@ const ChatWidget = () => {
 };
 
 export default ChatWidget;
+

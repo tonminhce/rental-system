@@ -7,6 +7,8 @@ import PropertyTypeSelect from "./PropertyTypeSelect";
 import "./SearchBar.scss";
 import AreaSelect from "./AreaSelect";
 import AddressInput from "./AddressInput";
+import { useDispatch } from "react-redux";
+import { clearFilters } from "@/redux/features/filter/filterSlice";
 
 const SearchBarContainer = styled(Stack)(({ theme }) => ({
   position: "fixed",
@@ -21,12 +23,13 @@ const SearchBarContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SearchBar() {
-  function clearQueryParams() {
-    // Get the current URL without the query parameters
-    let url = window.location.origin + window.location.pathname;
+  const dispatch = useDispatch();
 
-    // Use the History API to change the URL without reloading the page
+  function clearAllFilters() {
+    let url = window.location.origin + window.location.pathname;
     window.history.pushState({ path: url }, "", url);
+    dispatch(clearFilters());
+    window.location.reload();
   }
 
   return (
@@ -36,7 +39,7 @@ export default function SearchBar() {
       <PropertyTypeSelect />
       <PriceSelect />
       <AreaSelect />
-      <Button onClick={clearQueryParams} variant="contained" color="primary">
+      <Button onClick={clearAllFilters} variant="contained" color="primary">
         Clear Filter
       </Button>
     </SearchBarContainer>

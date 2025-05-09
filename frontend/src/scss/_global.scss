@@ -176,3 +176,65 @@ input::-webkit-inner-spin-button {
   text-overflow: ellipsis;
   padding: 10px 0;
 }
+
+/* Custom styles for Goong Maps popup */
+.custom-popup {
+  .mapboxgl-popup-tip {
+    display: none; // Hide the popup tip/arrow
+  }
+  
+  .mapboxgl-popup-content {
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-radius: 8px !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Styling for the route info popup */
+.route-info-popup {
+  .mapboxgl-popup-content {
+    padding: 8px !important;
+    border-radius: 8px !important;
+    background: white !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+    border: 1px solid rgba(0,0,0,0.1) !important;
+    font-family: 'Roboto', Arial, sans-serif !important;
+    font-size: 13px !important;
+    color: #333 !important;
+    font-weight: normal !important;
+    max-width: 200px !important;
+  }
+  
+  .mapboxgl-popup-tip {
+    border-top-color: white !important;
+    border-bottom-color: white !important;
+  }
+  
+  .mapboxgl-popup-close-button {
+    display: block !important;
+  }
+}
+
+/* Fix cursor shape issues */
+.mapboxgl-canvas-container,
+.mapboxgl-marker,
+.mapboxgl-popup {
+  cursor: inherit !important;
+}
+
+.mapboxgl-canvas-container.mapboxgl-interactive {
+  cursor: pointer !important;
+}
+
+.mapboxgl-popup-content,
+.mapboxgl-popup-content * {
+  cursor: default !important;
+}
+
+/* Restore pointer on interactive elements */
+.mapboxgl-ctrl button,
+.mapboxgl-popup-content a {
+  cursor: pointer !important;
+}

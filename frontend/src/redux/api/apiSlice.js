@@ -23,11 +23,9 @@ const baseQueryWithReAuthentication = async (args, api, extraOptions) => {
     result?.error?.data?.code === 'TOKEN_EXPIRED' && 
     !args.url.includes('/auth/refresh-token')
   ) {
-    console.log("Access token expired, attempting to refresh token");
     const refreshToken = localStorage.getItem('refreshToken');
     
     if (!refreshToken) {
-      console.log("No refresh token available");
       api.dispatch(removeUserInfo());
       return result;
     }
@@ -69,7 +67,6 @@ const baseQueryWithReAuthentication = async (args, api, extraOptions) => {
           extraOptions
         );
       } else {
-        console.log("Token refresh failed");
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');

@@ -37,11 +37,6 @@ export default function RoommatePage() {
     skip: !isAuthenticated
   });
 
-  // Debug: Log suggestion results
-  useEffect(() => {
-    console.log("Suggestions API response:", { data: suggestions, error: suggestionsError });
-  }, [suggestions, suggestionsError]);
-
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
@@ -145,7 +140,6 @@ Suggestions error: ${suggestionsError ? JSON.stringify(suggestionsError, null, 2
               size="small" 
               variant="outlined" 
               onClick={() => {
-                // Force refetch
                 fetch(`${process.env.NEXT_PUBLIC_RENTAL_SERVICE_BACKEND_ENDPOINT}/roommate/suggestions`, {
                   headers: {
                     'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -153,11 +147,9 @@ Suggestions error: ${suggestionsError ? JSON.stringify(suggestionsError, null, 2
                 })
                 .then(res => res.json())
                 .then(data => {
-                  console.log("Direct API call result:", data);
                   alert("Check console for API results");
                 })
                 .catch(err => {
-                  console.error("Direct API call error:", err);
                   alert("API call failed. Check console.");
                 });
               }}

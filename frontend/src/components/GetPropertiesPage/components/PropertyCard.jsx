@@ -33,13 +33,10 @@ export default function PropertyCard({
     isFavourite,
     contactName,
     displayedAddress,
-    owner
+    owner,
   },
 }) {
-  bedrooms = 1;
-  bathrooms = 1;
   const [isFavouriteState, setIsFavouriteState] = useState(isFavourite);
-  console.log("thumbnail:", thumbnail);
   const formatAddress = ({ street, district, province }) => {
     return `${street}, ${district}, ${province}`;
   };
