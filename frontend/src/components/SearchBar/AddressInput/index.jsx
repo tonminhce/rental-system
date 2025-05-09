@@ -1,4 +1,6 @@
 import usePlaceAutocomplete from "@/hooks/usePlaceAutocomplete";
+import { setLocationFilter } from "@/redux/features/filter/filterSlice";
+import { useDispatch } from "react-redux";
 import { Autocomplete, TextField } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { StringParam, useQueryParam } from "use-query-params";
@@ -9,6 +11,7 @@ export default function AddressInput() {
   const [, setCenterLat] = useQueryParam("centerLat", StringParam);
   const [, setCenterLng] = useQueryParam("centerLng", StringParam);
   const [, setBoundary] = useQueryParam("bounds", StringParam);
+  const dispatch = useDispatch();
 
   const handleAddressChange = (_, address) => {
     setAddress(address);
@@ -35,18 +38,36 @@ export default function AddressInput() {
           } else {
             setBoundary(null);
           }
+          
+          dispatch(setLocationFilter({
+            centerLat: lat,
+            centerLng: lng,
+            bounds: boundary || null
+          }));
         })
         .catch((e) => {
           setCenterLat(null);
           setCenterLng(null);
           setBoundary(null);
+          
+          dispatch(setLocationFilter({
+            centerLat: null,
+            centerLng: null,
+            bounds: null
+          }));
         });
     } else {
       setCenterLat(null);
       setCenterLng(null);
       setBoundary(null);
+      
+      dispatch(setLocationFilter({
+        centerLat: null,
+        centerLng: null,
+        bounds: null
+      }));
     }
-  }, [address, setCenterLat, setCenterLng, setBoundary]);
+  }, [address, setCenterLat, setCenterLng, setBoundary, dispatch]);
 
   return (
     <Autocomplete

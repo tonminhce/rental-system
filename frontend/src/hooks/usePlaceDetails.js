@@ -22,8 +22,6 @@ export default function usePlaceDetails(addressId, version = "v1") {
           const lng = geometry?.location?.lng;
           const lat = geometry?.location?.lat;
 
-          console.log(compound);
-
           setAddressDetails({
             placeId: place_id,
             location: [lng, lat],

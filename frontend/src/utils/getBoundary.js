@@ -12,12 +12,12 @@ function getBoundaryBox(boundary) {
 }
 
 function getCircleBoudingBox(center, radius) {
-  const circleBoundary = circle(center, radius, { steps: 64, units: "kilometers" });
+  const circleBoundary = circle(center, radius || 2, { steps: 128, units: "kilometers" });
   return { polygon: circleBoundary, convex: circleBoundary };
 }
 
 export default function getBoundary(center, boundary = null) {
   if (boundary) return getBoundaryBox(boundary);
 
-  return getCircleBoudingBox(center, 3);
+  return getCircleBoudingBox(center, 2);
 }

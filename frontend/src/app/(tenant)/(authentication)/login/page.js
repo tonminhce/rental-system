@@ -23,7 +23,6 @@ function LoginPage() {
       dispatch(loginSuccess(response.data));
       redirect();
     } catch (error) {
-      console.log(error);
       setFieldError("password", error.data.message);
     }
   };

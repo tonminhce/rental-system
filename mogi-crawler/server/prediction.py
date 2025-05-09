@@ -21,6 +21,8 @@ def predict_price(data):
             "location_latitude",
             "location_longitude",
             "area",
+            "bedrooms",
+            "bathrooms",
         ]
     ]
     prediction = model.predict(data)

@@ -1,7 +1,6 @@
 "use client";
-// This function is a website wrapper that provides the chatbot feature.
 import { ChatBubbleOutline } from "@mui/icons-material";
-import { Box, Collapse, Fab, Fade, Grow, Slide, Tooltip } from "@mui/material";
+import { Fab, Tooltip } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import ChatWidget from "./components/ChatWidget";
 import { toggleChatWidget } from "@/redux/features/system/systemSlice";
@@ -12,27 +11,30 @@ export default function ChatbotProvider({ children }) {
   const dispatch = useDispatch();
   const isChatOpened = useSelector((s) => s.system.isChatOpened);
 
-  console.log("ChatbotProvider", pathname);
 
-  if (pathname === "/landlord/notifications") return children;
+  if (pathname !== "/rent") return children;
 
   return (
     <>
       {children}
-      <Tooltip title="Chat with us">
+      <Tooltip title="Chat với chúng tôi">
         <Fab
           onClick={() => dispatch(toggleChatWidget())}
           color="primary"
-          sx={{ position: "fixed", bottom: 16, right: 16 }}
+          sx={{ 
+            position: "fixed", 
+            bottom: 16, 
+            right: 16,
+            zIndex: 1100
+          }}
         >
           <ChatBubbleOutline />
         </Fab>
       </Tooltip>
-      <Fade in={isChatOpened}>
-        <div>
-          <ChatWidget />
-        </div>
-      </Fade>
+      
+      {isChatOpened && (
+        <ChatWidget />
+      )}
     </>
   );
 }

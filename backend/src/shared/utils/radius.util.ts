@@ -11,7 +11,7 @@ export const getRadius = (distance: number, unit: string): number => {
 
 export const getLocationQueryObj = ({
   center,
-  distance = 20,
+  distance = 5,
   unit = 'km',
 }: {
   center?: string;
