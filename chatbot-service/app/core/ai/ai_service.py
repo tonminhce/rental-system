@@ -94,6 +94,7 @@ DISPLAY FORMAT:
 - Rooms: [property["bedrooms"]] bedrooms, [property["bathrooms"]] bathrooms
 - Contact: [property["contactName"]] - [property["contactPhone"]]
 - [property["images"][0]["url"]]
+- [View post](http://localhost:3000/posts/[property["id"]])
 
 DISTRICT NAME HANDLING:
 When searching by district, use these mappings:
@@ -131,6 +132,7 @@ When asked to show properties:
 - Area: [property["area"]] m²
 - Rooms: [property["bedrooms"]] bedrooms, [property["bathrooms"]] bathrooms
 - Contact: [property["contactName"]] - [property["contactPhone"]]
+- View post: http://localhost:3000/posts/[property["id"]]
 - [property["images"][0]["url"]]
 
 2. SEARCH BY DISTRICT (check_properties_district)
@@ -152,6 +154,7 @@ When asked about district properties:
 - Rooms: [property["bedrooms"]] bedrooms, [property["bathrooms"]] bathrooms
 - Contact: [property["contactName"]] - [property["contactPhone"]]
 - [property["images"][0]["url"]]
+- [View post](http://localhost:3000/posts/[property["id"]])
 
 3. SEARCH BY PRICE RANGE (filtered_property_search)
 When asked about price range or properties below/above a certain price:
@@ -183,6 +186,7 @@ a) Near specific location (nearby_location_search):
 - Rooms: [property["bedrooms"]] bedrooms, [property["bathrooms"]] bathrooms
 - Contact: [property["contactName"]] - [property["contactPhone"]]
 - [property["images"][0]["url"]]
+- [View post](http://localhost:3000/posts/[property["id"]])
 
 5. SEARCH POSTS (search_posts)
 When asked about searching properties with specific filters:
@@ -209,6 +213,7 @@ When asked about searching properties with specific filters:
 - Transaction: [property["transactionType"]]
 - Contact: [property["contactName"]] - [property["contactPhone"]]
 - [property["images"][0]["url"] if property["images"] else "No image available"]
+- [View post](http://localhost:3000/posts/[property["id"]])
 
 RESPONSE RULES:
 1. For show_properties(): MUST display ALL properties in formatted_properties, with NO LIMIT
@@ -439,7 +444,7 @@ async def get_streaming_response(question: str, context: Dict[str, Any]) -> Asyn
             "context": context  # Pass the context to make it available to tools
         },
         version="v2"
-    ):
+    ):       
         # Capture tool results that contain location data
         if event["event"] == "on_tool_end":
             tool_name = event.get("name", "")
