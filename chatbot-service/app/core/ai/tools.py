@@ -1388,6 +1388,8 @@ class NearbyLocationSearchTool(BaseTool):
         
         print(f"\n[DEBUG] NearbyLocationSearchTool called with location: {location_name}")
         print(f"[DEBUG] Search radius: {radius} km")
+        print(f"[DEBUG] Price constraints: max_price={max_price}, min_price={min_price}")
+        print(f"[DEBUG] Other parameters: page={page}, property_type={property_type}")
         
         try:
             # Step 1: Call Goong Autocomplete API to get place_id

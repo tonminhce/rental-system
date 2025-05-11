@@ -356,13 +356,29 @@ def get_response(question: str, context: Dict[str, Any]) -> str:
                             "locationName": tool_output.get("location_name", "Searched Location")
                         }
                         
-                        if "maxPrice" in context.get("query_params", {}):
+                        # Extract price constraints directly from tool input if available
+                        if hasattr(action, "tool_input") and isinstance(action.tool_input, dict):
+                            print(f"Tool input parameters: {json.dumps(action.tool_input)}")
+                            if "max_price" in action.tool_input and action.tool_input["max_price"] is not None:
+                                location_data_to_inject["maxPrice"] = action.tool_input["max_price"]
+                                print(f"Extracted maxPrice={action.tool_input['max_price']} from tool_input")
+                            
+                            if "min_price" in action.tool_input and action.tool_input["min_price"] is not None:
+                                location_data_to_inject["minPrice"] = action.tool_input["min_price"]
+                                print(f"Extracted minPrice={action.tool_input['min_price']} from tool_input")
+                            
+                            if "property_type" in action.tool_input and action.tool_input["property_type"] is not None:
+                                location_data_to_inject["propertyType"] = action.tool_input["property_type"]
+                                print(f"Extracted propertyType={action.tool_input['property_type']} from tool_input")
+                        
+                        # Fallback to context parameters if not in tool input
+                        if "maxPrice" not in location_data_to_inject and "maxPrice" in context.get("query_params", {}):
                             location_data_to_inject["maxPrice"] = context["query_params"]["maxPrice"]
                             
-                        if "minPrice" in context.get("query_params", {}):
+                        if "minPrice" not in location_data_to_inject and "minPrice" in context.get("query_params", {}):
                             location_data_to_inject["minPrice"] = context["query_params"]["minPrice"]
                             
-                        if "propertyType" in context.get("query_params", {}):
+                        if "propertyType" not in location_data_to_inject and "propertyType" in context.get("query_params", {}):
                             location_data_to_inject["propertyType"] = context["query_params"]["propertyType"]
                         
                         print(f"Prepared location data to inject in non-streaming response: {json.dumps(location_data_to_inject)}")
@@ -466,14 +482,29 @@ async def get_streaming_response(question: str, context: Dict[str, Any]) -> Asyn
                         "locationName": tool_output.get("location_name", "Searched Location")
                     }
                     
-                    # Include any additional filter data if present
-                    if "maxPrice" in context.get("query_params", {}):
+                    # Extract price constraints directly from tool input if available
+                    if isinstance(tool_input, dict):
+                        print(f"Tool input parameters: {json.dumps(tool_input)}")
+                        if "max_price" in tool_input and tool_input["max_price"] is not None:
+                            location_data_to_inject["maxPrice"] = tool_input["max_price"]
+                            print(f"Extracted maxPrice={tool_input['max_price']} from tool_input")
+                        
+                        if "min_price" in tool_input and tool_input["min_price"] is not None:
+                            location_data_to_inject["minPrice"] = tool_input["min_price"]
+                            print(f"Extracted minPrice={tool_input['min_price']} from tool_input")
+                        
+                        if "property_type" in tool_input and tool_input["property_type"] is not None:
+                            location_data_to_inject["propertyType"] = tool_input["property_type"]
+                            print(f"Extracted propertyType={tool_input['property_type']} from tool_input")
+                    
+                    # Fallback to context parameters if not in tool input
+                    if "maxPrice" not in location_data_to_inject and "maxPrice" in context.get("query_params", {}):
                         location_data_to_inject["maxPrice"] = context["query_params"]["maxPrice"]
                         
-                    if "minPrice" in context.get("query_params", {}):
+                    if "minPrice" not in location_data_to_inject and "minPrice" in context.get("query_params", {}):
                         location_data_to_inject["minPrice"] = context["query_params"]["minPrice"]
                         
-                    if "propertyType" in context.get("query_params", {}):
+                    if "propertyType" not in location_data_to_inject and "propertyType" in context.get("query_params", {}):
                         location_data_to_inject["propertyType"] = context["query_params"]["propertyType"]
                     
                     print(f"Prepared location data to inject: {json.dumps(location_data_to_inject)}")
