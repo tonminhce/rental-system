@@ -7,6 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 import ChatMessage from "./ChatMessage";
 import { useSelector } from "react-redux";
 import eventBus, { CHATBOT_EVENTS } from '@/utils/chatbotEventBus';
+import CloseIcon from '@mui/icons-material/Close';
+import { useDispatch } from "react-redux";
+import { toggleChatWidget } from "@/redux/features/system/systemSlice";
 
 const ChatbotContainer = styled(Box)(({ theme }) => ({
   position: "fixed",
@@ -57,6 +60,7 @@ const ChatInputContainer = styled(Box)(({ theme }) => ({
 }));
 
 const ChatWidget = () => {
+  const dispatch = useDispatch();
   const filterState = useSelector((state) => state.filter);
   
   const isChatOpened = useSelector((state) => state.system.isChatOpened);
@@ -241,6 +245,10 @@ const ChatWidget = () => {
     }
   };
 
+  const handleClose = () => {
+    dispatch(toggleChatWidget());
+  };
+
   if (!isChatOpened) {
     return null;
   }
@@ -259,7 +267,19 @@ const ChatWidget = () => {
       >
         <ChatHeader>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-Rental Assistant          </Typography>
+            Rental Assistant          
+          </Typography>
+          <Box sx={{ display: 'flex' }}>
+            <Tooltip title="Close">
+              <IconButton 
+                size="small" 
+                onClick={handleClose}
+                sx={{ color: 'white' }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </ChatHeader>
 
         <ChatMessagesContainer>

@@ -138,10 +138,20 @@ const PostComparison = ({ post1, post2 }) => {
       
       // If we can extract numbers from both values, compare them
       if (num1 !== null && num2 !== null && num1 !== num2) {
-        if (num1 < num2) {
-          return { color: '#f44336', fontWeight: 'bold' }; // red for lower value
+        if (featureType === 'price') {
+          // For price: lower is better (green), higher is worse (red)
+          if (num1 < num2) {
+            return { color: '#4caf50', fontWeight: 'bold' }; // green for lower price
+          } else {
+            return { color: '#f44336', fontWeight: 'bold' }; // red for higher price
+          }
         } else {
-          return { color: '#4caf50', fontWeight: 'bold' }; // green for higher value
+          // For other features: higher is better (green), lower is worse (red)
+          if (num1 < num2) {
+            return { color: '#f44336', fontWeight: 'bold' }; // red for lower value
+          } else {
+            return { color: '#4caf50', fontWeight: 'bold' }; // green for higher value
+          }
         }
       }
     }
