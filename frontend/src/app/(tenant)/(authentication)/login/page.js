@@ -13,7 +13,7 @@ import { loginSchema } from "@/schemas/authentication";
 function LoginPage() {
   const dispatch = useDispatch();
   const [login] = useLoginMutation();
-  const redirect = useRedirectBack();
+  const redirect = useRedirectBack("/rent");
 
   const handleSubmit = async (values, { setSubmitting, setFieldError }) => {
     try {

@@ -9,7 +9,7 @@ import eventBus, { CHATBOT_EVENTS } from '@/utils/chatbotEventBus';
 export default function AddressInput() {
   const [addressInput, setAddressInput, suggestions] = usePlaceAutocomplete();
   const [address, setAddress] = useState(null);
-  const [formattedAddress, setFormattedAddress] = useState(null);
+  const [, setFormattedAddress] = useState(null);
   const [, setCenterLat] = useQueryParam("centerLat", StringParam);
   const [, setCenterLng] = useQueryParam("centerLng", StringParam);
   const [, setBoundary] = useQueryParam("bounds", StringParam);
@@ -19,26 +19,21 @@ export default function AddressInput() {
     setAddress(address);
   };
 
-  // Listen for chatbot location updates
   useEffect(() => {
     const handleLocationUpdate = (data) => {
-      console.log("Received location update from chatbot:", data);
+      // console.log("Received location update from chatbot:", data);
       if (data.centerLat && data.centerLng) {
-        // Update query params directly
         setCenterLat(data.centerLat.toString());
         setCenterLng(data.centerLng.toString());
         setBoundary(null);
         
-        // Update redux store
         dispatch(setLocationFilter({
           centerLat: data.centerLat,
           centerLng: data.centerLng,
           bounds: null
         }));
         
-        // If we have a location name from the chatbot, use it
         if (data.locationName && data.locationName !== "Searched Location") {
-          // Create a mock place object that matches the expected structure
           const mockPlace = {
             place_id: `chatbot-${Date.now()}`,
             description: data.locationName,
@@ -46,16 +41,13 @@ export default function AddressInput() {
           
           setFormattedAddress(data.locationName);
           setAddressInput(data.locationName);
-          setAddress(mockPlace); // This ensures the autocomplete value is updated
+          setAddress(mockPlace);
         } else {
-          // Otherwise, reverse geocode to get the formatted address
           fetch(`/api/geocoding?lat=${data.centerLat}&lng=${data.centerLng}`)
             .then(response => response.json())
             .then(responseData => {
               if (responseData.results && responseData.results[0] && responseData.results[0].formatted_address) {
                 const formattedAddr = responseData.results[0].formatted_address;
-                
-                // Create a mock place object that matches the expected structure
                 const mockPlace = {
                   place_id: `chatbot-${Date.now()}`,
                   description: formattedAddr,
@@ -63,9 +55,8 @@ export default function AddressInput() {
                 
                 setFormattedAddress(formattedAddr);
                 setAddressInput(formattedAddr);
-                setAddress(mockPlace); // This ensures the autocomplete value is updated
-                
-                console.log("Updated address input to:", formattedAddr);
+                setAddress(mockPlace); 
+                // console.log("Updated address input to:", formattedAddr);
               }
             })
             .catch(error => console.error("Error reverse geocoding:", error));
@@ -73,7 +64,6 @@ export default function AddressInput() {
       }
     };
 
-    // Subscribe to chatbot location updates
     eventBus.subscribe(CHATBOT_EVENTS.UPDATE_MAP_LOCATION, handleLocationUpdate);
 
     return () => {
@@ -87,7 +77,6 @@ export default function AddressInput() {
       const response = await fetch(url.toString());
       const data = await response.json();
       
-      // Store the formatted address
       if (data.results && data.results[0] && data.results[0].formatted_address) {
         setFormattedAddress(data.results[0].formatted_address);
         setAddressInput(data.results[0].formatted_address);

@@ -150,6 +150,26 @@ export class PostService {
         `);
         orderClause.push([distanceCalculation, 'ASC']);
       } else {
+        if (userId) {
+          const favorites = await this.favoriteListModel.findAll({
+            where: { userId },
+            attributes: ['rentalId'],
+          });
+          
+          const favoriteIds = favorites.map(fav => fav.rentalId);
+          
+          if (favoriteIds.length > 0) {
+            const favoriteSort = literal(`
+              CASE
+                WHEN RentalPost.id IN (${favoriteIds.join(',')}) THEN 0
+                ELSE 1
+              END
+            `);
+            orderClause.push([favoriteSort, 'ASC']);
+          }
+        }
+        
+        // Then sort by creation date
         orderClause.push(['createdAt', 'DESC']);
       }
 
@@ -188,7 +208,7 @@ export class PostService {
           const plainPost = post.get({ plain: true });
           return {
             ...plainPost,
-            isFavorite: favoritePostIds.has(post.id),
+            isFavourite: favoritePostIds.has(post.id),
             coordinates: {
               type: 'Point',
               coordinates: [
@@ -203,6 +223,7 @@ export class PostService {
           const plainPost = post.get({ plain: true });
           return {
             ...plainPost,
+            isFavourite: false,
             coordinates: {
               type: 'Point',
               coordinates: [
@@ -336,7 +357,9 @@ export class PostService {
           },
         });
 
-        plainPost.isFavorite = !!favorite;
+        plainPost.isFavourite = !!favorite;
+      } else {
+        plainPost.isFavourite = false;
       }
 
       plainPost.coordinates = {
