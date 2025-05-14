@@ -133,6 +133,8 @@ const ChatWidget = () => {
               radius: locationData.radius || 1,
               minPrice: locationData.minPrice,
               maxPrice: locationData.maxPrice,
+              minArea: locationData.minArea,
+              maxArea: locationData.maxArea,
               propertyType: locationData.propertyType,
               transactionType: locationData.transactionType || 'rent'
             });
