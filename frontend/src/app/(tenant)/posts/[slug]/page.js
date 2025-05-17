@@ -21,7 +21,7 @@ import {
   TrendingDown,
 } from "@mui/icons-material";
 import PhoneIcon from "@mui/icons-material/Phone";
-import { Typography, Drawer, List, ListItem, ListItemText, Button, Dialog, IconButton, DialogContent, Box, Tooltip, CircularProgress } from "@mui/material";
+import { Typography, Drawer, List, ListItem, ListItemText, Button, Dialog, IconButton, DialogContent, Box, Tooltip, CircularProgress, Chip } from "@mui/material";
 import "@scss/posts.scss";
 import _ from "lodash";
 import Link from "next/link";
@@ -31,38 +31,6 @@ import SimplePagination from "@/components/Pagination/SimplePagination";
 import usePricePrediction from "@/hooks/usePricePrediction";
 
 const priceTagStyles = {
-  badge: {
-    fontSize: '0.8rem',
-    marginLeft: '8px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '4px 8px',
-    borderRadius: '16px',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-    }
-  },
-  higher: {
-    color: '#f44336',
-    backgroundColor: 'rgba(244, 67, 54, 0.08)',
-    border: '1px solid rgba(244, 67, 54, 0.2)',
-    '&:hover': {
-      backgroundColor: 'rgba(244, 67, 54, 0.12)',
-      borderColor: 'rgba(244, 67, 54, 0.3)'
-    }
-  },
-  lower: {
-    color: '#4caf50',
-    backgroundColor: 'rgba(76, 175, 80, 0.08)',
-    border: '1px solid rgba(76, 175, 80, 0.2)',
-    '&:hover': {
-      backgroundColor: 'rgba(76, 175, 80, 0.12)',
-      borderColor: 'rgba(76, 175, 80, 0.3)'
-    }
-  },
   tooltip: {
     maxWidth: 220,
     backgroundColor: '#fff',
@@ -72,6 +40,24 @@ const priceTagStyles = {
     padding: '12px 16px',
     '& .MuiTooltip-arrow': {
       color: '#fff'
+    }
+  },
+  chipHigher: {
+    backgroundColor: 'rgba(244, 67, 54, 0.08)',
+    color: '#f44336',
+    border: '1px solid rgba(244, 67, 54, 0.2)',
+    marginLeft: '8px',
+    '&:hover': {
+      backgroundColor: 'rgba(244, 67, 54, 0.12)',
+    }
+  },
+  chipLower: {
+    backgroundColor: 'rgba(76, 175, 80, 0.08)',
+    color: '#4caf50',
+    border: '1px solid rgba(76, 175, 80, 0.2)',
+    marginLeft: '8px',
+    '&:hover': {
+      backgroundColor: 'rgba(76, 175, 80, 0.12)',
     }
   }
 };
@@ -161,47 +147,12 @@ export default function PostDetailPage({ params }) {
           placement="right"
           sx={priceTagStyles.tooltip}
         >
-          <span 
-            style={{ 
-              fontSize: '0.8rem', 
-              marginLeft: '8px',
-              color: priceDifference > 0 ? '#f44336' : '#4caf50',
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '4px 8px',
-              borderRadius: '16px',
-              backgroundColor: priceDifference > 0 ? 'rgba(244, 67, 54, 0.08)' : 'rgba(76, 175, 80, 0.08)',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              border: `1px solid ${priceDifference > 0 ? 'rgba(244, 67, 54, 0.2)' : 'rgba(76, 175, 80, 0.2)'}`,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              fontWeight: 500
-            }}
-            className="price-difference-badge"
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-              e.currentTarget.style.backgroundColor = priceDifference > 0 
-                ? 'rgba(244, 67, 54, 0.12)' 
-                : 'rgba(76, 175, 80, 0.12)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-              e.currentTarget.style.backgroundColor = priceDifference > 0 
-                ? 'rgba(244, 67, 54, 0.08)' 
-                : 'rgba(76, 175, 80, 0.08)';
-            }}
-          >
-            {priceDifference > 0 ? (
-              <TrendingUp sx={{ fontSize: 16, marginRight: '4px' }} />
-            ) : (
-              <TrendingDown sx={{ fontSize: 16, marginRight: '4px' }} />
-            )}
-            <span style={{ fontSize: '0.85rem' }}>
-              {getPriceDifferenceText()}
-            </span>
-          </span>
+          <Chip
+            icon={priceDifference > 0 ? <TrendingUp /> : <TrendingDown />}
+            label={getPriceDifferenceText()}
+            size="small"
+            sx={priceDifference > 0 ? priceTagStyles.chipHigher : priceTagStyles.chipLower}
+          />
         </Tooltip>
       ) : null,
     },
@@ -271,51 +222,12 @@ export default function PostDetailPage({ params }) {
                     placement="right"
                     sx={priceTagStyles.tooltip}
                   >
-                    <span 
-                      sx={{
-                        ...priceTagStyles.badge,
-                        ...(priceDifference > 0 ? priceTagStyles.higher : priceTagStyles.lower)
-                      }}
-                      style={{ 
-                        fontSize: '0.8rem', 
-                        marginLeft: '8px',
-                        color: priceDifference > 0 ? '#f44336' : '#4caf50',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '4px 8px',
-                        borderRadius: '16px',
-                        backgroundColor: priceDifference > 0 ? 'rgba(244, 67, 54, 0.08)' : 'rgba(76, 175, 80, 0.08)',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        border: `1px solid ${priceDifference > 0 ? 'rgba(244, 67, 54, 0.2)' : 'rgba(76, 175, 80, 0.2)'}`,
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                        fontWeight: 500
-                      }}
-                      className="price-difference-badge"
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-                        e.currentTarget.style.backgroundColor = priceDifference > 0 
-                          ? 'rgba(244, 67, 54, 0.12)' 
-                          : 'rgba(76, 175, 80, 0.12)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-                        e.currentTarget.style.backgroundColor = priceDifference > 0 
-                          ? 'rgba(244, 67, 54, 0.08)' 
-                          : 'rgba(76, 175, 80, 0.08)';
-                      }}
-                    >
-                      {priceDifference > 0 ? (
-                        <TrendingUp sx={{ fontSize: 16, marginRight: '4px' }} />
-                      ) : (
-                        <TrendingDown sx={{ fontSize: 16, marginRight: '4px' }} />
-                      )}
-                      <span style={{ fontSize: '0.85rem' }}>
-                        {getPriceDifferenceText()}
-                      </span>
-                    </span>
+                    <Chip
+                      icon={priceDifference > 0 ? <TrendingUp /> : <TrendingDown />}
+                      label={getPriceDifferenceText()}
+                      size="small"
+                      sx={priceDifference > 0 ? priceTagStyles.chipHigher : priceTagStyles.chipLower}
+                    />
                   </Tooltip>
                 )}
               </p>

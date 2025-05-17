@@ -131,10 +131,10 @@ export default function GetPropertiesPage({ transaction_type = "rent" }) {
         if (filterData.minArea) searchParams.set('minArea', filterData.minArea.toString());
         if (filterData.maxArea) searchParams.set('maxArea', filterData.maxArea.toString());
         if (filterData.propertyType) searchParams.set('propertyType', filterData.propertyType);
-        if (filterData.transactionType) searchParams.set('transactionType', filterData.transactionType);
         
-        const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
-        window.history.pushState({ path: newUrl }, '', newUrl);
+        const url = new URL(window.location.href);
+        url.search = searchParams.toString();
+        window.history.pushState({ path: url.toString() }, '', url.toString());
         
         window.dispatchEvent(new CustomEvent('refresh-properties'));
       }
