@@ -32,6 +32,19 @@ class ChatbotEventBus {
   }
 
   /**
+   * Unsubscribe from an event
+   * @param {string} event - Event name to unsubscribe from
+   * @param {Function} callback - Callback function to remove
+   */
+  unsubscribe(event, callback) {
+    if (!this.listeners[event]) {
+      return;
+    }
+    
+    this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+  }
+
+  /**
    * Publish an event with data
    * @param {string} event - Event name to publish
    * @param {any} data - Data to pass to subscribers

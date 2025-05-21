@@ -27,7 +27,7 @@ export class PostController {
   @Public()
   @Get()
   async getPosts(@Query() getPostsDto: GetPostsDto, @Request() req) {
-    const userId = req.user?.id || null;
+    const userId = this._getUserIdFromContext();
     const result = await this.postService.getPosts(getPostsDto, userId);
     
     return responseUtil.success({
@@ -100,10 +100,10 @@ export class PostController {
     });
   }
 
-  private _getUserIdFromContext(): number {
+  private _getUserIdFromContext(): number | null {
     const user = RequestContext.get('user');
     if (!user) {
-      throw new UnauthorizedException('User not found in request context');
+      return null;
     }
     return user.id;
   }

@@ -1128,6 +1128,8 @@ class FilteredPropertySearchInput(BaseModel):
     max_price_constraint: Optional[float] = Field(default=None, description="Maximum price constraint in millions VND")
     min_bedrooms: Optional[int] = Field(default=None, description="Minimum number of bedrooms required")
     min_bathrooms: Optional[int] = Field(default=None, description="Minimum number of bathrooms required")
+    min_area: Optional[float] = Field(default=None, description="Minimum area in square meters")
+    max_area: Optional[float] = Field(default=None, description="Maximum area in square meters")
     page: Optional[int] = Field(default=1, description="Page number for pagination")
 
 # Global context for sharing data between tools and AI service
@@ -1174,6 +1176,8 @@ class FilteredPropertySearchTool(BaseTool):
              max_price_constraint: Optional[float] = None,
              min_bedrooms: Optional[int] = None, 
              min_bathrooms: Optional[int] = None,
+             min_area: Optional[float] = None,
+             max_area: Optional[float] = None,
              page: int = 1) -> Dict:
         """
         Search for properties using the current filter parameters plus additional constraints
@@ -1182,6 +1186,8 @@ class FilteredPropertySearchTool(BaseTool):
             max_price_constraint: Maximum price in millions VND (overrides the current filter if lower)
             min_bedrooms: Minimum number of bedrooms required
             min_bathrooms: Minimum number of bathrooms required
+            min_area: Minimum area in square meters
+            max_area: Maximum area in square meters
             page: Page number for pagination
             
         Returns:
@@ -1191,6 +1197,8 @@ class FilteredPropertySearchTool(BaseTool):
         print(f"[DEBUG] max_price_constraint: {max_price_constraint}")
         print(f"[DEBUG] min_bedrooms: {min_bedrooms}")
         print(f"[DEBUG] min_bathrooms: {min_bathrooms}")
+        print(f"[DEBUG] min_area: {min_area}")
+        print(f"[DEBUG] max_area: {max_area}")
         print(f"[DEBUG] page: {page}")
         
         try:
@@ -1226,6 +1234,21 @@ class FilteredPropertySearchTool(BaseTool):
             if min_bathrooms is not None:
                 combined_filters["minBathrooms"] = min_bathrooms
                 print(f"[DEBUG] Applied min bathrooms constraint: {min_bathrooms}")
+            
+            # Apply area constraints if provided
+            if min_area is not None:
+                current_min_area = float(combined_filters.get("minArea", 0))
+                # Use the more restrictive of the two min areas
+                if min_area > current_min_area:
+                    combined_filters["minArea"] = min_area
+                print(f"[DEBUG] Applied min area constraint: {combined_filters.get('minArea')}")
+            
+            if max_area is not None:
+                current_max_area = float(combined_filters.get("maxArea", float('inf')))
+                # Use the more restrictive of the two max areas
+                if max_area < current_max_area or current_max_area == float('inf'):
+                    combined_filters["maxArea"] = max_area
+                print(f"[DEBUG] Applied max area constraint: {combined_filters.get('maxArea')}")
             
             # Print the final combined filters
             print(f"[DEBUG] Final combined filters: {json.dumps(combined_filters, indent=2)}")
@@ -1317,6 +1340,8 @@ class NearbyLocationSearchInput(BaseModel):
     radius: Optional[int] = Field(default=2, description="Search radius in kilometers")
     max_price: Optional[float] = Field(default=None, description="Maximum price in millions VND")
     min_price: Optional[float] = Field(default=None, description="Minimum price in millions VND")
+    min_area: Optional[float] = Field(default=None, description="Minimum area in square meters")
+    max_area: Optional[float] = Field(default=None, description="Maximum area in square meters")
     page: Optional[int] = Field(default=1, description="Page number for pagination")
     property_type: Optional[str] = Field(default=None, description="Type of property (room, apartment, house, etc.)")
 
@@ -1367,6 +1392,8 @@ class NearbyLocationSearchTool(BaseTool):
              radius: int = 2,
              max_price: Optional[float] = None,
              min_price: Optional[float] = None,
+             min_area: Optional[float] = None,
+             max_area: Optional[float] = None,
              page: int = 1,
              property_type: Optional[str] = None) -> Dict:
         """
@@ -1377,6 +1404,8 @@ class NearbyLocationSearchTool(BaseTool):
             radius: Search radius in kilometers
             max_price: Maximum price filter (optional)
             min_price: Minimum price filter (optional)
+            min_area: Minimum area in square meters (optional)
+            max_area: Maximum area in square meters (optional)
             page: Page number for pagination
             property_type: Type of property filter (optional)
             
@@ -1388,6 +1417,8 @@ class NearbyLocationSearchTool(BaseTool):
         
         print(f"\n[DEBUG] NearbyLocationSearchTool called with location: {location_name}")
         print(f"[DEBUG] Search radius: {radius} km")
+        print(f"[DEBUG] Price constraints: max_price={max_price}, min_price={min_price}")
+        print(f"[DEBUG] Other parameters: page={page}, property_type={property_type}")
         
         try:
             # Step 1: Call Goong Autocomplete API to get place_id
@@ -1475,6 +1506,12 @@ class NearbyLocationSearchTool(BaseTool):
             
             if min_price is not None:
                 params["minPrice"] = min_price
+            
+            if min_area is not None:
+                params["minArea"] = min_area
+            
+            if max_area is not None:
+                params["maxArea"] = max_area
             
             if property_type is not None:
                 params["propertyType"] = property_type

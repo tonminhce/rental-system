@@ -17,7 +17,7 @@ export default function ChatbotProvider({ children }) {
   return (
     <>
       {children}
-      <Tooltip title="Chat với chúng tôi">
+      <Tooltip title="Chat with us">
         <Fab
           onClick={() => dispatch(toggleChatWidget())}
           color="primary"

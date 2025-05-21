@@ -1,7 +1,6 @@
 "use client";
 import NextLink from "next/link";
 import { useSelector } from "react-redux";
-// import HeaderLink from "./HeaderLink";
 import useMenu from "@/hooks/useMenu";
 import { FavoriteBorderOutlined, NotificationsOutlined } from "@mui/icons-material";
 import { Avatar, Box, Button, Container, IconButton, Link, Stack, styled, Tooltip, Typography } from "@mui/material";
@@ -41,7 +40,7 @@ function Header() {
     <>
       <HeaderWrapper>
         <Stack direction="row" spacing={3} alignItems="center">
-          <HeaderLink href="/" sx={{ fontSize: 28, fontWeight: 600, width: 120 }}>
+          <HeaderLink href="/rent" sx={{ fontSize: 28, fontWeight: 600, width: 120 }}>
             renTalk
           </HeaderLink>
         </Stack>
