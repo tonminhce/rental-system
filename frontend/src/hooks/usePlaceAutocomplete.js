@@ -1,33 +1,30 @@
 import { useEffect, useState } from "react";
-import { debounce } from "lodash";
 
 export default function usePlaceAutocomplete() {
   const [input, setInput] = useState("");
   const [options, setOptions] = useState([]);
-
-  const getAddressOptions = debounce(async () => {
-    if (!input || input.trim() === "") {
+  useEffect(() => {
+    const controller = new AbortController();
+    if (input.trim().length < 2) {
       setOptions([]);
       return;
     }
-
-    const encodedInput = encodeURIComponent(input.trim());
-    const response = await fetch(`/api/places/autocomplete?input=${encodedInput}`);
-    const data = await response.json();
-    setOptions(data?.predictions || []);
-  }, 500);
-
-  useEffect(() => {
-    if (input && input.trim() !== "") {
-      getAddressOptions();
-    } else {
-      setOptions([]);
-    }
-
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(input.trim())}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Autocomplete unavailable");
+        const data = await response.json();
+        if (!controller.signal.aborted) setOptions(data.predictions || []);
+      } catch {
+        if (!controller.signal.aborted) setOptions([]);
+      }
+    }, 350);
     return () => {
-      getAddressOptions.cancel();
+      clearTimeout(timer);
+      controller.abort();
     };
   }, [input]);
-
   return [input, setInput, options];
 }
