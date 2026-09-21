@@ -13,6 +13,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { GetPostsDto } from './dto/get-posts.dto';
+import { GetMapPostsDto } from './dto/get-map-posts.dto';
 import { responseUtil } from '../../shared/utils/response.util';
 import { Public } from '../../shared/decorators/public.decorator';
 import { IsRental } from '../../shared/decorators/is-rental.decorator';
@@ -29,11 +30,21 @@ export class PostController {
   async getPosts(@Query() getPostsDto: GetPostsDto, @Request() req) {
     const userId = this._getUserIdFromContext();
     const result = await this.postService.getPosts(getPostsDto, userId);
-    
+
     return responseUtil.success({
       ...result,
       message: 'Posts retrieved successfully',
     });
+  }
+
+  @ApiOperation({
+    summary:
+      'Map inventory grouped by viewport, independent of list pagination',
+  })
+  @Public()
+  @Get('map')
+  async getMapPosts(@Query() query: GetMapPostsDto) {
+    return responseUtil.success(await this.postService.getMapPosts(query));
   }
 
   @ApiOperation({ summary: 'Get favorite posts of the logged-in user' })
@@ -42,7 +53,7 @@ export class PostController {
   async getFavoritePosts(@Query('page') page = 1, @Query('limit') limit = 10) {
     const userId = this._getUserIdFromContext();
     const result = await this.postService.getFavoritePosts(userId, page, limit);
-    
+
     return responseUtil.success({
       ...result,
       message: 'Favorite posts retrieved successfully',
@@ -55,7 +66,7 @@ export class PostController {
   async getPost(@Param('id') id: number) {
     const userId = this._getUserIdFromContext();
     const post = await this.postService.getPost(id, userId);
-    
+
     return responseUtil.success({
       post,
       message: 'Post retrieved successfully',
@@ -69,7 +80,7 @@ export class PostController {
   async createPost(@Body() createPostDto: CreatePostDto) {
     const userId = this._getUserIdFromContext();
     const post = await this.postService.createPost(createPostDto, userId);
-    
+
     return responseUtil.success({
       post,
       message: 'Post created successfully',
@@ -82,7 +93,7 @@ export class PostController {
   async addFavorite(@Param('id') id: number) {
     const userId = this._getUserIdFromContext();
     await this.postService.addFavorite(id, userId);
-    
+
     return responseUtil.success({
       message: 'Post added to favorites',
     });
@@ -94,7 +105,7 @@ export class PostController {
   async removeFavorite(@Param('id') id: number) {
     const userId = this._getUserIdFromContext();
     await this.postService.removeFavorite(id, userId);
-    
+
     return responseUtil.success({
       message: 'Post removed from favorites',
     });
