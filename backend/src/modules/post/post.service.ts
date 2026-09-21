@@ -5,9 +5,17 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op, literal } from 'sequelize';
+import { Op, literal, fn, col } from 'sequelize';
 import { CreatePostDto } from './dto/create-post.dto';
 import { GetPostsDto } from './dto/get-posts.dto';
+import { GetMapPostsDto } from './dto/get-map-posts.dto';
+import {
+  buildPostWhere,
+  boundsWhere,
+  distanceSql,
+  mapGrid,
+  postCoordinates,
+} from './post-filters';
 import { RentalPost } from '../../database/entities/rental-post.entity';
 import { RentalImage } from '../../database/entities/rental-image.entity';
 import { FavoriteList } from '../../database/entities/favorite-list.entity';
@@ -27,109 +35,71 @@ export class PostService {
     private favoriteListModel: typeof FavoriteList,
   ) {}
 
+  async getMapPosts(query: GetMapPostsDto) {
+    const grid = mapGrid(query.mapBounds);
+    const latCell = literal(`FLOOR(latitude / ${grid.lat})`);
+    const lngCell = literal(`FLOOR(longitude / ${grid.lng})`);
+    const groups: any[] = await this.rentalPostModel.findAll({
+      attributes: [
+        [latCell, 'latCell'],
+        [lngCell, 'lngCell'],
+        [fn('COUNT', col('id')), 'count'],
+        [fn('MIN', col('id')), 'id'],
+        [fn('MIN', col('name')), 'name'],
+        [fn('MIN', col('price')), 'price'],
+        [fn('MIN', col('area')), 'area'],
+        [fn('MIN', col('district')), 'district'],
+        [fn('AVG', col('latitude')), 'lat'],
+        [fn('AVG', col('longitude')), 'lng'],
+        [fn('MIN', col('latitude')), 'south'],
+        [fn('MAX', col('latitude')), 'north'],
+        [fn('MIN', col('longitude')), 'west'],
+        [fn('MAX', col('longitude')), 'east'],
+      ],
+      where: {
+        [Op.and]: [buildPostWhere(query), boundsWhere(query.mapBounds)],
+      },
+      group: ['latCell', 'lngCell'],
+      raw: true,
+    });
+    const markers = groups.map((row) => {
+      const count = Number(row.count);
+      return {
+        key: `${row.latCell}:${row.lngCell}`,
+        count,
+        ...(count === 1
+          ? {
+              id: Number(row.id),
+              name: row.name,
+              price: Number(row.price),
+              area: Number(row.area),
+              district: row.district,
+            }
+          : {}),
+        coordinates: [Number(row.lng), Number(row.lat)],
+        bounds: [
+          Number(row.south),
+          Number(row.west),
+          Number(row.north),
+          Number(row.east),
+        ],
+      };
+    });
+    return {
+      markers,
+      total: markers.reduce((sum, marker) => sum + marker.count, 0),
+    };
+  }
+
   async getPosts(getPostsDto: GetPostsDto, userId: number) {
     try {
       loggerUtil.info(`${_serviceName}.getPosts start`, {
         getPostsDto,
         userId,
       });
-      const {
-        page,
-        limit,
-        minPrice,
-        maxPrice,
-        minArea,
-        maxArea,
-        propertyType,
-        transactionType,
-        province,
-        district,
-        ward,
-        minBedrooms,
-        minBathrooms,
-        centerLat,
-        centerLng,
-        radius,
-        bounds,
-      } = getPostsDto;
-
+      const { page = 1, limit = 10, centerLat, centerLng } = getPostsDto;
       const offset = (page - 1) * limit;
-      const whereConditions: any = {
-        status: 'active',
-      };
-
-      if (minPrice !== undefined || maxPrice !== undefined) {
-        whereConditions.price = {};
-        if (minPrice !== undefined) {
-          whereConditions.price[Op.gte] = minPrice;
-        }
-        if (maxPrice !== undefined) {
-          whereConditions.price[Op.lte] = maxPrice;
-        }
-      }
-
-      if (minArea !== undefined || maxArea !== undefined) {
-        whereConditions.area = {};
-        if (minArea !== undefined) {
-          whereConditions.area[Op.gte] = minArea;
-        }
-        if (maxArea !== undefined) {
-          whereConditions.area[Op.lte] = maxArea;
-        }
-      }
-
-      if (minBathrooms !== undefined) {
-        whereConditions.bathrooms = { [Op.gte]: minBathrooms };
-      }
-
-      // Only apply propertyType filter if it exists
-      if (propertyType) {
-        if (typeof propertyType === 'string' && propertyType.includes(',')) {
-          const propertyTypes = propertyType.split(',');
-          whereConditions.propertyType = { [Op.in]: propertyTypes };
-        } else {
-          whereConditions.propertyType = propertyType;
-        }
-      }
-
-      if (transactionType) {
-        whereConditions.transactionType = transactionType;
-      }
-
-      if (province) {
-        whereConditions.province = province;
-      }
-      if (district) {
-        whereConditions.district = district;
-      }
-      if (ward) {
-        whereConditions.ward = ward;
-      }
-
-      if (minBedrooms !== undefined) {
-        whereConditions.bedrooms = { [Op.gte]: minBedrooms };
-      }
-
-      if (
-        centerLat !== undefined &&
-        centerLng !== undefined &&
-        radius !== undefined
-      ) {
-        const haversine = `
-          (
-            6371 * acos(
-              LEAST(1, GREATEST(-1, cos(radians(${centerLat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${centerLng})) +
-              sin(radians(${centerLat})) * sin(radians(latitude))))
-            )
-          )
-        `;
-
-        whereConditions[Op.and] = literal(`${haversine} <= ${radius}`);
-      } else if (bounds) {
-        const [minLat, minLng, maxLat, maxLng] = bounds.split(',').map(Number);
-        whereConditions.latitude = { [Op.between]: [minLat, maxLat] };
-        whereConditions.longitude = { [Op.between]: [minLng, maxLng] };
-      }
+      const whereConditions = buildPostWhere(getPostsDto);
 
       loggerUtil.info(`${_serviceName}.getPosts querying database`, {
         whereConditions,
@@ -137,42 +107,24 @@ export class PostService {
         offset,
       });
 
-      // Add distance calculation for sorting if center coordinates are provided
-      const orderClause = [];
-      if (centerLat !== undefined && centerLng !== undefined) {
-        const distanceCalculation = literal(`
-          (
-            6371 * acos(
-              LEAST(1, GREATEST(-1, cos(radians(${centerLat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${centerLng})) +
-              sin(radians(${centerLat})) * sin(radians(latitude))))
-            )
-          )
-        `);
-        orderClause.push([distanceCalculation, 'ASC']);
-      } else {
-        if (userId) {
-          const favorites = await this.favoriteListModel.findAll({
-            where: { userId },
-            attributes: ['rentalId'],
-          });
-
-          const favoriteIds = favorites.map((fav) => fav.rentalId);
-
-          if (favoriteIds.length > 0) {
-            const favoriteSort = literal(`
-              CASE
-                WHEN RentalPost.id IN (${favoriteIds.join(',')}) THEN 0
-                ELSE 1
-              END
-            `);
-            orderClause.push([favoriteSort, 'ASC']);
-          }
-        }
-
-        // Then sort by creation date
-        orderClause.push(['createdAt', 'DESC']);
+      const orderClause: any[] = [];
+      if (getPostsDto.sort === 'price_asc') orderClause.push(['price', 'ASC']);
+      else if (getPostsDto.sort === 'price_desc')
+        orderClause.push(['price', 'DESC']);
+      else if (getPostsDto.sort === 'area_desc')
+        orderClause.push(['area', 'DESC']);
+      else if (
+        !getPostsDto.sort &&
+        centerLat !== undefined &&
+        centerLng !== undefined
+      ) {
+        orderClause.push([literal(distanceSql(centerLat, centerLng)), 'ASC']);
       }
+      orderClause.push(['createdAt', 'DESC']);
 
+      // Imported batches share timestamps. A unique tie-breaker prevents duplicate
+      // or skipped records between pages.
+      orderClause.push(['id', 'DESC']);
       const { rows, count } = await this.rentalPostModel.findAndCountAll({
         where: whereConditions,
         include: [
@@ -209,13 +161,7 @@ export class PostService {
           return {
             ...plainPost,
             isFavourite: favoritePostIds.has(post.id),
-            coordinates: {
-              type: 'Point',
-              coordinates: [
-                Number(plainPost.longitude),
-                Number(plainPost.latitude),
-              ],
-            },
+            coordinates: postCoordinates(plainPost),
           };
         });
       } else {
@@ -224,13 +170,7 @@ export class PostService {
           return {
             ...plainPost,
             isFavourite: false,
-            coordinates: {
-              type: 'Point',
-              coordinates: [
-                Number(plainPost.longitude),
-                Number(plainPost.latitude),
-              ],
-            },
+            coordinates: postCoordinates(plainPost),
           };
         });
       }
@@ -362,10 +302,7 @@ export class PostService {
         plainPost.isFavourite = false;
       }
 
-      plainPost.coordinates = {
-        type: 'Point',
-        coordinates: [Number(plainPost.longitude), Number(plainPost.latitude)],
-      };
+      plainPost.coordinates = postCoordinates(plainPost);
 
       plainPost.address = {
         province: plainPost.province,

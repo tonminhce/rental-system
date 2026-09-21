@@ -7,6 +7,7 @@ import {
   Max,
   IsEnum,
   IsString,
+  IsIn,
   IsLatitude,
   IsLongitude,
   Matches,
@@ -16,10 +17,15 @@ import { Type } from 'class-transformer';
 import { Transform } from 'class-transformer';
 
 export class GetPostsDto {
+  @IsOptional()
+  @IsIn(['newest', 'price_asc', 'price_desc', 'area_desc'])
+  sort?: string;
+
   @ApiProperty({ description: 'Page number', example: 1, required: false })
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(1000000)
   @Type(() => Number)
   page?: number = 1;
 
