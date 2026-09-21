@@ -13,10 +13,20 @@ class MogiPipeline:
         # Login to the rental service
         self.api_url = os.getenv("RENTAL_API_URL", "http://localhost:8100/api")
         self.access_token = None
+        api_email = os.getenv("RENTAL_API_EMAIL")
+        api_password = os.getenv("RENTAL_API_PASSWORD")
+        if not api_email or not api_password:
+            # process_item already skips the authenticated POST when no token
+            # was issued, so crawling continues and only reports the gap.
+            print(
+                "Warning: RENTAL_API_EMAIL/RENTAL_API_PASSWORD are unset; "
+                "MogiPipeline will not authenticate with the rental service"
+            )
+            return
         try:
             res = requests.post(
                 f"{self.api_url}/auth/login",
-                json={"email": "mogi@gmail.com", "password": "mogi123"},
+                json={"email": api_email, "password": api_password},
                 timeout=10,
             )
             if res.status_code == 200:

@@ -1,6 +1,10 @@
 /* Explicit, idempotent local-only preview data. Never run against production. */
 require('dotenv').config();
 const mysql = require('mysql2/promise');
+const {
+  hashSeedPassword,
+  resolveSeedPassword,
+} = require('../src/shared/utils/seedPassword');
 async function seed() {
   if (
     process.env.NODE_ENV === 'production' ||
@@ -137,7 +141,6 @@ async function seed() {
       name: 'Linh Nguyen',
       email: 'linh.nguyen@example.com',
       phone: '0901234567',
-      password: '***REDACTED***',
       gender: 'Female',
       lifestyle: 'Clean',
       pets: false,
@@ -152,7 +155,6 @@ async function seed() {
       name: 'Minh Tran',
       email: 'minh.tran@example.com',
       phone: '0912345678',
-      password: '***REDACTED***',
       gender: 'Male',
       lifestyle: 'Clean',
       pets: true,
@@ -167,7 +169,6 @@ async function seed() {
       name: 'An Vo',
       email: 'an.vo@example.com',
       phone: '0923456789',
-      password: '***REDACTED***',
       gender: 'Female',
       lifestyle: 'Normal',
       pets: true,
@@ -182,7 +183,6 @@ async function seed() {
       name: 'Huy Dang',
       email: 'huy.dang@example.com',
       phone: '0934567890',
-      password: '***REDACTED***',
       gender: 'Male',
       lifestyle: 'Normal',
       pets: false,
@@ -197,7 +197,6 @@ async function seed() {
       name: 'Mai Le',
       email: 'mai.le@example.com',
       phone: '0945678901',
-      password: '***REDACTED***',
       gender: 'Female',
       lifestyle: 'Clean',
       pets: false,
@@ -212,7 +211,6 @@ async function seed() {
       name: 'Duc Pham',
       email: 'duc.pham@example.com',
       phone: '0956789012',
-      password: '***REDACTED***',
       gender: 'Male',
       lifestyle: 'Normal',
       pets: true,
@@ -225,15 +223,34 @@ async function seed() {
     },
   ];
 
+  const demo = resolveSeedPassword();
+  const demoPasswordHash = await hashSeedPassword(demo.password);
+  console.log(
+    demo.generated
+      ? `Demo accounts share a generated password: ${demo.password}\n` +
+        `Set SEED_DEMO_PASSWORD to pin it across seed runs and for the crawler.`
+      : 'Demo accounts share the password from SEED_DEMO_PASSWORD.',
+  );
+
+  const legacyHashEmails = [];
   for (const u of demoUsers) {
-    const [existing] = await db.execute('SELECT id FROM users WHERE email = ?', [u.email]);
+    const [existing] = await db.execute(
+      'SELECT id, password FROM users WHERE email = ?',
+      [u.email],
+    );
     let userId;
     if (existing.length) {
       userId = existing[0].id;
+      // Re-seeding never overwrites an existing row, so an account created
+      // while the exposed MD5 was still hardcoded keeps failing the scan-free
+      // login path until its password is rotated.
+      if (/^[a-f0-9]{32}$/i.test(existing[0].password)) {
+        legacyHashEmails.push(u.email);
+      }
     } else {
       const [userRes] = await db.execute(
         'INSERT INTO users (name, email, phone, password, role_id, created_at, updated_at) VALUES (?, ?, ?, ?, 1, NOW(), NOW())',
-        [u.name, u.email, u.phone, u.password],
+        [u.name, u.email, u.phone, demoPasswordHash],
       );
       userId = userRes.insertId;
     }
@@ -245,6 +262,15 @@ async function seed() {
         [userId, u.gender, u.lifestyle, u.pets ? 1 : 0, u.smoking ? 1 : 0, u.personality, u.age, u.wakeUp, u.bedTime, u.score],
       );
     }
+  }
+
+  if (legacyHashEmails.length) {
+    console.warn(
+      `WARNING: ${legacyHashEmails.length} existing demo account(s) still hold the unsalted MD5 that was \n` +
+        'published in this repository, and that hash is the password the crawler used to sign in.\n' +
+        'Rotate them before using this database anywhere reachable: ' +
+        legacyHashEmails.join(', '),
+    );
   }
 
   // Also ensure user with id 5 (tonminhwork@gmail.com) has a default profile if none exists
