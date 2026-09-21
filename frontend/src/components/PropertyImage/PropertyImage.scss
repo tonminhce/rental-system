@@ -7,6 +7,7 @@ $blur: 100px;
     position: relative;
     border: 1px solid $border-color;
     overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   &_main {
@@ -14,6 +15,7 @@ $blur: 100px;
     z-index: 1;
     border: 1px solid transparent;
     cursor: pointer;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   &_overlay {
@@ -21,5 +23,10 @@ $blur: 100px;
     object-fit: cover;
     filter: blur($blur);
     -webkit-filter: blur($blur);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  &_container:hover &_main {
+    transform: scale(1.03);
   }
 }

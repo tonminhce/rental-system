@@ -31,7 +31,7 @@ export default function SignUpPage() {
 
   return (
     <Suspense>
-      <div className="auth_form-container">
+      <div className="auth_form-container animate-fade-in-up">
         <div className="auth_intro">
           <span>FIND A PLACE. MAKE IT YOURS.</span>
           <h1>Start your next chapter.</h1>

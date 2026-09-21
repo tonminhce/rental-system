@@ -30,7 +30,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="auth_form-container">
+    <div className="auth_form-container animate-fade-in-up">
       <div className="auth_intro">
         <span>YOUR NEXT CHAPTER</span>
         <h1>Welcome home.</h1>

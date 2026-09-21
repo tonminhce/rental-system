@@ -437,10 +437,15 @@ export default function PostDetailPage() {
                       onClick={() => handleSelectPostForComparison(property)}
                       selected={selectedPostForComparison?.id === property.id}
                       sx={{
-                        borderRadius: 1,
+                        borderRadius: 2,
                         mb: 1,
+                        transition: "all 0.15s ease",
+                        "&:hover": {
+                          backgroundColor: "rgba(35, 76, 62, 0.06)",
+                        },
                         "&.Mui-selected": {
-                          backgroundColor: "#f0f7ff",
+                          backgroundColor: "rgba(35, 76, 62, 0.12)",
+                          color: "#234c3e",
                         },
                       }}
                     >
@@ -474,9 +479,9 @@ export default function PostDetailPage() {
             disabled={!selectedPostForComparison}
             sx={{
               mt: 2,
-              bgcolor: "#ff5722",
+              bgcolor: "#234c3e",
               "&:hover": {
-                bgcolor: "#e64a19",
+                bgcolor: "#17382a",
               },
             }}
           >
