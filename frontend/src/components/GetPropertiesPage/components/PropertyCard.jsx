@@ -64,7 +64,7 @@ export default function PropertyCard({ property }) {
           aria-pressed={saved}
           onClick={toggle}
           disabled={addState.isLoading || removeState.isLoading}
-          className="save-home"
+          className={`save-home ${saved ? "saved" : ""}`}
         >
           {saved ? <FavoriteOutlined /> : <FavoriteBorderOutlined />}
         </IconButton>

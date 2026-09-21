@@ -61,7 +61,9 @@ export default function RoommateCard({ profile, isSuggestion = false }) {
                 height: 42, 
                 fontSize: '16px', 
                 fontWeight: 700,
-                boxShadow: '0 2px 6px rgba(35, 76, 62, 0.2)'
+                boxShadow: '0 2px 6px rgba(35, 76, 62, 0.2)',
+                transition: 'transform 0.25s ease',
+                '&:hover': { transform: 'scale(1.08)' }
               }}
             >
               {initial}
@@ -136,7 +138,8 @@ export default function RoommateCard({ profile, isSuggestion = false }) {
             textTransform: 'none',
             py: 0.8,
             borderRadius: '6px',
-            '&:hover': { bgcolor: '#edf2ea', color: '#163329' },
+            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            '&:hover': { bgcolor: '#edf2ea', color: '#163329', transform: 'translateX(3px)' },
           }}
         >
           View Compatibility & Contact →

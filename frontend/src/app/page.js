@@ -45,7 +45,7 @@ export default function HomePage() {
   return (
     <main id="main-content" className="home-page">
       <section className="hero-section">
-        <div className="hero-copy">
+        <div className="hero-copy animate-fade-in-up">
           <div className="eyebrow">
             <span className="status-dot" /> A NEW CHAPTER STARTS HERE
           </div>
@@ -58,7 +58,7 @@ export default function HomePage() {
             <br className="desktop-break" /> A little less searching. A lot more living.
           </p>
           <div className="hero-actions">
-            <Link className="button-primary" href="/rent">
+            <Link className="button-primary btn-animated" href="/rent">
               Explore homes <ArrowForward fontSize="small" />
             </Link>
             <a className="text-link" href="#how-it-works">
@@ -72,7 +72,7 @@ export default function HomePage() {
             <span>Your neighborhood. Your budget. Your next beginning.</span>
           </div>
         </div>
-        <figure className="hero-photo">
+        <figure className="hero-photo animate-scale-in">
           <Image
             src="/images/rentalk-living.jpg"
             alt="A sunlit apartment with a linen sofa, natural wood, and tropical greenery"
@@ -80,7 +80,7 @@ export default function HomePage() {
             priority
             sizes="(max-width: 760px) 100vw, 52vw"
           />
-          <div className="photo-label">
+          <div className="photo-label float-subtle">
             <span className="photo-label-icon">
               <PlaceOutlined />
             </span>
@@ -92,7 +92,7 @@ export default function HomePage() {
           <figcaption>Illustrative space · AI-generated</figcaption>
           <span className="photo-index">THE EVERYDAY, ELEVATED / 01</span>
         </figure>
-        <form className="home-search" onSubmit={search} aria-label="Find a rental home">
+        <form className="home-search animate-fade-in-up delay-150" onSubmit={search} aria-label="Find a rental home">
           <div className="search-field">
             <PlaceOutlined />
             <label htmlFor="home-location">
@@ -170,8 +170,14 @@ export default function HomePage() {
           </div>
         ) : data?.properties?.length ? (
           <div className="home-property-grid">
-            {data.properties.map((property) => (
-              <PropertyCard key={property.id} property={{ ...property, thumbnail: property.images?.[0]?.url }} />
+            {data.properties.map((property, idx) => (
+              <div
+                key={property.id}
+                className="animate-fade-in-up"
+                style={{ animationDelay: `${idx * 80}ms` }}
+              >
+                <PropertyCard property={{ ...property, thumbnail: property.images?.[0]?.url }} />
+              </div>
             ))}
           </div>
         ) : (
@@ -198,9 +204,10 @@ export default function HomePage() {
           </p>
         </div>
         <div className="neighborhood-grid">
-          {neighborhoods.map((area) => (
+          {neighborhoods.map((area, idx) => (
             <Link
-              className={`neighborhood-card ${area.color}`}
+              className={`neighborhood-card ${area.color} animate-fade-in-up`}
+              style={{ animationDelay: `${idx * 100}ms` }}
               key={area.name}
               href={`/rent?district=${encodeURIComponent(area.district)}`}
             >
@@ -239,8 +246,12 @@ export default function HomePage() {
               "Make the connection",
               "Contact the listed owner, arrange a visit, and see if it feels like home.",
             ],
-          ].map(([Icon, n, title, copy]) => (
-            <div className="how-card" key={n}>
+          ].map(([Icon, n, title, copy], idx) => (
+            <div
+              className="how-card animate-fade-in-up"
+              style={{ animationDelay: `${idx * 100}ms` }}
+              key={n}
+            >
               <div>
                 <Icon />
                 <span>{n}</span>

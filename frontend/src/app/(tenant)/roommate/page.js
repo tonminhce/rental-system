@@ -115,7 +115,7 @@ export default function RoommatePage() {
           </Tabs>
         </Box>
         
-        <Box sx={{ mt: 3 }}>
+        <Box sx={{ mt: 3 }} key={activeTab} className="animate-fade-in">
           {activeTab === 'all' && (
             <RoommateList 
               profiles={allProfiles} 

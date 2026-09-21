@@ -33,11 +33,20 @@
     &Container {
       width: 200px;
       position: relative;
-      border: 1px solid $light-grey-color;
-      border-radius: 5px;
+      border: 1px solid #dce3d4;
+      border-radius: 8px;
+      background: #ffffff;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+      &:hover {
+        border-color: #234c3e;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(35, 76, 62, 0.08);
+      }
 
       &Active {
-        border-color: $black-color;
+        border-color: #234c3e;
+        box-shadow: 0 0 0 2px rgba(35, 76, 62, 0.15);
       }
     }
 
@@ -79,12 +88,14 @@
     flex-direction: column;
     position: absolute;
     top: 50px;
-    z-index: 2;
-    background-color: $foreground-color;
-    box-shadow: 0px 8px 20px rgba(182, 182, 182, 0.3);
-    border: 1px solid $light-grey-color;
-    padding: 0 0 8px 0;
-    transition: all 0.3s ease-in-out;
+    z-index: 10;
+    background-color: #ffffff;
+    box-shadow: 0px 12px 30px rgba(35, 76, 62, 0.14);
+    border: 1px solid #dce3d4;
+    border-radius: 8px;
+    padding: 6px 0;
+    animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: top left;
     overflow-y: auto;
     overflow-x: hidden;
   }
