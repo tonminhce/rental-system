@@ -1,12 +1,9 @@
+import { goongRequest, validText, validCoordinate, badRequest } from "@/server/goong";
 export async function GET(request) {
-  const searchParams = request.nextUrl.searchParams;
-  const requestURL = new URL("https://rsapi.goong.io/geocode");
-
-  requestURL.searchParams.append("api_key", process.env.GOONG_API_KEY);
-  requestURL.searchParams.append("address", searchParams.get("address"));
-
-  const response = await fetch(requestURL.toString());
-  const data = await response.json();
-
-  return Response.json(data);
+  const query = request.nextUrl.searchParams;
+  const address = query.get("address");
+  const latlng = query.get("latlng") || `${query.get("lat")},${query.get("lng")}`;
+  if (validText(address)) return goongRequest("Geocode", { address });
+  if (validCoordinate(latlng)) return goongRequest("Geocode", { latlng });
+  return badRequest();
 }

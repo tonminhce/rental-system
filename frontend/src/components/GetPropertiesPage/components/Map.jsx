@@ -1,198 +1,191 @@
-import useCreateMarkers from "@/hooks/useCreateMakers";
+"use client";
+import goongJs from "@goongmaps/goong-js";
+import "@goongmaps/goong-js/dist/goong-js.css";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Alert, Box, Button, CircularProgress, Typography } from "@mui/material";
 import useRenderRoute from "@/hooks/useRenderRoute";
-import getBoundary from "@/utils/getBoundary";
-import goongJs from "@goongmaps/goong-js"; // Import GoongJS
-import "@goongmaps/goong-js/dist/goong-js.css"; // Import GoongJS CSS
-import { useEffect, useRef, useState } from "react";
-import { StringParam, useQueryParam } from "use-query-params";
-import { Box, CircularProgress, Typography, Fade, Paper } from "@mui/material";
-import DirectionsIcon from '@mui/icons-material/Directions';
-import TwoWheelerIcon from '@mui/icons-material/TwoWheeler';
+const EMPTY_MARKERS = [];
 
-const Map = ({ center = [107.6416527, 11.295036], markerList = [] }) => {
-  const [centerLat] = useQueryParam("centerLat", StringParam);
-  const [centerLng] = useQueryParam("centerLng", StringParam);
-  const [boundary] = useQueryParam("boundary", StringParam);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRouteLoading, setIsRouteLoading] = useState(false);
+export default function Map({ center, markerList = EMPTY_MARKERS }) {
+  const container = useRef(null);
+  const [map, setMap] = useState(null);
+  const [error, setError] = useState(false);
+  const [destination, setDestination] = useState("");
+  const [routing, setRouting] = useState(false);
+  const destinationRef = useRef(destination);
+  destinationRef.current = destination;
 
-  const [lng, lat] = centerLat && centerLng
-    ? [parseFloat(centerLng), parseFloat(centerLat)]
-    : center;
+  const finishRoute = useCallback(() => setRouting(false), []);
+  const clearRoute = useCallback(() => {
+    setDestination("");
+    setRouting(false);
+  }, []);
 
-  const mapContainerRef = useRef(null);
-  const [selected, setSelected] = useState(null);
-  const [mapInstance, setMapInstance] = useState(null);
+  useRenderRoute(map, `${center[1]},${center[0]}`, destination, finishRoute, clearRoute);
 
   useEffect(() => {
-    setSelected(null);
-  }, [markerList, centerLat, centerLng, boundary, center]);
-
-  const selectedMarkerCoordinates = selected && selected.coordinates?.coordinates?.length >= 2
-    ? `${selected.coordinates.coordinates[0]},${selected.coordinates.coordinates[1]}`
-    : "";
-
-  useEffect(() => {
-    if (selectedMarkerCoordinates && mapInstance) {
-      setIsRouteLoading(true);
+    if (!container.current || !goongJs.supported()) {
+      setError(true);
+      return;
     }
-  }, [selectedMarkerCoordinates, mapInstance]);
-
-  useRenderRoute(mapInstance, `${lat},${lng}`, selectedMarkerCoordinates, () => setIsRouteLoading(false));
-
-  useCreateMarkers(mapInstance, markerList, (marker) => {
-    setSelected(marker);
-  });
+    let instance;
+    try {
+      instance = new goongJs.Map({
+        container: container.current,
+        style: "https://tiles.goong.io/assets/goong_map_web.json",
+        accessToken: process.env.NEXT_PUBLIC_GOONG_MAPTILES_KEY,
+        center: [106.701, 10.786],
+        zoom: 11,
+      });
+      instance.addControl(new goongJs.NavigationControl(), "top-right");
+      instance.on("load", () => {
+        setError(false);
+        setMap(instance);
+      });
+      instance.on("error", () => setError(true));
+    } catch {
+      setError(true);
+    }
+    return () => {
+      instance?.remove();
+    };
+  }, []);
 
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    if (!map) return;
+    setDestination("");
+    const markers = [];
+    const bounds = new goongJs.LngLatBounds();
+    for (const property of markerList) {
+      const coordinates = property.coordinates?.coordinates;
+      if (!coordinates || coordinates.length !== 2 || !coordinates.every(Number.isFinite)) continue;
+      const coordStr = `${coordinates[1]},${coordinates[0]}`;
 
-    setIsLoading(true);
-    goongJs.accessToken = process.env.NEXT_PUBLIC_GOONG_MAPTILES_KEY; 
-    const map = new goongJs.Map({
-      container: mapContainerRef.current,
-      style: "https://tiles.goong.io/assets/goong_light_v2.json",
-      center: [lng, lat],
-    });
-
-    map.on('load', () => {
-      setIsLoading(false);
-      setMapInstance(map);
-      new goongJs.Marker({ color: "red" }).setLngLat([lng, lat]).addTo(map);
-      const mapCenter = centerLat && centerLng
-        ? [parseFloat(centerLng), parseFloat(centerLat)]
-        : [106.660172, 10.762622];
-      const { polygon, convex } = getBoundary(mapCenter, boundary);
-
-      const coordinates = convex.geometry.coordinates[0];
-      const bounds = coordinates.reduce(function (bounds, coord) {
-        return bounds.extend(coord);
-      }, new goongJs.LngLatBounds(coordinates[0], coordinates[0]));
-
-      map.fitBounds(bounds, { padding: 20, duration: 0 });
-
-      map.addSource("boundary", {
-        type: "geojson",
-        data: polygon,
-      });
-      map.addLayer({
-        id: "maine",
-        type: "fill",
-        source: "boundary",
-        layout: {},
-        paint: {
-          "fill-color": "#4285F4",
-          "fill-opacity": 0.2,
-        },
+      const button = document.createElement("button");
+      button.textContent = `${Number(property.price).toLocaleString()}m ₫`;
+      button.setAttribute("aria-label", `${property.name}, ${property.price} million VND per month`);
+      Object.assign(button.style, {
+        background: "#fff",
+        color: "#234c3e",
+        border: "1px solid #234c3e",
+        borderRadius: "18px",
+        padding: "7px 11px",
+        fontSize: "12px",
+        boxShadow: "0 2px 6px #0002",
+        cursor: "pointer",
       });
 
-      map.addSource("outerbox", {
-        type: "geojson",
-        data: convex,
-      });
-      map.addLayer({
-        id: "maine2",
-        type: "line",
-        source: "outerbox",
-        layout: {},
-        paint: {
-          "line-color": "#4285F4",
-          "line-width": 2,
-          "line-opacity": 0.7
-        },
-      });
-    });
+      const content = document.createElement("div");
+      content.style.padding = "8px";
+      const title = document.createElement("strong");
+      title.textContent = property.name;
+      content.append(title);
+      const info = document.createElement("p");
+      info.textContent = `${property.price}m ₫ / month · ${property.area || "—"} m²`;
+      info.style.margin = "8px 0";
+      content.append(info);
+      const link = document.createElement("a");
+      link.href = `/posts/${encodeURIComponent(property.id)}`;
+      link.textContent = "View home →";
+      link.style.color = "#234c3e";
+      content.append(link);
 
-    return () => {
-      if (map) map.remove();
-    };
-  }, [lng, lat, centerLat, centerLng, boundary]);
+      const route = document.createElement("button");
+      route.textContent = "Route from search center";
+      Object.assign(route.style, {
+        display: "block",
+        marginTop: "10px",
+        fontSize: "11px",
+        background: "#edf1e7",
+        color: "#234c3e",
+        border: "1px solid #c9d6be",
+        borderRadius: "4px",
+        padding: "4px 8px",
+        cursor: "pointer",
+        fontWeight: "500",
+      });
+      route.onclick = () => {
+        if (destinationRef.current === coordStr) {
+          clearRoute();
+          route.textContent = "Route from search center";
+          route.style.background = "#edf1e7";
+          route.style.color = "#234c3e";
+        } else {
+          setRouting(true);
+          setDestination(coordStr);
+          route.textContent = "✕ Clear route";
+          route.style.background = "#fff1f0";
+          route.style.color = "#c94040";
+        }
+      };
+      content.append(route);
+
+      const popup = new goongJs.Popup({ offset: 20 }).setDOMContent(content);
+      popup.on("close", () => {
+        if (destinationRef.current === coordStr) {
+          clearRoute();
+        }
+      });
+
+      markers.push(new goongJs.Marker({ element: button }).setLngLat(coordinates).setPopup(popup).addTo(map));
+      bounds.extend(coordinates);
+    }
+    if (markers.length) map.fitBounds(bounds, { padding: 65, maxZoom: 14, duration: 0 });
+    else map.flyTo({ center, zoom: 12, duration: 0 });
+    return () => markers.forEach((marker) => marker.remove());
+  }, [map, markerList, center, clearRoute]);
 
   return (
-    <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
-      <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
-
-      {/* Loading overlay for initial map load */}
-      <Fade in={isLoading}>
-        <Box sx={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "rgba(255, 255, 255, 0.8)",
-          zIndex: 999,
-          gap: 2
-        }}>
-          <CircularProgress size={70} thickness={4} sx={{ color: '#4285F4' }} />
-          <Typography variant="body1" sx={{ fontWeight: 500, color: '#555' }}>
-            Loading map...
-          </Typography>
+    <Box sx={{ height: "100%", position: "relative", bgcolor: "#e9eee2" }}>
+      <div ref={container} style={{ height: "100%" }} />
+      {!map && !error && (
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeContent: "center",
+            gap: 2,
+            justifyItems: "center",
+          }}
+        >
+          <CircularProgress size={28} />
+          <Typography variant="body2">Loading the neighborhood…</Typography>
         </Box>
-      </Fade>
-
-      <Fade in={isRouteLoading && !isLoading}>
-        <Paper elevation={4} sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: "12px",
-          padding: 2.5,
-          zIndex: 999,
-          minWidth: '180px',
-          backgroundColor: 'rgba(255, 255, 255, 0.95)'
-        }}>
-          <Box sx={{ position: 'relative', mb: 1 }}>
-            <CircularProgress
-              size={60}
-              thickness={4}
-              sx={{ color: '#4285F4' }}
-            />
-            <Box sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)'
-            }}>
-              <DirectionsIcon sx={{ color: '#EA4335', fontSize: 30 }} />
-            </Box>
-          </Box>
-          <Typography variant="body1" sx={{ fontWeight: 500, color: '#555' }}>
-            Calculating route...
-          </Typography>
-        </Paper>
-      </Fade>
-
-      {selected && (
-        <Paper elevation={2} sx={{
-          position: "absolute",
-          bottom: 10,
-          left: 10,
-          display: "flex",
-          alignItems: "center",
-          padding: "8px 12px",
-          borderRadius: "6px",
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          maxWidth: '300px',
-          zIndex: 5
-        }}>
-          <TwoWheelerIcon sx={{ color: '#4285F4', mr: 1, fontSize: 20 }} />
-          <Typography variant="caption" sx={{ color: '#555', fontSize: '11px' }}>
-            Distance and travel time calculated for motorcycle
-          </Typography>
-        </Paper>
+      )}
+      {error && (
+        <Alert severity="warning" sx={{ position: "absolute", bottom: 35, left: 12, right: 12 }}>
+          Map unavailable. You can still browse every home in the list.
+        </Alert>
+      )}
+      {routing && (
+        <Alert icon={<CircularProgress size={16} />} sx={{ position: "absolute", top: 12, left: 12, zIndex: 10 }}>
+          Finding your route…
+        </Alert>
+      )}
+      {destination && !routing && (
+        <Button
+          variant="contained"
+          size="small"
+          onClick={clearRoute}
+          sx={{
+            position: "absolute",
+            top: 12,
+            left: 12,
+            zIndex: 10,
+            bgcolor: "#234c3e",
+            color: "#fff",
+            borderRadius: "20px",
+            textTransform: "none",
+            fontSize: "12px",
+            fontWeight: 600,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+            "&:hover": { bgcolor: "#1a392e" },
+          }}
+        >
+          ✕ Clear route
+        </Button>
       )}
     </Box>
   );
-};
-
-export default Map;
+}
