@@ -5,11 +5,6 @@
   display: block;
   height: 450px;
 }
-.posts_actions button {
-  background: transparent;
-  padding: 4px;
-  font-size: 12px;
-}
 .posts_cardButton {
   text-decoration: none;
 }
@@ -37,7 +32,6 @@
 .posts {
   &_wrapper {
     width: 100%;
-    // background: linear-gradient(#fff7e9, #fff);
   }
   &_container {
     display: flex;
@@ -55,7 +49,7 @@
 
   &_title {
     font-size: 1.875rem;
-    line-height: 3.1.25rem;
+    line-height: 3.125rem;
     font-weight: 500;
     color: $foreground-color;
     margin-top: 8px;
@@ -83,7 +77,7 @@
 
     &:hover {
       transform: translateX(-4px);
-      color: #17382a;
+      color: $rt-brand-hover;
     }
   }
 
@@ -140,8 +134,9 @@
 
   &_info {
     display: grid;
-    grid-template-columns: 1fr 200px;
-    grid-template-rows: 30px 40px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 24px;
     grid-template-areas:
       "summary actions"
       "price price";
@@ -150,14 +145,16 @@
 
   &_summary {
     grid-area: summary;
-    font-size: 2.1.25rem;
+    align-self: center;
+    margin: 0;
+    font-size: 2.125rem;
     font-weight: 500;
   }
 
   &_price {
     grid-area: price;
     font-size: 1.75rem;
-    line-height: 3.1.25rem;
+    line-height: 3.125rem;
     font-weight: 600;
     color: $primary-color;
     margin: 8px 0;
@@ -178,11 +175,11 @@
     gap: 8px;
     font-size: 0.85rem;
     padding: 8px 14px;
-    color: #234c3e;
+    color: $rt-brand;
     text-decoration: none;
-    border: 1px solid #dce3d4;
+    border: 1px solid $rt-border;
     border-radius: 8px;
-    background: #ffffff;
+    background: $rt-paper;
     cursor: pointer;
     font-weight: 600;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -192,11 +189,11 @@
     }
 
     &:hover {
-      background-color: #234c3e;
-      color: #ffffff;
-      border-color: #234c3e;
+      background-color: $rt-brand;
+      color: $rt-on-brand;
+      border-color: $rt-brand;
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(35, 76, 62, 0.15);
+      box-shadow: 0 4px 12px rgba($rt-brand, 0.15);
 
       svg {
         transform: scale(1.15);
@@ -206,12 +203,31 @@
     &:active {
       transform: translateY(0);
     }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    &--saved {
+      background-color: $rt-brand;
+      border-color: $rt-brand;
+      color: $rt-on-brand;
+    }
   }
 
   &_feature {
     border-top: 1px solid $border-color;
     border-bottom: 1px solid $border-color;
     padding: 24px 0;
+
+    h2 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
 
     &List {
       display: flex;
@@ -250,12 +266,17 @@
     margin: 24px 0;
     text-align: justify;
 
-    h4 {
-      margin: 6px 0;
-      font-weight: 500;
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.125rem;
+      font-weight: 600;
     }
 
     p {
+      margin-bottom: 8px;
+    }
+
+    &--clamped p {
       @include line-truncate(6);
     }
 
@@ -268,6 +289,7 @@
 
       font-weight: 500;
       font-size: 1rem;
+      color: $rt-brand;
       text-decoration: underline;
     }
   }
@@ -277,8 +299,10 @@
     margin-top: 24px;
     padding-top: 24px;
 
-    h4 {
-      font-weight: 500;
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.125rem;
+      font-weight: 600;
     }
 
     p {
@@ -287,26 +311,19 @@
     }
   }
 
-  &_map {
-    width: 100%;
-    height: 400px;
-    border: 0px;
-    border-radius: $radius;
-  }
-
   &_card {
     padding: 20px;
-    border: 1px solid #dce3d4;
+    border: 1px solid $rt-border;
     border-radius: 12px;
-    box-shadow: 0px 4px 16px rgba(35, 76, 62, 0.06);
-    background-color: #ffffff;
+    box-shadow: 0px 4px 16px rgba($rt-brand, 0.06);
+    background-color: $rt-paper;
     position: sticky;
     position: -webkit-sticky;
     top: 96px;
     transition: box-shadow 0.3s ease;
 
     &:hover {
-      box-shadow: 0px 8px 24px rgba(35, 76, 62, 0.1);
+      box-shadow: 0px 8px 24px rgba($rt-brand, 0.1);
     }
 
     &Actions {
@@ -330,14 +347,14 @@
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 
       &--active {
-        color: #ffffff;
-        border: 1px solid #234c3e;
-        background-color: #234c3e;
+        color: $rt-on-brand;
+        border: 1px solid $rt-brand;
+        background-color: $rt-brand;
 
         &:hover {
-          background-color: #17382a;
+          background-color: $rt-brand-hover;
           transform: translateY(-2px);
-          box-shadow: 0 4px 14px rgba(35, 76, 62, 0.22);
+          box-shadow: 0 4px 14px rgba($rt-brand, 0.22);
         }
 
         &:active {

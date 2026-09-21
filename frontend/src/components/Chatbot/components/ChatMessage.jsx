@@ -22,7 +22,7 @@ const MessageBubble = styled(Box, { shouldForwardProp: (prop) => prop !== "isUse
   padding: "14px 18px",
   borderRadius: isUser ? "20px 20px 0 20px" : "20px 20px 20px 0",
   backgroundColor: isUser ? theme.palette.primary.main : theme.palette.grey[200],
-  color: isUser ? "#ffffff" : "inherit",
+  color: isUser ? "var(--rt-on-brand)" : "inherit",
   boxShadow: "none",
   wordBreak: "break-word",
   position: "relative",
@@ -113,7 +113,7 @@ const MessageBubble = styled(Box, { shouldForwardProp: (prop) => prop !== "isUse
   },
 
   "& a": {
-    color: isUser ? "#ffffff" : theme.palette.primary.main,
+    color: isUser ? "var(--rt-on-brand)" : theme.palette.primary.main,
     textDecoration: "underline",
     transition: "opacity 0.2s ease",
     "&:hover": {

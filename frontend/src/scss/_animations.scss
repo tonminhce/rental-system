@@ -161,7 +161,7 @@
 
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 12px 30px rgba(35, 76, 62, 0.12) !important;
+    box-shadow: 0 12px 30px rgba($rt-brand, 0.12) !important;
   }
 
   &:active {
@@ -194,12 +194,12 @@
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(35, 76, 62, 0.18) !important;
+    box-shadow: 0 6px 16px rgba($rt-brand, 0.18) !important;
   }
 
   &:active {
     transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(35, 76, 62, 0.12) !important;
+    box-shadow: 0 2px 4px rgba($rt-brand, 0.12) !important;
   }
 }
 
@@ -220,7 +220,7 @@
 
 /* Skeleton Loading Shimmer */
 .skeleton-shimmer {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, $rt-surface 25%, $rt-surface 50%, $rt-surface 75%);
   background-size: 200% 100%;
   animation: shimmerEffect 1.5s infinite;
 }
@@ -295,10 +295,10 @@
 /* Subtle Glow on Focus or Special Cards */
 @keyframes glowPulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(35, 76, 62, 0.2);
+    box-shadow: 0 0 0 0 rgba($rt-brand, 0.2);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(35, 76, 62, 0);
+    box-shadow: 0 0 0 8px rgba($rt-brand, 0);
   }
 }
 
@@ -310,8 +310,8 @@
 .focus-ring-forest {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   &:focus, &:focus-within {
-    border-color: #234c3e !important;
-    box-shadow: 0 0 0 3px rgba(35, 76, 62, 0.12) !important;
+    border-color: $rt-brand !important;
+    box-shadow: 0 0 0 3px rgba($rt-brand, 0.12) !important;
   }
 }
 

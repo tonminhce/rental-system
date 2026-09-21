@@ -158,7 +158,7 @@ export default function HomePage() {
         {isLoading ? (
           <div className="home-property-grid" aria-label="Loading homes">
             {[0, 1, 2, 3].map((i) => (
-              <div className="property-skeleton" key={i} />
+              <div className="skeleton-card" key={i} />
             ))}
           </div>
         ) : error ? (

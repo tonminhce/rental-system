@@ -59,9 +59,9 @@
       justify-content: center;
       align-items: center;
 
-      background-color: #fff;
-      box-shadow: 0 4px 20px rgba(35, 76, 62, 0.04);
-      border: 1px solid #e2e6d9;
+      background-color: $rt-paper;
+      box-shadow: 0 4px 20px rgba($rt-brand, 0.04);
+      border: 1px solid $rt-border;
       padding: 36px;
       margin: 0 auto;
 
@@ -70,8 +70,8 @@
       transition: box-shadow 0.3s ease, border-color 0.3s ease;
 
       &:hover {
-        box-shadow: 0 16px 36px rgba(35, 76, 62, 0.08);
-        border-color: #cbd4c2;
+        box-shadow: 0 16px 36px rgba($rt-brand, 0.08);
+        border-color: $rt-border-strong;
       }
     }
 
@@ -90,15 +90,15 @@
       outline: none;
 
       transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-      box-shadow: 0 1px 3px rgba(35, 76, 62, 0.04);
+      box-shadow: 0 1px 3px rgba($rt-brand, 0.04);
 
       &:hover {
-        border-color: #7b8e7e;
+        border-color: $rt-faint;
       }
 
       &:focus {
-        border-color: #234c3e !important;
-        box-shadow: 0 0 0 3px rgba(35, 76, 62, 0.14) !important;
+        border-color: $rt-brand !important;
+        box-shadow: 0 0 0 3px rgba($rt-brand, 0.14) !important;
       }
 
       &--error {
@@ -149,9 +149,13 @@
     margin-top: 16px;
     padding: 12px 24px;
     font-size: 1.125rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
 
     &:hover {
-      background-color: darken($primary-color, 5%);
+      background-color: $rt-brand-hover;
+      box-shadow: 0 6px 16px rgba($rt-brand, 0.18);
     }
 
     &--loading {
@@ -164,7 +168,7 @@
 .btn {
   &:hover {
     cursor: pointer;
-    background-color: darken($secondary-color, 5%);
+    background-color: $rt-surface-tint;
   }
 }
 
@@ -176,7 +180,7 @@
   justify-content: flex-end;
   padding: 40px;
   color: white;
-  background: linear-gradient(transparent 40%, #182c1ddd);
+  background: linear-gradient(transparent 40%, rgba($rt-brand-hover, 0.87));
 }
 .auth_photo-copy > span {
   font-size: 10px;
@@ -204,7 +208,7 @@
 .auth_intro > span {
   font-size: 9px;
   letter-spacing: 2px;
-  color: #6b785e;
+  color: $rt-brand-muted;
   font-weight: 600;
 }
 .auth_intro h1 {
@@ -215,13 +219,20 @@
 }
 .auth_intro p {
   font-size: 13px;
-  color: #757d6d;
+  color: $rt-muted;
 }
 .auth_signup-link {
   font-size: 12px;
   text-decoration: none;
-  color: #426145;
+  color: $rt-brand-muted;
   margin-top: 10px;
+  font-weight: 600;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: $rt-brand-hover;
+    text-decoration: underline;
+  }
 }
 @media (max-width: 900px) {
   .auth_container {

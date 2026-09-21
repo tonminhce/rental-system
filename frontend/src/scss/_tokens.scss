@@ -1,0 +1,75 @@
+/* ==========================================================================
+   renTalk design tokens — the single source of truth for the editorial
+   palette. Every SCSS file and src/app/theme.js must reference these values
+   instead of repeating hex literals. Change a colour here, not in 12 files.
+   ========================================================================== */
+
+/* Brand — forest green */
+$rt-brand: #234c3e;
+$rt-brand-rgb: 35, 76, 62; // for rgba() tints in SCSS and inline styles
+$rt-brand-hover: #17382a;
+$rt-brand-active: #122e22;
+$rt-brand-muted: #4a6b57; // eyebrow labels, secondary brand text
+$rt-brand-accent: #739572; // status dots, decorative green
+$rt-brand-ink: #345337; // prices, emphasised green text
+
+/* Neutrals */
+$rt-ink: #25332c;
+$rt-muted: #6b7266;
+$rt-faint: #8a9184;
+$rt-on-brand: #ffffff;
+
+/* Surfaces */
+$rt-bg: #fbfaf7;
+$rt-paper: #ffffff;
+$rt-surface: #f5f6f0;
+$rt-surface-tint: #eef1e8;
+$rt-surface-sand: #f5f4e9;
+
+/* Lines */
+$rt-border: #e2e7dc;
+$rt-border-strong: #c9d3c2;
+
+/* Text on the dark brand panel */
+$rt-on-dark: #ffffff;
+$rt-on-dark-muted: #c4cfb8;
+$rt-on-dark-accent: #dbe7b9;
+
+/* Feedback */
+$rt-danger: #c62828;
+$rt-danger-hover: #a71f1f;
+$rt-success: #2e7d32;
+
+/* Gold/clay accent — the wordmark dot, MUI `secondary`, and map chips */
+$rt-gold: #9b6647;
+$rt-gold-hover: #7d5a3b;
+$rt-gold-bright: #b18a5c;
+
+/* Shape */
+$rt-radius-sm: 6px;
+$rt-radius: 8px;
+$rt-radius-md: 12px;
+$rt-radius-lg: 16px;
+$rt-radius-pill: 999px;
+
+/* Rhythm */
+$rt-shell-max: 1376px;
+$rt-shell-pad: 64px;
+$rt-header-height: 82px;
+
+/* Motion */
+$rt-ease: cubic-bezier(0.16, 1, 0.3, 1);
+$rt-fast: 0.15s;
+$rt-base: 0.25s;
+$rt-slow: 0.4s;
+
+/* Elevation — the system uses hairline borders first, shadow second */
+$rt-shadow-sm: 0 2px 8px rgba(35, 76, 62, 0.06);
+$rt-shadow-md: 0 8px 28px rgba(35, 76, 62, 0.09);
+$rt-shadow-lg: 0 16px 36px rgba(35, 76, 62, 0.12);
+$rt-shadow-overlay: 0 20px 48px -8px rgba(35, 76, 62, 0.2);
+
+/* Publish the same values as custom properties so inline `sx`, styled()
+   blocks and plain JSX can reach them without importing SCSS. The `:root`
+   block that mirrors these variables lives in _global.scss, which the root
+   layout loads exactly once. */

@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import AppProviders from "@/app/AppProviders";
 import "@scss/_global.scss";
-import { DM_Sans, Lora } from "next/font/google";
+import { Be_Vietnam_Pro, Lora } from "next/font/google";
 import ChatbotProvider from "@/components/Chatbot";
 import { Suspense } from "react";
 
@@ -11,8 +11,9 @@ export const metadata = {
     "Find your next rental home in Ho Chi Minh City. Explore neighborhoods, compare homes, and get a little help from your AI rental assistant.",
 };
 
-const sans = DM_Sans({
-  subsets: ["latin", "latin-ext"],
+const sans = Be_Vietnam_Pro({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-sans",
   display: "swap",
 });
