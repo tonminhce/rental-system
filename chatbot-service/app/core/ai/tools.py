@@ -1413,7 +1413,7 @@ class NearbyLocationSearchTool(BaseTool):
             Dict: Search results with properties near the specified location
         """
         # Goong API key - should be set in an environment variable
-        goong_api_key = os.getenv("GOONG_API_KEY", "JHIeym2SpVnWISoW6ZfalFvRibdkYfpzRRCwQ1nG")
+        goong_api_key = os.getenv("GOONG_API_KEY")
         
         print(f"\n[DEBUG] NearbyLocationSearchTool called with location: {location_name}")
         print(f"[DEBUG] Search radius: {radius} km")
