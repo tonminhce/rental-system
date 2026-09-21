@@ -2,7 +2,9 @@
 
 ## Status
 
-Local UI/integration preview, **not approved for public deployment**. Nothing has been committed, pushed, or deployed by this task. Changes are on `production-readiness`.
+Local UI/integration preview, **not approved for public deployment**. The inherited UI work and the map/search/roommate/auth follow-up are committed on `production-readiness`. The branch has no upstream configured, so none of this has reached a remote, and nothing has been deployed.
+
+Latest evidence and inventory caveats: [Rental discovery follow-up](rental-map-ux.md). The current local database has 4,089 active listings from the inherited import, and existing coordinates need a provenance audit. The older six-sample verification below describes the initial baseline, not the current inventory.
 
 ## Implemented
 
@@ -35,6 +37,8 @@ Local UI/integration preview, **not approved for public deployment**. Nothing ha
 5. **Real inventory and ownership.** Sample homes must never be marketed as available homes. Remove local sample data from production, disable `NEXT_PUBLIC_DEMO_MODE`, and load owner-authorized listings/photos. The basic listing form has no photo-upload service; listing ownership, moderation, editing/deletion and authorization need a complete implementation and regression tests before opening landlord publishing publicly.
 6. **Unfinished inherited features.** Owner messaging, landlord management endpoints, and the separate price-prediction service are not integrated. Random comparison price estimates were removed. Roommate matching still needs real profiles, privacy review, and end-to-end acceptance tests. No fake owner age, verification, or availability claims were added.
 7. **Broader acceptance testing.** Add repeatable browser automation in CI, accessibility audits, offline/network failure tests, authenticated UI scenarios, cross-browser coverage, concurrency/load tests, token-revocation tests and provider cost/timeout monitoring. Protect publication with a staging acceptance gate.
+8. **Delete the unreachable legacy modules.** About fifteen modules have no importers and were left in place rather than removed: `components/Map/Map.jsx` (still points at the retired Goong style), `AddressDropdown/*`, `PostManagementPage/*`, `ConfirmDialog` (reachable only through `PostManagementPage`), `ProtectedRoute`/`PrivateRoute`, `ReactMap`, `SideMap`/`SideBar`, `RoommateTabs.jsx`, `getQueryFromFilter.js`, `formatPrice.js`, the empty `getDisplayDate.js`, and `getPropertyTypeLabel.js`, which imports a constant that does not exist and would throw if it were ever used. Deletion is irreversible, so it waits for an owner decision; the audit only removed dead rules from files that are still live.
+9. **Sign in before accepting the authenticated screens.** The local database holds real accounts, so verification stopped at the branded sign-in gate on `/roommate/[id]` and the landlord dashboard rather than guessing credentials. Add a disposable test account to the fixture set so those views can be reviewed end to end.
 
 ## Local data and rollback
 
