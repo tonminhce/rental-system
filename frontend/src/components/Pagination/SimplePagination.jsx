@@ -9,18 +9,23 @@ const SimplePagination = ({
   size = 'medium',
   showPageNumbers = true,
   maxPageButtons = 5,
-  sx = {}
+  sx
 }) => {
-  
+  // A narrowing filter can leave the page index past the last page; clamp it so
+  // the controls can't walk further away from the results.
+  const page = Math.min(Math.max(currentPage, 1), Math.max(totalPages, 1));
+  const isFirst = page <= 1;
+  const isLast = page >= totalPages;
+
   const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      onPageChange(currentPage - 1);
+    if (!isFirst) {
+      onPageChange(page - 1);
     }
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      onPageChange(currentPage + 1);
+    if (!isLast) {
+      onPageChange(page + 1);
     }
   };
 
@@ -32,8 +37,8 @@ const SimplePagination = ({
     onPageChange(totalPages);
   };
 
-  const handlePageClick = (page) => {
-    onPageChange(page);
+  const handlePageClick = (target) => {
+    onPageChange(target);
   };
 
   // Generate array of page numbers to display
@@ -42,7 +47,7 @@ const SimplePagination = ({
     if (!showPageNumbers || totalPages <= 1) return [];
     
     const halfMaxButtons = Math.floor(maxPageButtons / 2);
-    let startPage = Math.max(1, currentPage - halfMaxButtons);
+    let startPage = Math.max(1, page - halfMaxButtons);
     let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
     
     // Adjust startPage if we're near the end
@@ -51,7 +56,7 @@ const SimplePagination = ({
     }
     
     return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
-  }, [currentPage, totalPages, maxPageButtons, showPageNumbers]);
+  }, [page, totalPages, maxPageButtons, showPageNumbers]);
 
   // Calculate sizes based on the prop
   const getIconSize = () => {
@@ -78,6 +83,8 @@ const SimplePagination = ({
     }
   };
 
+  const navColor = (atEdge) => (atEdge ? 'var(--rt-faint)' : 'var(--rt-brand)');
+
   // Simple mode with just prev/next buttons
   if (pageNumbers.length === 0) {
     return (
@@ -86,14 +93,17 @@ const SimplePagination = ({
         alignItems="center"
         justifyContent="center"
         width="100%"
-        {...sx}
+        role="navigation"
+        aria-label="Pagination"
+        sx={sx}
       >
         <IconButton
           onClick={handlePreviousPage}
-          disabled={currentPage === 1}
+          disabled={isFirst}
+          aria-label="Previous page"
           sx={{
             ...getButtonSize(),
-            color: currentPage === 1 ? 'text.disabled' : 'primary.main',
+            color: navColor(isFirst),
           }}
         >
           <ChevronLeft sx={getIconSize()} />
@@ -101,16 +111,17 @@ const SimplePagination = ({
 
         {showPageNumbers && (
           <Typography variant="body2" sx={{ mx: 1, ...getTextSize() }}>
-            {currentPage} / {totalPages}
+            {page} / {totalPages}
           </Typography>
         )}
 
         <IconButton
           onClick={handleNextPage}
-          disabled={currentPage === totalPages}
+          disabled={isLast}
+          aria-label="Next page"
           sx={{
             ...getButtonSize(),
-            color: currentPage === totalPages ? 'text.disabled' : 'primary.main',
+            color: navColor(isLast),
           }}
         >
           <ChevronRight sx={getIconSize()} />
@@ -126,17 +137,20 @@ const SimplePagination = ({
       alignItems="center"
       justifyContent="center"
       width="100%"
-      {...sx}
+      role="navigation"
+      aria-label="Pagination"
+      sx={sx}
     >
       {/* First page button */}
       {totalPages > maxPageButtons && (
         <IconButton
           onClick={handleFirstPage}
-          disabled={currentPage === 1}
+          disabled={isFirst}
+          aria-label="First page"
           sx={{
             ...getButtonSize(),
             mr: 0.5,
-            color: currentPage === 1 ? 'text.disabled' : 'primary.main',
+            color: navColor(isFirst),
           }}
         >
           <FirstPage sx={getIconSize()} />
@@ -146,46 +160,55 @@ const SimplePagination = ({
       {/* Previous button */}
       <IconButton
         onClick={handlePreviousPage}
-        disabled={currentPage === 1}
+        disabled={isFirst}
+        aria-label="Previous page"
         sx={{
           ...getButtonSize(),
-          color: currentPage === 1 ? 'text.disabled' : 'primary.main',
+          color: navColor(isFirst),
         }}
       >
         <ChevronLeft sx={getIconSize()} />
       </IconButton>
 
       {/* Page number buttons */}
-      {pageNumbers.map(page => (
-        <Button
-          key={page}
-          onClick={() => handlePageClick(page)}
-          variant={page === currentPage ? 'contained' : 'text'}
-          size="small"
-          sx={{
-            ...getButtonSize(),
-            mx: 0.5,
-            minWidth: size === 'small' ? '24px' : '32px',
-            backgroundColor: page === currentPage ? 'primary.main' : 'transparent',
-            color: page === currentPage ? 'white' : 'primary.main',
-            fontWeight: page === currentPage ? 'bold' : 'normal',
-            '&:hover': {
-              backgroundColor: page === currentPage ? 'primary.dark' : 'rgba(25, 118, 210, 0.04)',
-            },
-            fontSize: getTextSize().fontSize,
-          }}
-        >
-          {page}
-        </Button>
-      ))}
+      {pageNumbers.map((num) => {
+        const isCurrent = num === page;
+        return (
+          <Button
+            key={num}
+            onClick={() => handlePageClick(num)}
+            variant={isCurrent ? 'contained' : 'text'}
+            size="small"
+            aria-label={`Page ${num}`}
+            aria-current={isCurrent ? 'page' : undefined}
+            sx={{
+              ...getButtonSize(),
+              mx: 0.5,
+              minWidth: size === 'small' ? '24px' : '32px',
+              backgroundColor: isCurrent ? 'var(--rt-brand)' : 'transparent',
+              color: isCurrent ? 'var(--rt-on-brand)' : 'var(--rt-brand)',
+              fontWeight: isCurrent ? 700 : 400,
+              '&:hover': {
+                backgroundColor: isCurrent
+                  ? 'var(--rt-brand-hover)'
+                  : 'rgba(var(--rt-brand-rgb), 0.06)',
+              },
+              fontSize: getTextSize().fontSize,
+            }}
+          >
+            {num}
+          </Button>
+        );
+      })}
 
       {/* Next button */}
       <IconButton
         onClick={handleNextPage}
-        disabled={currentPage === totalPages}
+        disabled={isLast}
+        aria-label="Next page"
         sx={{
           ...getButtonSize(),
-          color: currentPage === totalPages ? 'text.disabled' : 'primary.main',
+          color: navColor(isLast),
         }}
       >
         <ChevronRight sx={getIconSize()} />
@@ -195,11 +218,12 @@ const SimplePagination = ({
       {totalPages > maxPageButtons && (
         <IconButton
           onClick={handleLastPage}
-          disabled={currentPage === totalPages}
+          disabled={isLast}
+          aria-label="Last page"
           sx={{
             ...getButtonSize(),
             ml: 0.5,
-            color: currentPage === totalPages ? 'text.disabled' : 'primary.main',
+            color: navColor(isLast),
           }}
         >
           <LastPage sx={getIconSize()} />
