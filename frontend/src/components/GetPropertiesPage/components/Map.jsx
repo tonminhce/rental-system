@@ -1,191 +1,378 @@
 "use client";
 import goongJs from "@goongmaps/goong-js";
 import "@goongmaps/goong-js/dist/goong-js.css";
-import { useEffect, useRef, useState, useCallback } from "react";
-import { Alert, Box, Button, CircularProgress, Typography } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Box, Button, CircularProgress, IconButton, Stack, Typography } from "@mui/material";
+import { Close, MyLocationOutlined, RouteOutlined, Search, ZoomOutMapOutlined } from "@mui/icons-material";
+import Link from "next/link";
 import useRenderRoute from "@/hooks/useRenderRoute";
-const EMPTY_MARKERS = [];
+import { useGetMapPropertiesQuery } from "@/redux/features/properties/propertyApi";
+import { formatRent } from "@/utils/rentalSearch.mjs";
+import { declutterMarkers } from "@/utils/mapMarkers.mjs";
+import styleRentalMap from "@/utils/styleRentalMap";
+import { GOONG_STYLE_URL } from "@/utils/goongStyle.mjs";
+import "./RentalMap.scss";
 
-export default function Map({ center, markerList = EMPTY_MARKERS }) {
+const validCoordinates = (p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite);
+const paddedBounds = (box) => [box[0] - 0.000001, box[1] - 0.000001, box[2] + 0.000001, box[3] + 0.000001];
+
+export default function Map({ center, filters, selectedProperty, onSearchArea, onCloseSelection, onExpand, expanded }) {
   const container = useRef(null);
   const [map, setMap] = useState(null);
-  const [error, setError] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  const [viewport, setViewport] = useState("");
+  const [moved, setMoved] = useState(false);
+  const [selected, setSelected] = useState(null);
   const [destination, setDestination] = useState("");
-  const [routing, setRouting] = useState(false);
-  const destinationRef = useRef(destination);
-  destinationRef.current = destination;
-
-  const finishRoute = useCallback(() => setRouting(false), []);
-  const clearRoute = useCallback(() => {
-    setDestination("");
-    setRouting(false);
-  }, []);
-
-  useRenderRoute(map, `${center[1]},${center[0]}`, destination, finishRoute, clearRoute);
+  const [group, setGroup] = useState(null);
+  const [markerCount, setMarkerCount] = useState(0);
+  const selectionRef = useRef(null);
+  const callbacks = useRef({ onSearchArea });
+  callbacks.current = { onSearchArea };
+  const route = useRenderRoute(map, `${center[1]},${center[0]}`, destination);
+  const {
+    currentData: data,
+    isFetching,
+    error,
+    refetch,
+  } = useGetMapPropertiesQuery({ ...filters, mapBounds: viewport }, { skip: !viewport });
+  const filterKey = JSON.stringify(filters);
 
   useEffect(() => {
     if (!container.current || !goongJs.supported()) {
-      setError(true);
+      setMapError(true);
       return;
     }
     let instance;
+    let timer;
+    let resize;
+    let alive = true;
     try {
       instance = new goongJs.Map({
         container: container.current,
-        style: "https://tiles.goong.io/assets/goong_map_web.json",
+        style: GOONG_STYLE_URL,
         accessToken: process.env.NEXT_PUBLIC_GOONG_MAPTILES_KEY,
         center: [106.701, 10.786],
         zoom: 11,
+        maxZoom: 19,
       });
-      instance.addControl(new goongJs.NavigationControl(), "top-right");
+      instance.addControl(new goongJs.NavigationControl({ showCompass: false }), "top-right");
+      instance.dragRotate.disable();
+      instance.touchZoomRotate.disableRotation();
+      // Keep ordinary page scrolling predictable. Zoom buttons and pinch still work.
+      instance.scrollZoom.disable();
+      const report = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          if (!alive) return;
+          const b = instance.getBounds();
+          const box = [
+            Math.max(-85, b.getSouth()),
+            Math.max(-180, b.getWest()),
+            Math.min(85, b.getNorth()),
+            Math.min(180, b.getEast()),
+          ];
+          if (box[0] < box[2] && box[1] < box[3]) setViewport(box.map((v) => v.toFixed(7)).join(","));
+        }, 180);
+      };
       instance.on("load", () => {
-        setError(false);
-        setMap(instance);
+        if (alive) {
+          styleRentalMap(instance);
+          setMap(instance);
+          report();
+        }
       });
-      instance.on("error", () => setError(true));
+      instance.on("moveend", report);
+      instance.on("dragend", () => setMoved(true));
+      instance.on("zoomend", (event) => {
+        if (event.originalEvent) setMoved(true);
+      });
+      instance.on("error", (event) => {
+        if (!event.sourceId && alive) setMapError(true);
+      });
+      resize = new ResizeObserver(() => instance.resize());
+      resize.observe(container.current);
     } catch {
-      setError(true);
+      setMapError(true);
     }
     return () => {
+      alive = false;
+      clearTimeout(timer);
+      resize?.disconnect();
       instance?.remove();
     };
   }, []);
 
   useEffect(() => {
-    if (!map) return;
+    setSelected(null);
+    setGroup(null);
     setDestination("");
-    const markers = [];
-    const bounds = new goongJs.LngLatBounds();
-    for (const property of markerList) {
-      const coordinates = property.coordinates?.coordinates;
-      if (!coordinates || coordinates.length !== 2 || !coordinates.every(Number.isFinite)) continue;
-      const coordStr = `${coordinates[1]},${coordinates[0]}`;
+    setMoved(false);
+  }, [filterKey]);
 
+  // Recenter only when the search location changes, never when a list page changes.
+  useEffect(() => {
+    if (!map) return;
+    const box = filters.bounds?.split(",").map(Number);
+    if (box?.length === 4 && box.every(Number.isFinite)) {
+      map.fitBounds(
+        [
+          [box[1], box[0]],
+          [box[3], box[2]],
+        ],
+        { padding: 35, maxZoom: 16, duration: 400 },
+      );
+    } else map.easeTo({ center, zoom: filters.centerLat ? 13 : 11, duration: 400 });
+  }, [map, center, filters.bounds, filters.centerLat]);
+
+  useEffect(() => {
+    if (!map || !selectedProperty) return;
+    const coords = selectedProperty.coordinates?.coordinates;
+    if (!validCoordinates(coords)) return;
+    setSelected({ ...selectedProperty, coordinates: coords });
+    setGroup(null);
+    setDestination("");
+    map.easeTo({ center: coords, zoom: Math.max(map.getZoom(), 15), padding: { bottom: 180 }, duration: 450 });
+  }, [map, selectedProperty]);
+
+  useEffect(() => {
+    if (!map) return;
+    if (destination) return;
+    const width = container.current?.clientWidth || 500;
+    const height = container.current?.clientHeight || 600;
+    const maxMarkers = Math.min(20, Math.max(8, Math.floor((width * height) / 25000)));
+    const visible = declutterMarkers(data?.markers || [], (coordinates) => map.project(coordinates), {
+      maxMarkers,
+      minDistance: 80,
+    });
+    setMarkerCount(visible.length);
+    const markers = visible.map((item) => {
       const button = document.createElement("button");
-      button.textContent = `${Number(property.price).toLocaleString()}m ₫`;
-      button.setAttribute("aria-label", `${property.name}, ${property.price} million VND per month`);
-      Object.assign(button.style, {
-        background: "#fff",
-        color: "#234c3e",
-        border: "1px solid #234c3e",
-        borderRadius: "18px",
-        padding: "7px 11px",
-        fontSize: "12px",
-        boxShadow: "0 2px 6px #0002",
-        cursor: "pointer",
-      });
-
-      const content = document.createElement("div");
-      content.style.padding = "8px";
-      const title = document.createElement("strong");
-      title.textContent = property.name;
-      content.append(title);
-      const info = document.createElement("p");
-      info.textContent = `${property.price}m ₫ / month · ${property.area || "—"} m²`;
-      info.style.margin = "8px 0";
-      content.append(info);
-      const link = document.createElement("a");
-      link.href = `/posts/${encodeURIComponent(property.id)}`;
-      link.textContent = "View home →";
-      link.style.color = "#234c3e";
-      content.append(link);
-
-      const route = document.createElement("button");
-      route.textContent = "Route from search center";
-      Object.assign(route.style, {
-        display: "block",
-        marginTop: "10px",
-        fontSize: "11px",
-        background: "#edf1e7",
-        color: "#234c3e",
-        border: "1px solid #c9d6be",
-        borderRadius: "4px",
-        padding: "4px 8px",
-        cursor: "pointer",
-        fontWeight: "500",
-      });
-      route.onclick = () => {
-        if (destinationRef.current === coordStr) {
-          clearRoute();
-          route.textContent = "Route from search center";
-          route.style.background = "#edf1e7";
-          route.style.color = "#234c3e";
+      button.type = "button";
+      button.className = item.count > 1 ? "rental-map-cluster" : "rental-map-price";
+      if (item.count > 1) {
+        const count = document.createElement("span");
+        count.textContent = item.count.toLocaleString();
+        button.append(count);
+      } else button.textContent = formatRent(item.price);
+      button.title = item.count > 1 ? `${item.count.toLocaleString()} homes · click to explore` : item.name;
+      button.setAttribute(
+        "aria-label",
+        item.count > 1
+          ? `Explore ${item.count} homes in this area`
+          : `Preview ${item.name}, ${formatRent(item.price)} per month`,
+      );
+      button.onclick = () => {
+        setDestination("");
+        setMoved(true);
+        if (item.count > 1) {
+          setSelected(null);
+          setGroup(item);
+          const box = paddedBounds(item.bounds);
+          map.fitBounds(
+            [
+              [box[1], box[0]],
+              [box[3], box[2]],
+            ],
+            { padding: 65, maxZoom: Math.min(19, map.getZoom() + 2), duration: 400 },
+          );
         } else {
-          setRouting(true);
-          setDestination(coordStr);
-          route.textContent = "✕ Clear route";
-          route.style.background = "#fff1f0";
-          route.style.color = "#c94040";
+          setGroup(null);
+          setSelected(item);
         }
       };
-      content.append(route);
-
-      const popup = new goongJs.Popup({ offset: 20 }).setDOMContent(content);
-      popup.on("close", () => {
-        if (destinationRef.current === coordStr) {
-          clearRoute();
-        }
-      });
-
-      markers.push(new goongJs.Marker({ element: button }).setLngLat(coordinates).setPopup(popup).addTo(map));
-      bounds.extend(coordinates);
-    }
-    if (markers.length) map.fitBounds(bounds, { padding: 65, maxZoom: 14, duration: 0 });
-    else map.flyTo({ center, zoom: 12, duration: 0 });
+      const point = map.project(item.coordinates);
+      const halfWidth = item.count > 1 ? 26 : Math.max(32, button.textContent.length * 3.5 + 10);
+      const offset = [
+        Math.max(halfWidth - point.x, Math.min(0, width - halfWidth - point.x)),
+        Math.max(24 - point.y, Math.min(0, height - 24 - point.y)),
+      ];
+      return new goongJs.Marker({ element: button, offset }).setLngLat(item.coordinates).addTo(map);
+    });
     return () => markers.forEach((marker) => marker.remove());
-  }, [map, markerList, center, clearRoute]);
+  }, [map, data, destination]);
+
+  useEffect(() => {
+    if (!map || !selected) return;
+    selectionRef.current?.focus({ preventScroll: true });
+    const pin = document.createElement("button");
+    pin.className = "rental-map-price is-selected";
+    pin.textContent = formatRent(selected.price);
+    pin.setAttribute("aria-label", `Selected home: ${selected.name}`);
+    pin.onclick = () => selectionRef.current?.focus();
+    const marker = new goongJs.Marker({ element: pin }).setLngLat(selected.coordinates).addTo(map);
+    return () => marker.remove();
+  }, [map, selected]);
+
+  useEffect(() => {
+    if (!map || !destination) return;
+    const pin = document.createElement("div");
+    pin.className = "rental-map-origin";
+    pin.textContent = "Search center";
+    const marker = new goongJs.Marker({ element: pin }).setLngLat(center).addTo(map);
+    return () => marker.remove();
+  }, [map, center, destination]);
+
+  const close = () => {
+    setSelected(null);
+    setGroup(null);
+    setDestination("");
+    onCloseSelection?.();
+  };
+  const searchArea = (bounds = viewport) => {
+    if (!bounds) return;
+    callbacks.current.onSearchArea(bounds);
+    setMoved(false);
+    close();
+  };
 
   return (
-    <Box sx={{ height: "100%", position: "relative", bgcolor: "#e9eee2" }}>
-      <div ref={container} style={{ height: "100%" }} />
-      {!map && !error && (
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            display: "grid",
-            placeContent: "center",
-            gap: 2,
-            justifyItems: "center",
-          }}
-        >
-          <CircularProgress size={28} />
-          <Typography variant="body2">Loading the neighborhood…</Typography>
+    <Box
+      className="rental-map"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") close();
+      }}
+    >
+      <Box className="rental-map-heading">
+        <Box>
+          <Typography component="h2" fontWeight={700} fontSize={15}>
+            Explore the map
+          </Typography>
+          <Typography aria-live="polite" variant="caption" color="text.secondary">
+            {isFetching
+              ? "Updating this view…"
+              : error
+                ? "Map listings unavailable"
+                : `${(data?.total || 0).toLocaleString()} matching homes in view`}
+          </Typography>
         </Box>
-      )}
-      {error && (
-        <Alert severity="warning" sx={{ position: "absolute", bottom: 35, left: 12, right: 12 }}>
-          Map unavailable. You can still browse every home in the list.
-        </Alert>
-      )}
-      {routing && (
-        <Alert icon={<CircularProgress size={16} />} sx={{ position: "absolute", top: 12, left: 12, zIndex: 10 }}>
-          Finding your route…
-        </Alert>
-      )}
-      {destination && !routing && (
-        <Button
-          variant="contained"
-          size="small"
-          onClick={clearRoute}
-          sx={{
-            position: "absolute",
-            top: 12,
-            left: 12,
-            zIndex: 10,
-            bgcolor: "#234c3e",
-            color: "#fff",
-            borderRadius: "20px",
-            textTransform: "none",
-            fontSize: "12px",
-            fontWeight: 600,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
-            "&:hover": { bgcolor: "#1a392e" },
-          }}
-        >
-          ✕ Clear route
-        </Button>
-      )}
+        <Stack direction="row" spacing={0.5}>
+          <IconButton
+            aria-label={expanded ? "Exit expanded map" : "Expand map"}
+            size="small"
+            onClick={onExpand}
+            sx={{ display: { xs: "none", md: "inline-flex" } }}
+          >
+            <ZoomOutMapOutlined fontSize="small" />
+          </IconButton>
+          <IconButton
+            aria-label="Return to search center"
+            size="small"
+            onClick={() => {
+              map?.easeTo({ center, zoom: 12, duration: 400 });
+              setMoved(true);
+            }}
+          >
+            <MyLocationOutlined fontSize="small" />
+          </IconButton>
+        </Stack>
+      </Box>
+      <Box className="rental-map-canvas-wrap">
+        <div ref={container} className="rental-map-canvas" aria-label="Interactive rental map" />
+        {!map && !mapError && (
+          <Box className="rental-map-loading">
+            <CircularProgress size={26} />
+            <span>Loading map…</span>
+          </Box>
+        )}
+        {map && moved && !selected && (
+          <Button className="search-map-area" variant="contained" startIcon={<Search />} onClick={() => searchArea()}>
+            Search this area
+          </Button>
+        )}
+        {(error || mapError) && (
+          <Alert
+            severity="warning"
+            className="rental-map-notice"
+            action={error ? <Button onClick={refetch}>Retry</Button> : undefined}
+          >
+            {error
+              ? "Couldn’t load map homes. The list is still available."
+              : "Map tiles are unavailable. Browse homes in the list."}
+          </Alert>
+        )}
+        {!isFetching && !error && data?.total === 0 && !selected && !mapError && (
+          <Box className="rental-map-empty">No mapped homes in this view. Move the map or broaden your filters.</Box>
+        )}
+        {group && !selected && (
+          <Box className="rental-map-preview">
+            <IconButton className="close-map-preview" aria-label="Close area preview" onClick={close}>
+              <Close fontSize="small" />
+            </IconButton>
+            <Typography fontWeight={700} sx={{ pr: 4 }}>
+              {group.count.toLocaleString()} homes around this spot
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>
+              Zoom in to separate pins, or browse all homes here in the list.
+            </Typography>
+            <Button variant="contained" onClick={() => searchArea(paddedBounds(group.bounds).join(","))}>
+              View these homes
+            </Button>
+          </Box>
+        )}
+        {selected && (
+          <Box className="rental-map-preview" role="region" aria-label="Selected home" tabIndex={-1} ref={selectionRef}>
+            <IconButton className="close-map-preview" aria-label="Close home preview and clear route" onClick={close}>
+              <Close fontSize="small" />
+            </IconButton>
+            <Typography color="text.secondary" fontSize={12} sx={{ pr: 4, mb: 0.5 }}>
+              {selected.district || "Rental home"}
+            </Typography>
+            <Link className="map-home-title" href={`/posts/${selected.id}`}>
+              {selected.name}
+            </Link>
+            <Typography fontSize={14} sx={{ my: 1 }}>
+              <strong>{formatRent(selected.price)}</strong> / month · {selected.area ? Number(selected.area) : "—"} m²
+            </Typography>
+            <Typography fontSize={11} color="text.secondary" sx={{ mb: 1 }}>
+              Location is unverified. Confirm the address before traveling.
+            </Typography>
+            {destination && (
+              <Box role="status" className="rental-route-status">
+                {route.status === "loading" && (
+                  <>
+                    <CircularProgress size={14} /> Finding a bike route…
+                  </>
+                )}
+                {route.status === "ready" && (
+                  <>
+                    {Number.isFinite(route.distance)
+                      ? `${(route.distance / 1000).toFixed(1)} km · ${Math.round(route.duration / 60)} min by bike`
+                      : "Bike route ready"}{" "}
+                    · from search center
+                  </>
+                )}
+                {route.status === "error" && "No route available. Clear and try another home."}
+              </Box>
+            )}
+            <Stack direction="row" spacing={1}>
+              <Button component={Link} href={`/posts/${selected.id}`} variant="contained">
+                View home
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={destination ? <Close /> : <RouteOutlined />}
+                onClick={() => {
+                  setDestination(destination ? "" : `${selected.coordinates[1]},${selected.coordinates[0]}`);
+                }}
+              >
+                {destination ? "Clear route" : "Bike route"}
+              </Button>
+            </Stack>
+          </Box>
+        )}
+      </Box>
+      <Box className="rental-map-footer">
+        {destination ? (
+          "Other homes are hidden while routing. Clear the route to explore again."
+        ) : isFetching ? (
+          "Updating map homes…"
+        ) : (
+          <>
+            <span className="map-legend-dot" /> {markerCount} pins · grouped for a clearer map. Zoom in for prices.
+          </>
+        )}
+      </Box>
     </Box>
   );
 }

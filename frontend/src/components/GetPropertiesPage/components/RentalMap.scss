@@ -1,0 +1,191 @@
+@import "../../../scss/_variables.scss";
+
+.rental-map {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: $rt-border;
+  font-family: var(--font-sans), sans-serif;
+}
+.rental-map-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: $rt-paper;
+  border-bottom: 1px solid $rt-border;
+}
+.rental-map-canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.rental-map-canvas {
+  position: absolute;
+  inset: 0;
+}
+.rental-map-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: $rt-border;
+}
+.rental-map-footer {
+  padding: 10px 16px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: $rt-muted;
+  background: $rt-paper;
+  border-top: 1px solid $rt-border;
+}
+.rental-map .rental-map-price {
+  border: 1px solid $rt-brand-accent;
+  background: $rt-paper;
+  color: $rt-brand;
+  border-radius: 24px;
+  padding: 8px 11px;
+  min-height: 40px;
+  box-shadow: 0 2px 8px rgba($rt-brand, 0.15);
+  font-size: 12px;
+  line-height: 20px;
+  cursor: pointer !important;
+  white-space: nowrap;
+}
+.rental-map .rental-map-price:hover,
+.rental-map .rental-map-price:focus-visible,
+.rental-map .rental-map-price.is-selected {
+  background: $rt-brand;
+  border-color: $rt-brand;
+  color: white;
+  z-index: 5;
+}
+.rental-map .rental-map-cluster {
+  border: 0;
+  background: transparent;
+  border-radius: 50%;
+  min-width: 44px;
+  height: 44px;
+  padding: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer !important;
+}
+.rental-map-cluster > span {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  min-width: 36px;
+  padding: 0 7px;
+  color: $rt-brand;
+  background: $rt-surface;
+  border: 1px solid $rt-border-strong;
+  border-radius: 22px;
+  box-shadow: 0 2px 5px rgba($rt-brand, 0.09);
+}
+.rental-map .rental-map-cluster:hover > span,
+.rental-map .rental-map-cluster:focus-visible > span {
+  background: $rt-brand;
+  color: white;
+  border-color: $rt-brand;
+}
+.map-legend-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: $rt-border-strong;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+.rental-map .rental-map-origin {
+  background: $rt-paper;
+  border: 2px solid $rt-gold;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: $rt-gold-hover;
+}
+.rental-map .search-map-area {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  color: $rt-brand;
+  box-shadow: 0 3px 14px rgba($rt-brand, 0.16);
+  white-space: nowrap;
+  border-radius: 24px;
+}
+.rental-map .search-map-area:hover {
+  transform: translateX(-50%);
+  background: $rt-surface;
+}
+.rental-map-preview {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 30px;
+  padding: 18px;
+  background: $rt-paper;
+  border: 1px solid $rt-border;
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba($rt-brand, 0.18);
+  max-height: calc(100% - 30px);
+  overflow-y: auto;
+}
+.rental-map .close-map-preview {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 36px;
+  height: 36px;
+}
+.map-home-title {
+  color: $rt-brand;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+  text-decoration: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding-right: 15px;
+}
+.map-home-title:hover {
+  text-decoration: underline;
+}
+.rental-route-status {
+  padding: 8px 10px;
+  background: $rt-border;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.rental-map-notice,
+.rental-map-empty {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 30px;
+}
+.rental-map-empty {
+  background: rgba($rt-paper, 0.94);
+  padding: 14px;
+  border-radius: 10px;
+  color: $rt-brand-muted;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.rental-map .mapboxgl-ctrl-group button,
+.rental-map .goongjs-ctrl-group button {
+  width: 36px;
+  height: 36px;
+}
