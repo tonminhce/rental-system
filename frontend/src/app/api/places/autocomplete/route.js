@@ -1,11 +1,6 @@
+import { goongRequest, validText, badRequest } from "@/server/goong";
 export async function GET(request) {
-  const searchParams = request.nextUrl.searchParams;
-  const requestURL = new URL("https://rsapi.goong.io/Place/AutoComplete");
-  requestURL.searchParams.append("api_key", process.env.GOONG_API_KEY);
-  requestURL.searchParams.append("input", searchParams.get("input"));
-
-  const response = await fetch(requestURL.toString());
-  const data = await response.json();
-
-  return Response.json(data);
+  const input = request.nextUrl.searchParams.get("input");
+  if (!validText(input)) return badRequest();
+  return goongRequest("Place/AutoComplete", { input, location: "10.7769,106.7009", limit: 6 });
 }
