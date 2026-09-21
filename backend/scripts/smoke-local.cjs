@@ -76,6 +76,64 @@ async function main() {
     const login = await request('/auth/login', 'POST', { email, password });
     assert.equal(login.status, 200);
     const sessionToken = login.data.token;
+    const meBefore = await request(
+      '/roommate/profile/me',
+      'GET',
+      undefined,
+      sessionToken,
+    );
+    assert.equal(meBefore.status, 200);
+    assert.equal(meBefore.data.profile, null);
+    const suggestions = await request(
+      '/roommate/suggestions',
+      'GET',
+      undefined,
+      sessionToken,
+    );
+    assert.equal(suggestions.status, 200);
+    assert.deepEqual(suggestions.data.suggestions, []);
+    const profile = {
+      gender: 'Male',
+      lifestyle: 'Clean',
+      pets: false,
+      smoking: false,
+      personality: 'Introvert',
+      age: 25,
+      wakeUpTime: '07:00',
+      bedTime: '23:00',
+    };
+    assert.equal(
+      (await request('/roommate', 'POST', profile, sessionToken)).status,
+      201,
+    );
+    assert.equal(
+      (await request('/roommate/profile/me', 'GET', undefined, sessionToken))
+        .data.profile.age,
+      25,
+    );
+    assert.equal(
+      (
+        await request(
+          '/roommate',
+          'POST',
+          { ...profile, age: 26 },
+          sessionToken,
+        )
+      ).status,
+      201,
+    );
+    assert.equal(
+      (await request('/roommate/profile/me', 'GET', undefined, sessionToken))
+        .data.profile.age,
+      26,
+    );
+    const directory = await request('/roommate');
+    assert.equal(directory.status, 200);
+    assert.ok(
+      directory.data.profiles.every(
+        (p) => !('email' in (p.user || {})) && !('phone' in (p.user || {})),
+      ),
+    );
     assert.equal(
       (
         await request(
@@ -114,7 +172,7 @@ async function main() {
       200,
     );
     console.log(
-      'PASS: health, listings, price/district/type filters, geographic search, validation, registration, salted passwords, login, favorites and refresh tokens.',
+      'PASS: health, listings, filters, geography, validation, registration, passwords, login, favorites, refresh, roommate onboarding/upsert/suggestions, and public-directory contact privacy.',
     );
   } finally {
     // Only this run's disposable account is removed; foreign keys clean its test favorites/tokens.
