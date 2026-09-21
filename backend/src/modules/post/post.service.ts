@@ -118,8 +118,8 @@ export class PostService {
         const haversine = `
           (
             6371 * acos(
-              cos(radians(${centerLat})) * cos(radians(longitude)) * cos(radians(latitude) - radians(${centerLng})) + 
-              sin(radians(${centerLat})) * sin(radians(longitude))
+              LEAST(1, GREATEST(-1, cos(radians(${centerLat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${centerLng})) +
+              sin(radians(${centerLat})) * sin(radians(latitude))))
             )
           )
         `;
@@ -143,8 +143,8 @@ export class PostService {
         const distanceCalculation = literal(`
           (
             6371 * acos(
-              cos(radians(${centerLat})) * cos(radians(longitude)) * cos(radians(latitude) - radians(${centerLng})) + 
-              sin(radians(${centerLat})) * sin(radians(longitude))
+              LEAST(1, GREATEST(-1, cos(radians(${centerLat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${centerLng})) +
+              sin(radians(${centerLat})) * sin(radians(latitude))))
             )
           )
         `);
@@ -155,9 +155,9 @@ export class PostService {
             where: { userId },
             attributes: ['rentalId'],
           });
-          
-          const favoriteIds = favorites.map(fav => fav.rentalId);
-          
+
+          const favoriteIds = favorites.map((fav) => fav.rentalId);
+
           if (favoriteIds.length > 0) {
             const favoriteSort = literal(`
               CASE
@@ -168,7 +168,7 @@ export class PostService {
             orderClause.push([favoriteSort, 'ASC']);
           }
         }
-        
+
         // Then sort by creation date
         orderClause.push(['createdAt', 'DESC']);
       }

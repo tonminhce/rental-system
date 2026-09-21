@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { UserProfile } from 'src/database/entities/user-profile.entity';
+import { User } from 'src/database/entities/user.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
@@ -19,22 +20,27 @@ export class RoommateService {
     }
 
     async getAllProfiles(): Promise<UserProfile[]> {
-        return this.userProfileModel.findAll();
+        return this.userProfileModel.findAll({
+            include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
+            order: [['createdAt', 'DESC']],
+        });
     }
 
     async getProfileById(id: number): Promise<UserProfile> {
-        const profile = await this.userProfileModel.findByPk(id);
+        const profile = await this.userProfileModel.findByPk(id, {
+            include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
+        });
         if (!profile) throw new NotFoundException('Profile not found');
         return profile;
     }
 
-    async getProfileByUserId(userId: number): Promise<UserProfile> {
+    async getProfileByUserId(userId: number): Promise<UserProfile | null> {
         const profile = await this.userProfileModel.findOne({
             where: {
                 userId: { [Op.eq]: userId },
             },
+            include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
         });
-        if (!profile) throw new NotFoundException('Profile not found for this user');
         return profile;
     }
 
@@ -96,7 +102,6 @@ export class RoommateService {
     }
 
     async getRoommateSuggestions(userId: number, topN = 5): Promise<UserProfile[]> {
-      
         const currentUser = await this.userProfileModel.findOne({
             where: {
                 userId: { [Op.eq]: userId },
@@ -104,14 +109,19 @@ export class RoommateService {
         });
      
         if (!currentUser) {
-            throw new Error('User profile not found');
+            return [];
         }
 
         const allProfiles = await this.userProfileModel.findAll({
             where: {
                 userId: { [Op.ne]: userId }, // Exclude current user
             },
+            include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
         });
+
+        if (!allProfiles || allProfiles.length === 0) {
+            return [];
+        }
        
         const scoredProfiles = allProfiles.map(profile => ({
             profile,

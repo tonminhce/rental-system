@@ -1,8 +1,16 @@
-import { Table, Column, Model, DataType, HasMany, BelongsTo, ForeignKey } from 'sequelize-typescript';
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  HasMany,
+  BelongsTo,
+  ForeignKey,
+} from 'sequelize-typescript';
 import { Message } from './message.entity';
 import { FavoriteList } from './favorite-list.entity';
 import { ChatRoomMember } from './chat-room-member.entity';
-import { Role } from './role.entity'
+import { Role } from './role.entity';
 
 @Table({
   tableName: 'users',
@@ -36,7 +44,7 @@ export class User extends Model<User> {
   phone: string;
 
   @Column({
-    type: DataType.STRING(32),
+    type: DataType.STRING(255),
     allowNull: false,
   })
   password: string;

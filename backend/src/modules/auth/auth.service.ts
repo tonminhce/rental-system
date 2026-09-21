@@ -12,7 +12,7 @@ import { User } from '../../database/entities/user.entity';
 import { Role } from '../../database/entities/role.entity';
 import { RefreshToken } from '../../database/entities/refresh-token.entity';
 import { loggerUtil } from '../../shared/utils/log.util';
-import { encodeToMD5 } from '../../shared/utils/md5.util';
+import { hashPassword, verifyPassword } from '../../shared/utils/password.util';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -39,18 +39,21 @@ export class AuthService {
       hasRefreshTokenModel: !!this.refreshTokenModel,
     });
   }
-  async signup(signupDto: SignupDto): Promise<{ user: any; token: string; refreshToken: string }> {
+  async signup(
+    signupDto: SignupDto,
+  ): Promise<{ user: any; token: string; refreshToken: string }> {
     loggerUtil.info(
       `${_serviceName}.signup begin with email: ${signupDto.email}`,
     );
 
     try {
-      
       const role = await this.roleModel.findOne({
         where: { name: signupDto.role },
       });
 
-      const hashedPassword = encodeToMD5(signupDto.password);
+      if (!role)
+        throw new HttpException('Invalid account role', HttpStatus.BAD_REQUEST);
+      const hashedPassword = await hashPassword(signupDto.password);
 
       const user = await this.userModel.create({
         name: signupDto.name,
@@ -71,17 +74,22 @@ export class AuthService {
       };
 
       // Tạo cả access token và refresh token
-      const { token, refreshToken, refreshTokenExpiry } = this.generateTokens(payload);
+      const { token, refreshToken, refreshTokenExpiry } =
+        this.generateTokens(payload);
 
       // Cố gắng lưu refresh token vào database
       try {
         await this.storeRefreshToken(user.id, refreshToken, refreshTokenExpiry);
       } catch (e) {
-        loggerUtil.warn(`${_serviceName}.signup could not store refresh token, but continuing: ${e.message}`);
+        loggerUtil.warn(
+          `${_serviceName}.signup could not store refresh token, but continuing: ${e.message}`,
+        );
         // Tiếp tục mà không dừng lại nếu có lỗi lưu token
       }
 
-      loggerUtil.info(`${_serviceName}.signup successful with tokens generated`);
+      loggerUtil.info(
+        `${_serviceName}.signup successful with tokens generated`,
+      );
 
       const userData = {
         email: user.email,
@@ -101,7 +109,9 @@ export class AuthService {
     }
   }
 
-  async login(loginDto: LoginDto): Promise<{ user: any; token: string; refreshToken: string }> {
+  async login(
+    loginDto: LoginDto,
+  ): Promise<{ user: any; token: string; refreshToken: string }> {
     loggerUtil.info(
       `${_serviceName}.login begin with email: ${loginDto.email}`,
     );
@@ -119,14 +129,16 @@ export class AuthService {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      const hashedPassword = encodeToMD5(loginDto.password);
-      if (hashedPassword !== user.password) {
+      if (!(await verifyPassword(loginDto.password, user.password))) {
         loggerUtil.warn(
           `${_serviceName}.login invalid password for user: ${loginDto.email}`,
         );
         throw new UnauthorizedException('Invalid credentials');
       }
 
+      if (!user.password.startsWith('scrypt:')) {
+        await user.update({ password: await hashPassword(loginDto.password) });
+      }
       const payload = {
         id: user.id,
         email: user.email,
@@ -138,13 +150,16 @@ export class AuthService {
       );
 
       // Tạo cả access token và refresh token
-      const { token, refreshToken, refreshTokenExpiry } = this.generateTokens(payload);
+      const { token, refreshToken, refreshTokenExpiry } =
+        this.generateTokens(payload);
 
       // Cố gắng thu hồi các refresh token cũ nếu có thể
       try {
         await this.revokeAllRefreshTokens(user.id);
       } catch (e) {
-        loggerUtil.warn(`${_serviceName}.login could not revoke old refresh tokens, but continuing: ${e.message}`);
+        loggerUtil.warn(
+          `${_serviceName}.login could not revoke old refresh tokens, but continuing: ${e.message}`,
+        );
         // Tiếp tục mà không dừng lại nếu có lỗi thu hồi
       }
 
@@ -152,7 +167,9 @@ export class AuthService {
       try {
         await this.storeRefreshToken(user.id, refreshToken, refreshTokenExpiry);
       } catch (e) {
-        loggerUtil.warn(`${_serviceName}.login could not store refresh token, but continuing: ${e.message}`);
+        loggerUtil.warn(
+          `${_serviceName}.login could not store refresh token, but continuing: ${e.message}`,
+        );
         // Tiếp tục mà không dừng lại nếu có lỗi lưu token
       }
 
@@ -177,13 +194,15 @@ export class AuthService {
       throw error;
     }
   }
-  
-  async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<{ token: string; refreshToken: string }> {
+
+  async refreshToken(
+    refreshTokenDto: RefreshTokenDto,
+  ): Promise<{ token: string; refreshToken: string }> {
     try {
       loggerUtil.info(`${_serviceName}.refreshToken begin`);
-      
+
       const refreshTokenSecret = this.configService.get('REFRESH_TOKEN_SECRET');
-      
+
       // Verify refresh token
       let payload;
       try {
@@ -191,87 +210,108 @@ export class AuthService {
           secret: refreshTokenSecret,
         });
       } catch (error) {
-        loggerUtil.error(`${_serviceName}.refreshToken invalid refresh token: ${error.message}`);
+        loggerUtil.error(
+          `${_serviceName}.refreshToken invalid refresh token: ${error.message}`,
+        );
         throw new UnauthorizedException('Invalid refresh token');
       }
-      
+
       // Kiểm tra token trong database nếu có thể
       try {
         const storedToken = await this.refreshTokenModel.findOne({
-          where: { 
+          where: {
             token: refreshTokenDto.refreshToken,
             userId: payload.id,
-            isRevoked: false 
-          }
+            isRevoked: false,
+          },
         });
 
         if (!storedToken) {
-          loggerUtil.warn(`${_serviceName}.refreshToken token not found or revoked for user: ${payload.id}`);
+          loggerUtil.warn(
+            `${_serviceName}.refreshToken token not found or revoked for user: ${payload.id}`,
+          );
           throw new UnauthorizedException('Invalid or revoked refresh token');
         }
 
         // Kiểm tra hạn sử dụng trong database
         if (new Date() > storedToken.expiresAt) {
-          loggerUtil.warn(`${_serviceName}.refreshToken token expired for user: ${payload.id}`);
+          loggerUtil.warn(
+            `${_serviceName}.refreshToken token expired for user: ${payload.id}`,
+          );
           await storedToken.update({ isRevoked: true });
           throw new UnauthorizedException('Refresh token expired');
         }
-        
+
         // Revoke current token
         await storedToken.update({ isRevoked: true });
       } catch (error) {
         // Nếu có lỗi khi kiểm tra database, log cảnh báo và tiếp tục
         if (!(error instanceof UnauthorizedException)) {
-          loggerUtil.warn(`${_serviceName}.refreshToken error checking database token, but continuing: ${error.message}`);
+          loggerUtil.warn(
+            `${_serviceName}.refreshToken error checking database token, but continuing: ${error.message}`,
+          );
           // Chỉ throw lỗi UnauthorizedException, các lỗi khác cho phép tiếp tục
         } else {
           throw error;
         }
       }
-      
+
       // Check if user still exists
       const user = await this.userModel.findByPk(payload.id, {
         include: ['role'],
       });
-      
+
       if (!user) {
-        loggerUtil.warn(`${_serviceName}.refreshToken user not found with id: ${payload.id}`);
+        loggerUtil.warn(
+          `${_serviceName}.refreshToken user not found with id: ${payload.id}`,
+        );
         throw new UnauthorizedException('User no longer exists');
       }
-      
+
       // Tạo tokens mới
       const newPayload = {
         id: user.id,
         email: user.email,
         role: user.role ? user.role.name : null,
       };
-      
-      const { token, refreshToken, refreshTokenExpiry } = this.generateTokens(newPayload);
-      
+
+      const { token, refreshToken, refreshTokenExpiry } =
+        this.generateTokens(newPayload);
+
       // Lưu refresh token mới vào database nếu có thể
       try {
         await this.storeRefreshToken(user.id, refreshToken, refreshTokenExpiry);
       } catch (e) {
-        loggerUtil.warn(`${_serviceName}.refreshToken could not store new refresh token, but continuing: ${e.message}`);
+        loggerUtil.warn(
+          `${_serviceName}.refreshToken could not store new refresh token, but continuing: ${e.message}`,
+        );
         // Tiếp tục mà không dừng lại nếu có lỗi lưu token
       }
-      
-      loggerUtil.info(`${_serviceName}.refreshToken successful for user: ${user.email}`);
-      
+
+      loggerUtil.info(
+        `${_serviceName}.refreshToken successful for user: ${user.email}`,
+      );
+
       return { token, refreshToken };
     } catch (error) {
-      loggerUtil.error(`${_serviceName}.refreshToken error: ${error.message}`, error);
+      loggerUtil.error(
+        `${_serviceName}.refreshToken error: ${error.message}`,
+        error,
+      );
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      throw new HttpException('Could not refresh token', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Could not refresh token',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   async logout(userId: number, token?: string): Promise<boolean> {
     try {
       loggerUtil.info(`${_serviceName}.logout begin for user: ${userId}`);
-      
+
       try {
         if (token) {
           // Vô hiệu hóa token cụ thể
@@ -279,24 +319,30 @@ export class AuthService {
             where: {
               userId,
               token,
-              isRevoked: false
-            }
+              isRevoked: false,
+            },
           });
-          
+
           if (refreshToken) {
             await refreshToken.update({ isRevoked: true });
-            loggerUtil.info(`${_serviceName}.logout specific token revoked for user: ${userId}`);
+            loggerUtil.info(
+              `${_serviceName}.logout specific token revoked for user: ${userId}`,
+            );
           }
         } else {
           // Vô hiệu hóa tất cả refresh token của user
           await this.revokeAllRefreshTokens(userId);
-          loggerUtil.info(`${_serviceName}.logout all tokens revoked for user: ${userId}`);
+          loggerUtil.info(
+            `${_serviceName}.logout all tokens revoked for user: ${userId}`,
+          );
         }
       } catch (error) {
         // Ignore database errors during logout
-        loggerUtil.warn(`${_serviceName}.logout error revoking tokens, but continuing: ${error.message}`);
+        loggerUtil.warn(
+          `${_serviceName}.logout error revoking tokens, but continuing: ${error.message}`,
+        );
       }
-      
+
       return true;
     } catch (error) {
       loggerUtil.error(`${_serviceName}.logout error: ${error.message}`, error);
@@ -306,27 +352,33 @@ export class AuthService {
   }
 
   // Phương thức tạo tokens
-  private generateTokens(payload: any): { token: string; refreshToken: string; refreshTokenExpiry: Date } {
+  private generateTokens(payload: any): {
+    token: string;
+    refreshToken: string;
+    refreshTokenExpiry: Date;
+  } {
     const tokenSecret = this.configService.get('TOKEN_SECRET');
     const tokenExpiration = this.configService.get('TOKEN_EXPIRATION') || '1h';
-    
-    const refreshTokenSecret = this.configService.get('REFRESH_TOKEN_SECRET') || '1qazXSW@';
-    const refreshTokenExpiration = this.configService.get('REFRESH_TOKEN_EXPIRATION') || '7d';
-    
+
+    const refreshTokenSecret =
+      this.configService.get('REFRESH_TOKEN_SECRET') || '1qazXSW@';
+    const refreshTokenExpiration =
+      this.configService.get('REFRESH_TOKEN_EXPIRATION') || '7d';
+
     const token = this.jwtService.sign(payload, {
       secret: tokenSecret,
       expiresIn: +ms(tokenExpiration) / 1000,
     });
-    
+
     const refreshToken = this.jwtService.sign(payload, {
       secret: refreshTokenSecret,
       expiresIn: +ms(refreshTokenExpiration) / 1000,
     });
-    
+
     // Tính thời gian hết hạn
     const refreshTokenExpiryMs = +ms(refreshTokenExpiration);
     const refreshTokenExpiry = new Date(Date.now() + refreshTokenExpiryMs);
-    
+
     return { token, refreshToken, refreshTokenExpiry };
   }
 
@@ -335,7 +387,9 @@ export class AuthService {
     try {
       // Kiểm tra xem model đã được khởi tạo chưa
       if (!this.refreshTokenModel) {
-        loggerUtil.warn(`${_serviceName}.revokeAllRefreshTokens model not initialized`);
+        loggerUtil.warn(
+          `${_serviceName}.revokeAllRefreshTokens model not initialized`,
+        );
         return;
       }
 
@@ -343,29 +397,43 @@ export class AuthService {
       const activeTokens = await this.refreshTokenModel.findAll({
         where: {
           userId,
-          isRevoked: false
-        }
+          isRevoked: false,
+        },
       });
-      
+
       // Cập nhật từng token
       for (const token of activeTokens) {
         token.isRevoked = true;
         await token.save();
       }
-      
-      loggerUtil.info(`${_serviceName}.revokeAllRefreshTokens successful for user: ${userId}, revoked ${activeTokens.length} tokens`);
+
+      loggerUtil.info(
+        `${_serviceName}.revokeAllRefreshTokens successful for user: ${userId}, revoked ${activeTokens.length} tokens`,
+      );
     } catch (error) {
-      loggerUtil.error(`${_serviceName}.revokeAllRefreshTokens error: ${error.message}`, error);
-      throw new HttpException('Failed to revoke refresh tokens', HttpStatus.INTERNAL_SERVER_ERROR);
+      loggerUtil.error(
+        `${_serviceName}.revokeAllRefreshTokens error: ${error.message}`,
+        error,
+      );
+      throw new HttpException(
+        'Failed to revoke refresh tokens',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   // Lưu refresh token vào database
-  private async storeRefreshToken(userId: number, token: string, expiresAt: Date): Promise<void> {
+  private async storeRefreshToken(
+    userId: number,
+    token: string,
+    expiresAt: Date,
+  ): Promise<void> {
     try {
       // Kiểm tra xem model đã được khởi tạo chưa
       if (!this.refreshTokenModel) {
-        loggerUtil.warn(`${_serviceName}.storeRefreshToken model not initialized`);
+        loggerUtil.warn(
+          `${_serviceName}.storeRefreshToken model not initialized`,
+        );
         return;
       }
 
@@ -373,12 +441,20 @@ export class AuthService {
         userId,
         token,
         expiresAt,
-        isRevoked: false
+        isRevoked: false,
       });
-      loggerUtil.info(`${_serviceName}.storeRefreshToken successful for user: ${userId}`);
+      loggerUtil.info(
+        `${_serviceName}.storeRefreshToken successful for user: ${userId}`,
+      );
     } catch (error) {
-      loggerUtil.error(`${_serviceName}.storeRefreshToken error: ${error.message}`, error);
-      throw new HttpException('Failed to store refresh token', HttpStatus.INTERNAL_SERVER_ERROR);
+      loggerUtil.error(
+        `${_serviceName}.storeRefreshToken error: ${error.message}`,
+        error,
+      );
+      throw new HttpException(
+        'Failed to store refresh token',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -386,14 +462,17 @@ export class AuthService {
   private generateAccessToken(payload: any): string {
     const tokenSecret = this.configService.get('TOKEN_SECRET');
     const tokenExpiration = this.configService.get('TOKEN_EXPIRATION') || '1d';
-    
+
     return this.jwtService.sign(payload, {
       secret: tokenSecret,
       expiresIn: +ms(tokenExpiration) / 1000,
     });
   }
 
-  async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+  async changePassword(
+    userId: number,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
     loggerUtil.info(
       `${_serviceName}.changePassword begin for userId: ${userId}`,
     );
@@ -401,7 +480,10 @@ export class AuthService {
     try {
       // Confirm that newPassword and confirmPassword match
       if (changePasswordDto.newPassword !== changePasswordDto.confirmPassword) {
-        throw new HttpException('New password and confirm password do not match', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'New password and confirm password do not match',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Find the user
@@ -411,22 +493,34 @@ export class AuthService {
       }
 
       // Verify current password
-      const currentHashedPassword = encodeToMD5(changePasswordDto.currentPassword);
-      if (currentHashedPassword !== user.password) {
-        throw new HttpException('Current password is incorrect', HttpStatus.BAD_REQUEST);
+      if (
+        !(await verifyPassword(
+          changePasswordDto.currentPassword,
+          user.password,
+        ))
+      ) {
+        throw new HttpException(
+          'Current password is incorrect',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Hash and set new password
-      const newHashedPassword = encodeToMD5(changePasswordDto.newPassword);
-      
+      const newHashedPassword = await hashPassword(
+        changePasswordDto.newPassword,
+      );
+
       // Check if new password is the same as current password
-      if (newHashedPassword === user.password) {
-        throw new HttpException('New password cannot be the same as current password', HttpStatus.BAD_REQUEST);
+      if (await verifyPassword(changePasswordDto.newPassword, user.password)) {
+        throw new HttpException(
+          'New password cannot be the same as current password',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Update the password
       await user.update({ password: newHashedPassword });
-      
+
       // Revoke all existing refresh tokens (optional security measure)
       try {
         await this.revokeAllRefreshTokens(userId);
@@ -442,7 +536,10 @@ export class AuthService {
 
       return { message: 'Password changed successfully' };
     } catch (error) {
-      loggerUtil.error(`${_serviceName}.changePassword error: ${error.message}`, error);
+      loggerUtil.error(
+        `${_serviceName}.changePassword error: ${error.message}`,
+        error,
+      );
       if (error instanceof HttpException) {
         throw error;
       }

@@ -1,0 +1,20 @@
+name: rentalk-local
+services:
+  mysql:
+    image: mysql:8.0.37
+    ports:
+      - "127.0.0.1:3307:3306"
+    environment:
+      MYSQL_DATABASE: rentalk_local
+      MYSQL_USER: rentalk
+      MYSQL_PASSWORD: rentalk_local_only
+      MYSQL_ROOT_PASSWORD: rentalk_root_local_only
+    volumes:
+      - rentalk-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  rentalk-data:
