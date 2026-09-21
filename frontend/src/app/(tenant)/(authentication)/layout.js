@@ -5,14 +5,30 @@ import { Suspense } from "react";
 
 export default function AuthLayout({ children }) {
   return (
-    <div className="auth_container">
+    <main id="main-content" className="auth_container">
       <div className="auth_banner">
-        <Image priority={true} src={banner} alt="banner" />
+        <Image
+          priority
+          src="/images/rentalk-living.jpg"
+          width={700}
+          height={800}
+          alt="A bright, welcoming living space"
+        />
+        <div className="auth_photo-copy">
+          <span>A PLACE TO BELONG</span>
+          <h2>
+            Every new chapter
+            <br />
+            starts somewhere.
+          </h2>
+          <p>Let’s find your somewhere.</p>
+          <small>Illustrative space · AI-generated</small>
+        </div>
       </div>
 
       <div className="auth_content">
         <Suspense>{children}</Suspense>
       </div>
-    </div>
+    </main>
   );
 }

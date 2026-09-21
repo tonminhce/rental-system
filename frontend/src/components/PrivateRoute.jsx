@@ -16,6 +16,6 @@ export default function PrivateRoute(Component) {
       }
     }, [isAuthenticated, router, pathname]);
 
-    return <Component {...props} />;
+    return isAuthenticated ? <Component {...props} /> : null;
   };
 }

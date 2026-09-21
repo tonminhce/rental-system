@@ -11,12 +11,13 @@ import { useDispatch } from "react-redux";
 import { clearFilters } from "@/redux/features/filter/filterSlice";
 
 const SearchBarContainer = styled(Stack)(({ theme }) => ({
-  position: "fixed",
-  paddingTop: 20,
-  top: 60,
+  position: "relative",
+  padding: 16,
   flexDirection: "row",
   paddingBottom: theme.spacing(2),
-  zIndex: 100,
+  border: "1px solid #e0e6d8",
+  borderRadius: 12,
+  flexWrap: "wrap",
   backgroundColor: "#fff",
   width: "100%",
   gap: theme.spacing(2),
@@ -39,8 +40,8 @@ export default function SearchBar() {
       <PropertyTypeSelect />
       <PriceSelect />
       <AreaSelect />
-      <Button onClick={clearAllFilters} variant="contained" color="primary">
-        Clear Filter
+      <Button onClick={clearAllFilters} variant="text" color="primary">
+        Reset filters
       </Button>
     </SearchBarContainer>
   );

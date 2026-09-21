@@ -1,5 +1,147 @@
 @import "./_mixins.scss";
 @import "./_variables.scss";
+@import "./_animations.scss";
+
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+:focus-visible {
+  outline: 2px solid #527857;
+  outline-offset: 4px;
+}
+.skip-link {
+  position: fixed;
+  top: -60px;
+  left: 20px;
+  z-index: 2000;
+  padding: 12px 20px;
+  background: #234c3e;
+  color: white;
+  border-radius: 8px;
+}
+.skip-link:focus {
+  top: 10px;
+}
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #fbfaf7f5;
+  border-bottom: 1px solid #e6e8df;
+  backdrop-filter: blur(12px);
+}
+.header-inner {
+  height: 82px;
+  max-width: 1376px;
+  padding: 0 64px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 25px;
+}
+.brand-word {
+  color: #234c3e;
+  font-size: 30px;
+  letter-spacing: -1.6px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.brand-word span {
+  color: #b18a5c;
+}
+.desktop-nav {
+  display: flex;
+  gap: 28px;
+  margin-left: 25px;
+}
+.desktop-nav a,
+.login-link {
+  color: #5c6658;
+  font-size: 12px;
+  text-decoration: none;
+  font-weight: 500;
+}
+.desktop-nav a:hover,
+.desktop-nav a[aria-current] {
+  color: #234c3e;
+  text-decoration: underline;
+  text-underline-offset: 8px;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 23px;
+}
+.list-home-link {
+  color: #34503e;
+  border: 1px solid #c9d1c1;
+  border-radius: 7px;
+  padding: 11px 16px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+}
+.account-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #eef0e8;
+  font-size: 12px;
+  color: #234c3e;
+  padding: 5px 12px 5px 5px;
+}
+.header-actions .mobile-menu-button {
+  display: none;
+}
+@media (max-width: 1050px) {
+  .header-inner {
+    padding: 0 32px;
+  }
+  .desktop-nav {
+    gap: 20px;
+    margin-left: 0;
+  }
+  .header-actions {
+    gap: 17px;
+  }
+}
+@media (max-width: 760px) {
+  .header-inner {
+    height: 68px;
+    padding: 0 22px;
+  }
+  .brand-word {
+    font-size: 28px;
+  }
+  .desktop-nav,
+  .list-home-link {
+    display: none;
+  }
+  .header-actions .mobile-menu-button {
+    display: inline-flex;
+  }
+  .header-actions {
+    gap: 18px;
+  }
+  .account-button > span {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 * {
   margin: 0;
@@ -9,12 +151,14 @@
 
 html {
   // font-size: 62.5%;
-  font-family: "Open, sans-serif";
+  font-family: var(--font-sans), Arial, sans-serif;
   line-height: 1.15; /* 1 */
   -webkit-text-size-adjust: 100%; /* 2 */
 }
 
 body {
+  background: #fbfaf7;
+  color: #26372d;
   width: 100%;
   min-height: 100vh;
   overflow-x: hidden;
@@ -37,10 +181,11 @@ sup {
 }
 
 button {
+  font-family: inherit;
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.5rem;
-  text-transform: capitalize;
+  text-transform: none;
 
   padding: 6px 16px;
 
@@ -182,7 +327,7 @@ input::-webkit-inner-spin-button {
   .mapboxgl-popup-tip {
     display: none; // Hide the popup tip/arrow
   }
-  
+
   .mapboxgl-popup-content {
     padding: 0 !important;
     overflow: hidden !important;
@@ -198,20 +343,20 @@ input::-webkit-inner-spin-button {
     padding: 8px !important;
     border-radius: 8px !important;
     background: white !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
-    border: 1px solid rgba(0,0,0,0.1) !important;
-    font-family: 'Roboto', Arial, sans-serif !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    font-family: "Roboto", Arial, sans-serif !important;
     font-size: 13px !important;
     color: #333 !important;
     font-weight: normal !important;
     max-width: 200px !important;
   }
-  
+
   .mapboxgl-popup-tip {
     border-top-color: white !important;
     border-bottom-color: white !important;
   }
-  
+
   .mapboxgl-popup-close-button {
     display: block !important;
   }

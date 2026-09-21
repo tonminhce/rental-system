@@ -21,7 +21,21 @@ import {
   TrendingDown,
 } from "@mui/icons-material";
 import PhoneIcon from "@mui/icons-material/Phone";
-import { Typography, Drawer, List, ListItem, ListItemText, Button, Dialog, IconButton, DialogContent, Box, Tooltip, CircularProgress, Chip } from "@mui/material";
+import {
+  Typography,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  Button,
+  Dialog,
+  IconButton,
+  DialogContent,
+  Box,
+  Tooltip,
+  CircularProgress,
+  Chip,
+} from "@mui/material";
 import "@scss/posts.scss";
 import _ from "lodash";
 import Link from "next/link";
@@ -29,54 +43,59 @@ import { useState, useMemo, useEffect } from "react";
 import PostComparison from "@/components/PostComparison/PostComparison";
 import SimplePagination from "@/components/Pagination/SimplePagination";
 import usePricePrediction from "@/hooks/usePricePrediction";
+import { useRouter, useParams } from "next/navigation";
+import { useSelector } from "react-redux";
+import { useAddToFavouriteMutation, useRemoveFromFavouriteMutation } from "@/redux/features/properties/propertyApi";
 
 const priceTagStyles = {
   tooltip: {
     maxWidth: 220,
-    backgroundColor: '#fff',
-    color: 'rgba(0, 0, 0, 0.87)',
-    boxShadow: '0px 5px 15px rgba(0, 0, 0, 0.2)',
-    borderRadius: '8px',
-    padding: '12px 16px',
-    '& .MuiTooltip-arrow': {
-      color: '#fff'
-    }
+    backgroundColor: "#fff",
+    color: "rgba(0, 0, 0, 0.87)",
+    boxShadow: "0px 5px 15px rgba(0, 0, 0, 0.2)",
+    borderRadius: "8px",
+    padding: "12px 16px",
+    "& .MuiTooltip-arrow": {
+      color: "#fff",
+    },
   },
   chipHigher: {
-    backgroundColor: 'rgba(244, 67, 54, 0.08)',
-    color: '#f44336',
-    border: '1px solid rgba(244, 67, 54, 0.2)',
-    marginLeft: '8px',
-    '&:hover': {
-      backgroundColor: 'rgba(244, 67, 54, 0.12)',
-    }
+    backgroundColor: "rgba(244, 67, 54, 0.08)",
+    color: "#f44336",
+    border: "1px solid rgba(244, 67, 54, 0.2)",
+    marginLeft: "8px",
+    "&:hover": {
+      backgroundColor: "rgba(244, 67, 54, 0.12)",
+    },
   },
   chipLower: {
-    backgroundColor: 'rgba(76, 175, 80, 0.08)',
-    color: '#4caf50',
-    border: '1px solid rgba(76, 175, 80, 0.2)',
-    marginLeft: '8px',
-    '&:hover': {
-      backgroundColor: 'rgba(76, 175, 80, 0.12)',
-    }
-  }
+    backgroundColor: "rgba(76, 175, 80, 0.08)",
+    color: "#4caf50",
+    border: "1px solid rgba(76, 175, 80, 0.2)",
+    marginLeft: "8px",
+    "&:hover": {
+      backgroundColor: "rgba(76, 175, 80, 0.12)",
+    },
+  },
 };
 
-export default function PostDetailPage({ params }) {
-  const { data, isLoading } = useGetPropertyByIdQuery(params.slug);
+export default function PostDetailPage() {
+  const { slug } = useParams();
+  const { data, isLoading, error, refetch } = useGetPropertyByIdQuery(slug);
+  const router = useRouter();
+  const authenticated = useSelector((state) => state.auth.isAuthenticated);
+  const [addFavorite] = useAddToFavouriteMutation();
+  const [removeFavorite] = useRemoveFromFavouriteMutation();
+  const [actionMessage, setActionMessage] = useState("");
+  const [saving, setSaving] = useState(false);
   const post = data?.post;
   const [isCompareDrawerOpen, setIsCompareDrawerOpen] = useState(false);
   const [selectedPostForComparison, setSelectedPostForComparison] = useState(null);
   const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
-  
-  const {
-    predictedPrice,
-    isPredicting,
-    priceDifference,
-    getPriceDifferenceText
-  } = usePricePrediction(post);
+
+  const { predictedPrice, isPredicting, priceDifference, getPriceDifferenceText } = usePricePrediction(post);
 
   // Fetch properties with pagination
   const { data: propertiesData, isLoading: isLoadingProperties } = useGetPropertiesQuery({
@@ -88,7 +107,7 @@ export default function PostDetailPage({ params }) {
 
   const otherProperties = useMemo(() => {
     if (!propertiesData?.properties || !post) return [];
-    return propertiesData.properties.filter(p => p.id !== post.id);
+    return propertiesData.properties.filter((p) => p.id !== post.id);
   }, [propertiesData?.properties, post]);
 
   const getPostSummary = ({ propertyType, address }) => {
@@ -117,7 +136,7 @@ export default function PostDetailPage({ params }) {
   const totalPages = useMemo(() => {
     return propertiesData?.pagination?.total_pages || 1;
   }, [propertiesData?.pagination]);
-  
+
   useEffect(() => {
     if (isCompareDrawerOpen) {
       setCurrentPage(1);
@@ -138,9 +157,7 @@ export default function PostDetailPage({ params }) {
               <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
                 Predicted Price
               </Typography>
-              <Typography variant="body2">
-                {predictedPrice?.toFixed(2)} triệu/tháng
-              </Typography>
+              <Typography variant="body2">{predictedPrice?.toFixed(2)} triệu/tháng</Typography>
             </Box>
           }
           arrow
@@ -158,7 +175,7 @@ export default function PostDetailPage({ params }) {
     },
     {
       label: "Bedroom",
-      value: post?.bedrooms || 3 + " Beds",
+      value: post?.bedrooms ?? "Not listed",
       icon: BedOutlined,
     },
     {
@@ -168,15 +185,50 @@ export default function PostDetailPage({ params }) {
     },
     {
       label: "Bathroom",
-      value: post?.bathrooms || 2 + " Baths",
+      value: post?.bathrooms ?? "Not listed",
       icon: BathtubOutlined,
     },
   ];
 
   if (isLoading) return <FullscreenLoading loading={isLoading} />;
+  if (error || !post)
+    return (
+      <main id="main-content" style={{ padding: 48 }}>
+        <Typography variant="h4">This home couldn’t be loaded.</Typography>
+        <Button onClick={refetch}>Try again</Button>
+        <Button component={Link} href="/rent">
+          Browse homes
+        </Button>
+      </main>
+    );
+  const photos = post.images || [];
+  const share = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setActionMessage("Link copied to clipboard.");
+    } catch {
+      setActionMessage("Copy this page’s address from your browser to share this home.");
+    }
+  };
+  const save = async () => {
+    if (!authenticated) {
+      router.push(`/login?returnURL=/posts/${post.id}`);
+      return;
+    }
+    setSaving(true);
+    try {
+      await (post.isFavourite ? removeFavorite(post.id) : addFavorite(post.id)).unwrap();
+      refetch();
+      window.dispatchEvent(new Event("favourite-post-updated"));
+    } catch {
+      setActionMessage("Couldn’t update saved homes. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <div className="posts_wrapper">
+    <main id="main-content" className="posts_wrapper">
       <div className="posts_container">
         <div className="posts_breadcrumbs">
           <Link href="/rent" className="posts_link">
@@ -188,15 +240,24 @@ export default function PostDetailPage({ params }) {
           {post?.name}
         </Typography>
         <Typography variant="body1" component="h2">
-          {formatAddress(post.address)}
+          {post.displayedAddress || formatAddress(post.address || post)}
         </Typography>
 
-        <div className="posts_gallery">
-          <PropertyImage src={post.thumbnail} />
-          <PropertyImage src={post.images[0].url} />
-          <PropertyImage src={post.images[1].url} />
-          <PropertyImage src={post.images[2].url} />
-          <PropertyImage src={post.images[3].url} />
+        {process.env.NEXT_PUBLIC_DEMO_MODE === "true" && (
+          <Typography sx={{ mt: 2, color: "text.secondary" }} variant="body2">
+            Sample listing · Photos are illustrative. This is not a verified rental offer.
+          </Typography>
+        )}
+        <div className={`posts_gallery ${photos.length <= 1 ? "posts_gallery--single" : ""}`}>
+          {photos.length ? (
+            photos
+              .slice(0, 4)
+              .map((photo, index) => (
+                <PropertyImage key={photo.id || index} src={photo.url} alt={`${post.name} — photo ${index + 1}`} />
+              ))
+          ) : (
+            <Box sx={{ p: 5 }}>No photos have been added to this home.</Box>
+          )}
         </div>
         <div className="posts_body">
           {/* LEFT */}
@@ -213,9 +274,7 @@ export default function PostDetailPage({ params }) {
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
                           Predicted Price
                         </Typography>
-                        <Typography variant="body2">
-                          {predictedPrice?.toFixed(2)} triệu/tháng
-                        </Typography>
+                        <Typography variant="body2">{predictedPrice?.toFixed(2)} triệu/tháng</Typography>
                       </Box>
                     }
                     arrow
@@ -232,20 +291,25 @@ export default function PostDetailPage({ params }) {
                 )}
               </p>
               <div className="posts_actions">
-                <div className="posts_action">
+                <button className="posts_action" onClick={share}>
                   <IosShare sx={{ fontSize: 20 }} />
                   Share
-                </div>
-                <div className="posts_action">
+                </button>
+                <button className="posts_action" onClick={save} disabled={saving}>
                   <FavoriteBorder sx={{ fontSize: 20 }} />
-                  Save
-                </div>
-                <div className="posts_action" onClick={() => setIsCompareDrawerOpen(true)}>
+                  {post.isFavourite ? "Saved" : "Save"}
+                </button>
+                <button className="posts_action" onClick={() => setIsCompareDrawerOpen(true)}>
                   <CompareArrows sx={{ fontSize: 20 }} />
                   Compare
-                </div>
+                </button>
               </div>
             </div>
+            {actionMessage && (
+              <Typography role="status" variant="body2" sx={{ mb: 2 }}>
+                {actionMessage}
+              </Typography>
+            )}
             {/* Features */}
             <div className="posts_feature">
               <h4 style={{ fontWeight: 500 }}>Home Highlights</h4>
@@ -256,9 +320,7 @@ export default function PostDetailPage({ params }) {
                       {feature.icon && <feature.icon sx={{ fontSize: 20 }} />}
                       {feature.label}
                     </p>
-                    <div className="posts_featureValue">
-                      {feature.value}
-                    </div>
+                    <div className="posts_featureValue">{feature.value}</div>
                   </div>
                 ))}
               </div>
@@ -267,9 +329,6 @@ export default function PostDetailPage({ params }) {
             <div className="posts_description">
               <h4>Home Description</h4>
               <p>{post.description}</p>
-              <div className="posts_descriptionButton">
-                Show more <ChevronRightOutlined />
-              </div>
             </div>
             {/* Map */}
             <div className="posts_location">
@@ -285,14 +344,19 @@ export default function PostDetailPage({ params }) {
             <div className="posts_card">
               <OwnerCard owner={post.contactName} />
               <div className="posts_cardActions">
-                <button className="posts_cardButton posts_cardButton--active">
-                  <PhoneIcon sx={{ fontSize: 25 }} />
-                  {post.contactPhone}
-                </button>
-                <button className="posts_cardButton">
-                  <MessageOutlined sx={{ fontSize: 20 }} />
-                  Send message
-                </button>
+                {post.contactPhone ? (
+                  <a
+                    href={`tel:${post.contactPhone.replace(/[^+\d]/g, "")}`}
+                    className="posts_cardButton posts_cardButton--active"
+                  >
+                    <PhoneIcon sx={{ fontSize: 25 }} />
+                    {post.contactPhone}
+                  </a>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No contact number is listed. This owner cannot be contacted through renTalk yet.
+                  </Typography>
+                )}
               </div>
             </div>
           </div>
@@ -300,40 +364,35 @@ export default function PostDetailPage({ params }) {
       </div>
 
       {/* Comparison Drawer */}
-      <Drawer
-        anchor="right"
-        open={isCompareDrawerOpen}
-        onClose={() => setIsCompareDrawerOpen(false)}
-      >
-        <div style={{ width: 300, padding: 16, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Drawer anchor="right" open={isCompareDrawerOpen} onClose={() => setIsCompareDrawerOpen(false)}>
+        <div style={{ width: 300, padding: 16, height: "100%", display: "flex", flexDirection: "column" }}>
           <Typography variant="h6" gutterBottom>
             Compare with
           </Typography>
-          
+
           {isLoadingProperties ? (
             <Typography>Loading properties...</Typography>
           ) : otherProperties.length === 0 ? (
             <Typography>No other properties available for comparison</Typography>
           ) : (
-            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              
-              <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+            <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <Box sx={{ flexGrow: 1, overflow: "auto" }}>
                 <List>
                   {otherProperties.map((property) => (
-                    <ListItem 
-                      button 
-                      key={property.id} 
+                    <ListItem
+                      button
+                      key={property.id}
                       onClick={() => handleSelectPostForComparison(property)}
                       selected={selectedPostForComparison?.id === property.id}
                       sx={{
                         borderRadius: 1,
                         mb: 1,
-                        '&.Mui-selected': {
-                          backgroundColor: '#f0f7ff',
+                        "&.Mui-selected": {
+                          backgroundColor: "#f0f7ff",
                         },
                       }}
                     >
-                      <ListItemText 
+                      <ListItemText
                         primary={property.name}
                         secondary={`${property.price} triệu/tháng · ${property.area} m²`}
                       />
@@ -343,8 +402,8 @@ export default function PostDetailPage({ params }) {
               </Box>
 
               {totalPages > 1 && (
-                <Box sx={{ pt: 1, borderTop: '1px solid #eee' }}>
-                  <SimplePagination 
+                <Box sx={{ pt: 1, borderTop: "1px solid #eee" }}>
+                  <SimplePagination
                     currentPage={currentPage}
                     totalPages={totalPages}
                     onPageChange={handlePageChange}
@@ -355,7 +414,7 @@ export default function PostDetailPage({ params }) {
               )}
             </Box>
           )}
-          
+
           <Button
             variant="contained"
             fullWidth
@@ -363,9 +422,9 @@ export default function PostDetailPage({ params }) {
             disabled={!selectedPostForComparison}
             sx={{
               mt: 2,
-              bgcolor: '#ff5722',
-              '&:hover': {
-                bgcolor: '#e64a19',
+              bgcolor: "#ff5722",
+              "&:hover": {
+                bgcolor: "#e64a19",
               },
             }}
           >
@@ -375,32 +434,25 @@ export default function PostDetailPage({ params }) {
       </Drawer>
 
       {/* Comparison Modal */}
-      <Dialog
-        open={isComparisonModalOpen}
-        onClose={handleCloseModal}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogContent sx={{ p: 0, position: 'relative' }}>
+      <Dialog open={isComparisonModalOpen} onClose={handleCloseModal} maxWidth="lg" fullWidth>
+        <DialogContent sx={{ p: 0, position: "relative" }}>
           <IconButton
             onClick={handleCloseModal}
             sx={{
-              position: 'absolute',
+              position: "absolute",
               right: 8,
               top: 8,
-              color: 'grey.500',
-              bgcolor: 'white',
-              '&:hover': { bgcolor: 'grey.100' },
+              color: "grey.500",
+              bgcolor: "white",
+              "&:hover": { bgcolor: "grey.100" },
               zIndex: 1,
             }}
           >
             <Close />
           </IconButton>
-          {selectedPostForComparison && (
-            <PostComparison post1={post} post2={selectedPostForComparison} />
-          )}
+          {selectedPostForComparison && <PostComparison post1={post} post2={selectedPostForComparison} />}
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   );
 }

@@ -139,7 +139,7 @@ export default function ProfileForm({ initialData, isEdit = false }) {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: '900px', mx: 'auto' }}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: '900px', mx: 'auto' }} className="animate-fade-in-up">
       <Card sx={{ mb: 4, overflow: 'visible' }}>
         <CardHeader 
           title={

@@ -22,7 +22,7 @@ export const PROPERTY_TYPE_DETAILS = [
     Icon: HomeOutlined,
   },
   {
-    value: "rooming_house",
+    value: "room",
     label: "Rooming House",
     viLabel: "Phòng trọ",
     Icon: HolidayVillageOutlined,
@@ -34,8 +34,8 @@ export const PROPERTY_TYPE_DETAILS = [
     Icon: HomeWorkOutlined,
   },
   {
-    value: "appartment",
-    label: "Appartment",
+    value: "apartment",
+    label: "Apartment",
     viLabel: "Căn hộ chung cư",
     Icon: ApartmentOutlined,
   },
@@ -86,9 +86,9 @@ export const PROPERTY_TYPES = {
     viLabel: "Ký túc xá",
     Icon: HomeWorkOutlined,
   },
-  appartment: {
-    value: "appartment",
-    label: "Appartment",
+  apartment: {
+    value: "apartment",
+    label: "Apartment",
     viLabel: "Căn hộ chung cư",
     Icon: ApartmentOutlined,
   },

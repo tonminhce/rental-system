@@ -1,212 +1,166 @@
 "use client";
-import Map from "@/components/GetPropertiesPage/components/Map";
-import useGetPropertyTypes from "@/hooks/useGetPropertyTypes";
+import dynamic from "next/dynamic";
 import { useGetPropertiesQuery } from "@/redux/features/properties/propertyApi";
-import { Box, styled } from "@mui/material";
-import Grid from "@mui/material/Unstable_Grid2/Grid2";
-import { useSearchParams } from "next/navigation";
-import { useMemo, useEffect } from "react";
-import { NumberParam, useQueryParam, withDefault } from "use-query-params";
-import FullscreenLoading from "../FullscreenLoading";
-import PropertyList from "./components/PropertyList";
+import { Alert, Box, Button, Chip, Skeleton, Stack, Typography } from "@mui/material";
+import { MapOutlined, ViewModuleOutlined } from "@mui/icons-material";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { updateFilter } from "@/redux/features/filter/filterSlice";
-import eventBus, { CHATBOT_EVENTS } from '@/utils/chatbotEventBus';
-import { useRouter } from 'next/navigation';
-import { StringParam } from 'use-query-params';
+import eventBus, { CHATBOT_EVENTS } from "@/utils/chatbotEventBus";
+import PropertyList from "./components/PropertyList";
 
-const MapContainer = styled(Box)(({ theme }) => ({
-  position: "sticky",
-  width: "100%",
-  height: "80vh",
-  borderRadius: 2,
-  overflow: "hidden",
-  marginLeft: theme.spacing(2),
-  top: 116,
-}));
-
+const RentalMap = dynamic(() => import("./components/Map"), {
+  ssr: false,
+  loading: () => <Skeleton variant="rectangular" height="100%" />,
+});
+const supported = [
+  "minPrice",
+  "maxPrice",
+  "minArea",
+  "maxArea",
+  "centerLng",
+  "centerLat",
+  "radius",
+  "bounds",
+  "district",
+  "propertyType",
+];
 export default function GetPropertiesPage({ transaction_type = "rent" }) {
-  const pageSize = 10;
-  const [currentPage, setCurrentPage] = useQueryParam("page", withDefault(NumberParam, 1));
-  const dispatch = useDispatch();
+  const search = useSearchParams();
+  const pathname = usePathname();
   const router = useRouter();
-  
-  const [, setCenterLat] = useQueryParam("centerLat", StringParam);
-  const [, setCenterLng] = useQueryParam("centerLng", StringParam);
-  const [, setRadius] = useQueryParam("radius", StringParam);
-  
-  const handlePageChange = (event, page) => {
-    setCurrentPage(page);
-  };
-
-  const searchParam = useSearchParams();
-  const propertyTypes = useGetPropertyTypes();
-  
-  const centerLat = searchParam.get("centerLat");
-  const centerLng = searchParam.get("centerLng");
-  const boundary = searchParam.get("bounds");
-  
-  const defaultLng = 106.660172;
-  const defaultLat = 10.762622;
-
-  const mapCenterLng = centerLng ? parseFloat(centerLng) : defaultLng;
-  const mapCenterLat = centerLat ? parseFloat(centerLat) : defaultLat;
-
-  const supportedQuery = ["minPrice", "maxPrice", "minArea", "maxArea", "centerLng", "centerLat", "radius", "bounds"];
-  const queryObj = useMemo(() => {
-    const res = {};
-    searchParam.forEach((value, key) => {
-      if (supportedQuery.includes(key)) {
-        res[key] = value;
-      }
-    });
-    return res;
-  }, [searchParam]);
-
-  useEffect(() => {
-    const filterParams = {
-      ...queryObj,
-      page: currentPage,
+  const dispatch = useDispatch();
+  const [showMap, setShowMap] = useState(true);
+  const query = useMemo(() => {
+    const values = Object.fromEntries([...search.entries()].filter(([key, value]) => supported.includes(key) && value));
+    if (search.getAll("propertyType").length) values.propertyType = search.getAll("propertyType").join(",");
+    return {
+      ...values,
+      page: Math.max(1, Math.floor(Number(search.get("page")) || 1)),
+      limit: 12,
       transactionType: transaction_type,
-      propertyType: propertyTypes
     };
-    
-    if (filterParams.centerLat) filterParams.centerLat = parseFloat(filterParams.centerLat);
-    if (filterParams.centerLng) filterParams.centerLng = parseFloat(filterParams.centerLng);
-    if (filterParams.minPrice) filterParams.minPrice = parseFloat(filterParams.minPrice);
-    if (filterParams.maxPrice) filterParams.maxPrice = parseFloat(filterParams.maxPrice);
-    if (filterParams.minArea) filterParams.minArea = parseFloat(filterParams.minArea);
-    if (filterParams.maxArea) filterParams.maxArea = parseFloat(filterParams.maxArea);
-    if (filterParams.radius) filterParams.radius = parseFloat(filterParams.radius);
-    
-    dispatch(updateFilter(filterParams));
-    
-  }, [queryObj, currentPage, transaction_type, propertyTypes, dispatch]);
-
+  }, [search, transaction_type]);
+  const { data, error, isLoading, isFetching, refetch } = useGetPropertiesQuery(query);
   useEffect(() => {
-    const locationUnsubscribe = eventBus.subscribe(
-      CHATBOT_EVENTS.UPDATE_MAP_LOCATION,
-      (locationData) => {
-        
-        if (locationData.centerLat && locationData.centerLng) {
-          setCenterLat(locationData.centerLat.toString());
-          setCenterLng(locationData.centerLng.toString());
-          
-          if (locationData.radius) {
-            setRadius(locationData.radius.toString());
-          }
-          
-          window.dispatchEvent(new CustomEvent('refresh-properties'));
+    dispatch(updateFilter(query));
+  }, [dispatch, query]);
+  useEffect(() => {
+    const update = (values) => {
+      const params = new URLSearchParams(window.location.search);
+      for (const [key, value] of Object.entries(values))
+        if (supported.includes(key)) {
+          if (value == null || value === "") params.delete(key);
+          else params.set(key, String(value));
         }
-      }
-    );
-    
-    const filterUnsubscribe = eventBus.subscribe(
-      CHATBOT_EVENTS.UPDATE_FILTERS,
-      (filterData) => {
-        console.log("GetPropertiesPage received filter update:", filterData);
-        
-        if (window.dispatchEvent) {
-          try {
-            const notifyEvent = new CustomEvent('show-notification', { 
-              detail: { 
-                message: "Map filters updated based on your query", 
-                type: "success",
-                duration: 3000
-              } 
-            });
-            window.dispatchEvent(notifyEvent);
-          } catch (e) {
-            console.log("Could not show notification:", e);
-          }
-        }
-        
-        const searchParams = new URLSearchParams();
-        
-        if (filterData.centerLat) searchParams.set('centerLat', filterData.centerLat.toString());
-        if (filterData.centerLng) searchParams.set('centerLng', filterData.centerLng.toString());
-        if (filterData.radius) searchParams.set('radius', filterData.radius.toString());
-        if (filterData.minPrice) searchParams.set('minPrice', filterData.minPrice.toString());
-        if (filterData.maxPrice) searchParams.set('maxPrice', filterData.maxPrice.toString());
-        if (filterData.minArea) searchParams.set('minArea', filterData.minArea.toString());
-        if (filterData.maxArea) searchParams.set('maxArea', filterData.maxArea.toString());
-        if (filterData.propertyType) searchParams.set('propertyType', filterData.propertyType);
-        
-        const url = new URL(window.location.href);
-        url.search = searchParams.toString();
-        window.history.pushState({ path: url.toString() }, '', url.toString());
-        
-        window.dispatchEvent(new CustomEvent('refresh-properties'));
-      }
-    );
-    
-    const handleRefresh = () => {
-      const currentSearchParams = new URLSearchParams(window.location.search);
-      dispatch(updateFilter({
-        ...Object.fromEntries(currentSearchParams.entries())
-      }));
+      params.delete("page");
+      router.push(`${pathname}?${params}`, { scroll: false });
     };
-    
-    window.addEventListener('refresh-properties', handleRefresh);
-    
+    const offLocation = eventBus.subscribe(CHATBOT_EVENTS.UPDATE_MAP_LOCATION, update);
+    const offFilters = eventBus.subscribe(CHATBOT_EVENTS.UPDATE_FILTERS, update);
     return () => {
-      locationUnsubscribe();
-      filterUnsubscribe();
-      window.removeEventListener('refresh-properties', handleRefresh);
+      offLocation();
+      offFilters();
     };
-  }, [dispatch, setCenterLat, setCenterLng, setRadius]);
-
-  const { data, error, isLoading } = useGetPropertiesQuery({
-    page: currentPage,
-    limit: pageSize,
-    propertyType: propertyTypes,
-    transactionType: transaction_type,
-    radius: 1,
-    ...queryObj,
-  });
-
-  const transformedProperties = (data?.properties ?? []).map((property) => ({
-    ...property,
-    thumbnail: property.images?.length > 0 ? property.images[0].url : "https://www.pngitem.com/pimgs/m/152-1527570_default-house-icon-hd-png-download.png",
-    address: {
-      street: property.street || "",
-      district: property.district || "",
-      province: property.province || "",
-      ward: property.ward || "",
-    },
-  }));
-
-  const propertyMarkers = (data?.properties ?? []).map((property) => ({
-    coordinates: property.coordinates,
-    name: property.name,
-    price: property.price,
-    image: property.images?.length > 0 ? property.images[0].url : "https://www.pngitem.com/pimgs/m/152-1527570_default-house-icon-hd-png-download.png",
-    id: property.id,
-    displayed_address: property.displayedAddress,
-    area: property.area || 0,
-    bedrooms: property.bedrooms || 1,
-    bathrooms: property.bathrooms || 1
-  }));
-
+  }, [pathname, router]);
+  const properties = useMemo(
+    () => (data?.properties || []).map((p) => ({ ...p, thumbnail: p.images?.[0]?.url })),
+    [data],
+  );
+  const markers = useMemo(
+    () =>
+      properties
+        .filter((p) => p.coordinates?.coordinates?.every(Number.isFinite))
+        .map((p) => ({ ...p, image: p.thumbnail, displayed_address: p.displayedAddress })),
+    [properties],
+  );
+  const center = useMemo(
+    () => [Number(query.centerLng) || 106.701, Number(query.centerLat) || 10.786],
+    [query.centerLng, query.centerLat],
+  );
+  const setPage = (_, page) => {
+    const params = new URLSearchParams(search);
+    params.set("page", page);
+    router.push(`${pathname}?${params}`);
+  };
   return (
-    <Grid container>
-      <Grid xs={12} sm={6} md={7}>
-        {isLoading ? (
-          <FullscreenLoading loading={isLoading} />
-        ) : (
-          <PropertyList
-            properties={transformedProperties}
-            totalPages={data?.pagination?.total_pages ?? 0}
-            currentPage={currentPage}
-            handlePageChange={handlePageChange}
-          />
+    <Box sx={{ pb: 6 }}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        gap={2}
+        sx={{ mb: 3, mt: 1 }}
+        className="animate-fade-in"
+      >
+        <Box>
+          <Typography variant="overline" sx={{ letterSpacing: 2, color: "text.secondary", fontSize: 10 }}>
+            FIND YOUR NEXT CHAPTER
+          </Typography>
+          <Typography component="h1" variant="h4" sx={{ fontSize: { xs: 25, md: 32 }, my: 1 }}>
+            Homes in {query.district || "Ho Chi Minh City"}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {error
+              ? "Listings temporarily unavailable"
+              : isFetching
+                ? "Finding your next home…"
+                : `${data?.pagination?.total_records ?? properties.length} homes to explore`}
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={showMap ? <ViewModuleOutlined /> : <MapOutlined />}
+          onClick={() => setShowMap(!showMap)}
+          sx={{ whiteSpace: "nowrap" }}
+        >
+          {showMap ? "Hide map" : "Show map"}
+        </Button>
+      </Stack>
+      {process.env.NEXT_PUBLIC_DEMO_MODE === "true" && (
+        <Alert severity="info" sx={{ mb: 3, bgcolor: "#edf1e7", color: "#526047" }}>
+          Local preview · Sample listings and illustrative photos, not verified availability.
+        </Alert>
+      )}
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: showMap ? "1.15fr 1fr" : "1fr" }, gap: 3 }}>
+        <Box aria-busy={isFetching}>
+          {error ? (
+            <Alert severity="error" action={<Button onClick={refetch}>Retry</Button>}>
+              We couldn’t load homes. Please try again.
+            </Alert>
+          ) : isLoading ? (
+            <Stack spacing={2}>
+              {[1, 2, 3].map((n) => (
+                <Skeleton key={n} variant="rounded" height={230} />
+              ))}
+            </Stack>
+          ) : (
+            <PropertyList
+              properties={properties}
+              totalPages={data?.pagination?.total_pages ?? 0}
+              currentPage={query.page}
+              handlePageChange={setPage}
+            />
+          )}
+        </Box>
+        {showMap && (
+          <Box
+            aria-label="Rental locations map"
+            sx={{
+              height: { xs: 400, md: "calc(100vh - 180px)" },
+              minHeight: 400,
+              position: { md: "sticky" },
+              top: 110,
+              borderRadius: 3,
+              overflow: "hidden",
+              border: "1px solid #dce3d4",
+            }}
+          >
+            <RentalMap center={center} markerList={markers} />
+          </Box>
         )}
-      </Grid>
-      <Grid xs={12} sm={6} md={5} sx={{ position: "relative" }}>
-        <MapContainer>
-          <Map center={[mapCenterLng, mapCenterLat]} markerList={propertyMarkers} />
-        </MapContainer>
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 }

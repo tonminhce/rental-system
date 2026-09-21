@@ -50,42 +50,65 @@ export default function RoommatePage() {
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" fontWeight="bold">Roommate Matching</Typography>
+    <Box className="page-fade-in-up" sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 4 }, py: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 4 }}>
+        <Box>
+          <Typography variant="caption" sx={{ color: '#54705b', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+            Community · Co-living
+          </Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600, color: '#234c3e', mt: 0.5, letterSpacing: '-0.8px' }}>
+            Roommate Matching
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#687363', mt: 0.5 }}>
+            Find compatible companions by living habits, sleep schedules, and lifestyle values.
+          </Typography>
+        </Box>
         <Button 
           component={Link}
           href="/roommate/profile"
           variant="contained"
           sx={{ 
-            bgcolor: orange[600], 
-            '&:hover': { bgcolor: orange[700] },
+            bgcolor: '#234c3e', 
+            color: '#ffffff',
+            '&:hover': { bgcolor: '#17362b', transform: 'translateY(-2px)' },
             textTransform: 'none',
-            px: 3
+            fontWeight: 600,
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(35, 76, 62, 0.2)',
+            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            px: 3,
+            py: 1,
           }}
         >
-          {myProfile ? 'Update Personal Profile' : 'Create Roommate Profile'}
+          {myProfile ? 'Update My Profile' : 'Create Roommate Profile'}
         </Button>
       </Box>
 
       <Box sx={{ width: '100%' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ borderBottom: 1, borderColor: '#e4e8dd' }}>
           <Tabs 
             value={activeTab} 
             onChange={handleTabChange}
             TabIndicatorProps={{
-              style: { backgroundColor: orange[600] }
+              style: { backgroundColor: '#234c3e', height: 3, borderRadius: '3px 3px 0 0' }
             }}
             sx={{
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 500,
+                fontSize: '14px',
+                color: '#657361',
+                transition: 'color 0.2s ease',
+              },
               '& .MuiTab-root.Mui-selected': {
-                color: orange[600],
-                fontWeight: 'bold'
+                color: '#234c3e',
+                fontWeight: 700,
               }
             }}
           >
-            <Tab label="All Profiles" value="all" />
+            <Tab label="All Roommate Profiles" value="all" />
             <Tab 
-              label="Suggested Matches" 
+              label="Suggested For You" 
               value="suggestions" 
               disabled={!isAuthenticated}
             />
@@ -105,7 +128,7 @@ export default function RoommatePage() {
             <RoommateList 
               profiles={suggestions} 
               isError={suggestionsError}
-              emptyMessage="No roommate suggestions available. Please complete your profile to get personalized matches."
+              emptyMessage="No matching profiles yet. Complete or update your profile to discover personalized matches!"
             />
           )}
         </Box>

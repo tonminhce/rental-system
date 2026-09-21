@@ -23,14 +23,21 @@ function LoginPage() {
       dispatch(loginSuccess(response.data));
       redirect();
     } catch (error) {
-      setFieldError("password", error.data.message);
+      setFieldError("password", error?.data?.message || "We couldn’t sign you in. Check your details and try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <div className="auth_form-container">
+      <div className="auth_intro">
+        <span>YOUR NEXT CHAPTER</span>
+        <h1>Welcome home.</h1>
+        <p>Log in to save the places you love.</p>
+      </div>
       <Formik
-        initialValues={{ phone: "", password: "" }}
+        initialValues={{ email: "", password: "" }}
         validationSchema={loginSchema}
         validateOnChange={false}
         validateOnBlur={false}
@@ -42,6 +49,8 @@ function LoginPage() {
               className={clsx("auth_form-input", errors.email && "auth_form-input--error")}
               type="email"
               name="email"
+              aria-label="Email address"
+              autoComplete="email"
               placeholder="Email*"
             />
             <ErrorMessage className="auth_form-message auth_form-message--error" name="email" component="p" />
@@ -49,6 +58,8 @@ function LoginPage() {
               className={clsx("auth_form-input", errors.password && "auth_form-input--error")}
               type="password"
               name="password"
+              aria-label="Password"
+              autoComplete="current-password"
               placeholder="Password*"
             />
             <ErrorMessage className="auth_form-message auth_form-message--error" name="password" component="p" />
@@ -56,8 +67,8 @@ function LoginPage() {
           </Form>
         )}
       </Formik>
-      <Link href="/signup">
-        <button className="btn btn-default-success btn-xl">Create new account</button>
+      <Link href="/signup" className="auth_signup-link">
+        New here? Create an account →
       </Link>
     </div>
   );

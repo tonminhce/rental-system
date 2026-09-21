@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export default function usePricePrediction(propertyData) {
   const [predictedPrice, setPredictedPrice] = useState(null);
@@ -8,18 +8,24 @@ export default function usePricePrediction(propertyData) {
 
   useEffect(() => {
     const predictPrice = async () => {
-      if (!propertyData || !propertyData.address || !propertyData.coordinates) return;
+      if (
+        !process.env.NEXT_PUBLIC_CRAWLER_PRICE_PREDICTION_ENDPOINT ||
+        !propertyData ||
+        !propertyData.address ||
+        !propertyData.coordinates
+      )
+        return;
 
       setIsPredicting(true);
       setError(null);
-      
+
       try {
         const predictionEndpoint = process.env.NEXT_PUBLIC_CRAWLER_PRICE_PREDICTION_ENDPOINT;
-        
+
         const response = await fetch(predictionEndpoint, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             province: propertyData.address.province,
@@ -32,10 +38,10 @@ export default function usePricePrediction(propertyData) {
             bathrooms: propertyData.bathrooms || 0,
           }),
         });
-        
+
         const result = await response.json();
         setPredictedPrice(result.price);
-        
+
         // Calculate price difference percentage
         if (propertyData.price && result.price) {
           const actualPrice = parseFloat(propertyData.price);
@@ -44,8 +50,8 @@ export default function usePricePrediction(propertyData) {
           setPriceDifference(diffPercentage);
         }
       } catch (error) {
-        console.error('Error predicting price:', error);
-        setError('Failed to predict price');
+        console.error("Error predicting price:", error);
+        setError("Failed to predict price");
       } finally {
         setIsPredicting(false);
       }
@@ -55,15 +61,15 @@ export default function usePricePrediction(propertyData) {
   }, [propertyData]);
 
   const getPriceDifferenceText = () => {
-    if (priceDifference === null) return '';
-    
+    if (priceDifference === null) return "";
+
     const absPercentage = Math.abs(priceDifference).toFixed(1);
     if (priceDifference > 0) {
       return `${absPercentage}% higher than predicted`;
     } else if (priceDifference < 0) {
       return `${absPercentage}% lower than predicted`;
     }
-    return 'Same as predicted price';
+    return "Same as predicted price";
   };
 
   return {
@@ -71,6 +77,6 @@ export default function usePricePrediction(propertyData) {
     isPredicting,
     priceDifference,
     error,
-    getPriceDifferenceText
+    getPriceDifferenceText,
   };
-} 
+}

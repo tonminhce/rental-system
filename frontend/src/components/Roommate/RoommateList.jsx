@@ -4,8 +4,8 @@ import RoommateCard from './RoommateCard';
 export default function RoommateList({ profiles, isError, emptyMessage }) {
   if (isError) {
     return (
-      <Alert severity="error" sx={{ my: 2 }}>
-        Failed to load roommate profiles. Please try again later.
+      <Alert severity="warning" sx={{ my: 2, borderRadius: 2, bgcolor: '#fef7e0', color: '#7a5a00' }}>
+        Unable to load profiles right now. Please try again in a moment.
       </Alert>
     );
   }
@@ -15,25 +15,41 @@ export default function RoommateList({ profiles, isError, emptyMessage }) {
       <Box 
         sx={{ 
           textAlign: 'center',
-          p: 3,
-          border: 1,
-          borderColor: 'grey.300',
-          borderRadius: 1,
-          bgcolor: 'grey.50'
+          py: 8,
+          px: 3,
+          border: '1px dashed #d0d7c7',
+          borderRadius: 3,
+          bgcolor: '#faf9f5',
+          animation: 'fadeInUp 0.4s ease-out both',
         }}
       >
-        <Typography>{emptyMessage}</Typography>
+        <Typography variant="subtitle1" sx={{ color: '#234c3e', mb: 1, fontWeight: 600 }}>
+          {emptyMessage}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Find your ideal roommate with shared schedules, lifestyles, and habits.
+        </Typography>
       </Box>
     );
   }
 
   return (
     <Grid container spacing={3}>
-      {profiles.map((profile) => (
-        <Grid item xs={12} sm={6} md={4} key={profile.id}>
+      {profiles.map((profile, index) => (
+        <Grid 
+          item 
+          xs={12} 
+          sm={6} 
+          md={4} 
+          key={profile.id}
+          sx={{
+            animation: 'fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+            animationDelay: `${Math.min(index * 60, 400)}ms`,
+          }}
+        >
           <RoommateCard 
             profile={profile} 
-            isSuggestion={emptyMessage.includes('suggestion')}
+            isSuggestion={Boolean(emptyMessage?.includes('suggestion'))}
           />
         </Grid>
       ))}

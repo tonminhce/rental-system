@@ -1,6 +1,39 @@
 @import "@scss/_variables.scss";
 @import "@scss/_mixins.scss";
 
+.posts_gallery.posts_gallery--single {
+  display: block;
+  height: 450px;
+}
+.posts_actions button {
+  background: transparent;
+  padding: 4px;
+  font-size: 12px;
+}
+.posts_cardButton {
+  text-decoration: none;
+}
+@media (max-width: 760px) {
+  .posts_body {
+    grid-template-columns: 1fr !important;
+  }
+  .posts_container {
+    padding: 24px !important;
+  }
+  .posts_gallery,
+  .posts_gallery.posts_gallery--single {
+    height: 280px;
+  }
+  .posts_info {
+    display: flex !important;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .posts_actions {
+    justify-content: flex-start !important;
+  }
+}
+
 .posts {
   &_wrapper {
     width: 100%;
@@ -9,9 +42,11 @@
   &_container {
     display: flex;
     flex-direction: column;
-    width: 1200px;
+    width: 100%;
+    max-width: 1200px;
     padding: 16px 32px;
     margin: 0 auto;
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   &_breadcrumbs {
@@ -39,11 +74,17 @@
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
     font-size: 0.875rem;
     text-decoration: none;
     color: $primary-color;
-    font-weight: 500;
+    font-weight: 600;
+    transition: transform 0.2s ease, color 0.2s ease;
+
+    &:hover {
+      transform: translateX(-4px);
+      color: #17382a;
+    }
   }
 
   &_content {
@@ -64,6 +105,19 @@
     overflow: hidden;
     gap: 6px;
     margin: 24px 0;
+
+    & > div {
+      overflow: hidden;
+      img {
+        transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        &:hover {
+          transform: scale(1.04);
+        }
+      }
+    }
 
     & div:first-child {
       grid-column-start: 1;
