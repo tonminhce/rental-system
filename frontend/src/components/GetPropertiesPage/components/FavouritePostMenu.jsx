@@ -28,22 +28,26 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
           direction="row"
           key={property.id}
           py={1}
+          px={1}
+          alignItems="center"
           sx={{
             textDecoration: "none",
             color: "inherit",
             cursor: "pointer",
             position: "relative",
+            borderRadius: "8px",
+            transition: "background-color 0.2s ease",
             "&:hover": {
-              backgroundColor: grey[200],
+              backgroundColor: "rgba(35, 76, 62, 0.06)",
             },
             "&:hover .delete-icon": {
               display: "block",
             },
           }}
         >
-          <Box style={{ position: "relative", height: "80px", width: "100px" }}>
+          <Box style={{ position: "relative", height: "70px", width: "90px", borderRadius: "6px", overflow: "hidden", flexShrink: 0 }}>
             {property?.images?.[0]?.url && (
-              <Image src={property.images[0].url} width={100} height={80} alt={property.name} />
+              <Image src={property.images[0].url} fill sizes="90px" style={{ objectFit: "cover" }} alt={property.name} />
             )}
           </Box>
           <Typography
@@ -51,8 +55,14 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
             href={`/posts/${property.id}`}
             key={property.id}
             variant="body2"
-            ml={1}
+            ml={1.5}
             mr={3}
+            sx={{
+              fontWeight: 500,
+              textDecoration: "none",
+              color: "#26372d",
+              "&:hover": { color: "#234c3e" },
+            }}
           >
             {property.name}
           </Typography>
@@ -62,8 +72,13 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
             sx={{
               display: "none",
               position: "absolute",
-              right: 5,
-              top: 25,
+              right: 8,
+              top: "50%",
+              transform: "translateY(-50%)",
+              fontSize: 18,
+              color: "#70796b",
+              transition: "color 0.2s ease",
+              "&:hover": { color: "#d32f2f" },
             }}
           />
         </Stack>
@@ -112,13 +127,16 @@ export default function FavouritePostMenu({ anchorEl, open, onCancel }) {
         paper: {
           style: {
             width: "380px",
+            borderRadius: "14px",
+            border: "1px solid #dce3d4",
+            boxShadow: "0 12px 36px rgba(35, 76, 62, 0.14)",
           },
         },
       }}
     >
-      <Stack direction="column" p={1}>
-        <Typography variant="body1" fontWeight="bold" component="h6" align="center">
-          Your favourite posts
+      <Stack direction="column" p={1.5}>
+        <Typography variant="body1" fontWeight="700" color="#234c3e" component="h6" align="center">
+          Saved Homes
         </Typography>
 
         <Divider sx={{ my: 1 }} />

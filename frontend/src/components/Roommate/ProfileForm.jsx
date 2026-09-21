@@ -26,7 +26,6 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
-import { orange } from '@mui/material/colors';
 
 export default function ProfileForm({ initialData, isEdit = false }) {
   const router = useRouter();
@@ -140,10 +139,10 @@ export default function ProfileForm({ initialData, isEdit = false }) {
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: '900px', mx: 'auto' }} className="animate-fade-in-up">
-      <Card sx={{ mb: 4, overflow: 'visible' }}>
+      <Card sx={{ mb: 4, overflow: 'visible', borderRadius: 3, border: '1px solid #e3e7dc' }}>
         <CardHeader 
           title={
-            <Typography variant="h5" sx={{ fontWeight: 600, color: orange[800] }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: '#234c3e' }}>
               {isEdit ? "Update Personal Profile" : "Create Roommate Profile"}
             </Typography>
           }
@@ -157,20 +156,20 @@ export default function ProfileForm({ initialData, isEdit = false }) {
           )}
           
           {/* Basic Info Section */}
-          <Paper elevation={0} sx={sectionCardStyle}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: orange[700], display: 'flex', alignItems: 'center' }}>
+          <Paper elevation={0} sx={{ ...sectionCardStyle, border: '1px solid #e8ece1', borderRadius: 2 }}>
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#234c3e', display: 'flex', alignItems: 'center' }}>
               <Box component="span" sx={{ 
-                width: 24, 
-                height: 24, 
+                width: 26, 
+                height: 26, 
                 borderRadius: '50%', 
-                bgcolor: orange[100], 
-                color: orange[800], 
+                bgcolor: '#edf3ec', 
+                color: '#234c3e', 
                 display: 'inline-flex', 
                 alignItems: 'center', 
                 justifyContent: 'center', 
-                mr: 1,
-                fontSize: '0.8rem', 
-                fontWeight: 'bold' 
+                mr: 1.2,
+                fontSize: '0.85rem', 
+                fontWeight: 700 
               }}>1</Box>
               Basic Information
             </Typography>
@@ -223,20 +222,20 @@ export default function ProfileForm({ initialData, isEdit = false }) {
           </Paper>
           
           {/* Lifestyle Preferences Section */}
-          <Paper elevation={0} sx={sectionCardStyle}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: orange[700], display: 'flex', alignItems: 'center' }}>
+          <Paper elevation={0} sx={{ ...sectionCardStyle, border: '1px solid #e8ece1', borderRadius: 2 }}>
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#234c3e', display: 'flex', alignItems: 'center' }}>
               <Box component="span" sx={{ 
-                width: 24, 
-                height: 24, 
+                width: 26, 
+                height: 26, 
                 borderRadius: '50%', 
-                bgcolor: orange[100], 
-                color: orange[800], 
+                bgcolor: '#edf3ec', 
+                color: '#234c3e', 
                 display: 'inline-flex', 
                 alignItems: 'center', 
                 justifyContent: 'center', 
-                mr: 1,
-                fontSize: '0.8rem', 
-                fontWeight: 'bold' 
+                mr: 1.2,
+                fontSize: '0.85rem', 
+                fontWeight: 700 
               }}>2</Box>
               Lifestyle Preferences
             </Typography>
@@ -259,8 +258,8 @@ export default function ProfileForm({ initialData, isEdit = false }) {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 2 }}>
-                  <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                <Box sx={{ border: 1, borderColor: '#e3e7dc', borderRadius: 2, p: 2, bgcolor: '#fbfaf7' }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary', fontWeight: 600 }}>
                     Preferences
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -270,6 +269,7 @@ export default function ProfileForm({ initialData, isEdit = false }) {
                           name="pets"
                           checked={formData.pets}
                           onChange={handleChange}
+                          sx={{ color: '#234c3e', '&.Mui-checked': { color: '#234c3e' } }}
                         />
                       }
                       label="Pets Friendly"
@@ -280,6 +280,7 @@ export default function ProfileForm({ initialData, isEdit = false }) {
                           name="smoking"
                           checked={formData.smoking}
                           onChange={handleChange}
+                          sx={{ color: '#234c3e', '&.Mui-checked': { color: '#234c3e' } }}
                         />
                       }
                       label="Smoking"
@@ -291,20 +292,20 @@ export default function ProfileForm({ initialData, isEdit = false }) {
           </Paper>
 
           {/* Schedule Section */}
-          <Paper elevation={0} sx={sectionCardStyle}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: orange[700], display: 'flex', alignItems: 'center' }}>
+          <Paper elevation={0} sx={{ ...sectionCardStyle, border: '1px solid #e8ece1', borderRadius: 2 }}>
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#234c3e', display: 'flex', alignItems: 'center' }}>
               <Box component="span" sx={{ 
-                width: 24, 
-                height: 24, 
+                width: 26, 
+                height: 26, 
                 borderRadius: '50%', 
-                bgcolor: orange[100], 
-                color: orange[800], 
+                bgcolor: '#edf3ec', 
+                color: '#234c3e', 
                 display: 'inline-flex', 
                 alignItems: 'center', 
                 justifyContent: 'center', 
-                mr: 1,
-                fontSize: '0.8rem', 
-                fontWeight: 'bold' 
+                mr: 1.2,
+                fontSize: '0.85rem', 
+                fontWeight: 700 
               }}>3</Box>
               Daily Schedule
             </Typography>
@@ -359,8 +360,8 @@ export default function ProfileForm({ initialData, isEdit = false }) {
           disabled={isLoading}
           startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
           sx={{ 
-            bgcolor: orange[600], 
-            '&:hover': { bgcolor: orange[700] },
+            bgcolor: '#234c3e', 
+            '&:hover': { bgcolor: '#17382a' },
             px: 4,
             py: 1
           }}

@@ -202,19 +202,19 @@ const PostComparison = ({ post1, post2 }) => {
 
       <Grid container>
         {/* Headers */}
-        <Grid container sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: "8px 8px 0 0" }}>
+        <Grid container sx={{ backgroundColor: "#edf2ea", p: 2, borderRadius: "10px 10px 0 0", borderBottom: "1px solid #dce3d4" }}>
           <Grid item xs={4}>
-            <Typography variant="subtitle2" color="#666">
-              Description
+            <Typography variant="subtitle2" sx={{ color: "#70796b", fontWeight: 600 }}>
+              Feature / Detail
             </Typography>
           </Grid>
           <Grid item xs={4}>
-            <Typography variant="subtitle1" fontWeight="bold" color="#333">
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#234c3e" }}>
               {post1?.name || "Property 1"}
             </Typography>
           </Grid>
           <Grid item xs={4}>
-            <Typography variant="subtitle1" fontWeight="bold" color="#333">
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#234c3e" }}>
               {post2?.name || "Property 2"}
             </Typography>
           </Grid>
@@ -227,25 +227,27 @@ const PostComparison = ({ post1, post2 }) => {
               container
               sx={{
                 p: 2,
-                backgroundColor: index % 2 === 0 ? "#fff" : "#fafafa",
-                "&:hover": { backgroundColor: "#f0f7ff" },
+                backgroundColor: index % 2 === 0 ? "#ffffff" : "#fbfaf7",
+                transition: "background-color 0.2s ease",
+                "&:hover": { backgroundColor: "rgba(35, 76, 62, 0.05)" },
               }}
             >
               <Grid item xs={4} sx={{ display: "flex", alignItems: "center" }}>
-                {feature.icon && <feature.icon sx={{ mr: 1, color: "#666" }} />}
-                <Typography color="#666">{feature.label}</Typography>
+                {feature.icon && <feature.icon sx={{ mr: 1, color: "#234c3e" }} />}
+                <Typography sx={{ color: "#26372d", fontWeight: 500 }}>{feature.label}</Typography>
               </Grid>
               <Grid item xs={4}>
                 {feature.isPriceTag ? (
                   renderPriceTag(feature.prediction1)
                 ) : feature.isContact && feature.value1 && feature.value1 !== "No phone number" ? (
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Phone sx={{ color: "#4CAF50" }} />
+                    <Phone sx={{ color: "#234c3e", fontSize: 18 }} />
                     <Typography
                       component="a"
                       href={`tel:${feature.value1}`}
                       sx={{
-                        color: "#4CAF50",
+                        color: "#234c3e",
+                        fontWeight: 600,
                         textDecoration: "none",
                         "&:hover": { textDecoration: "underline" },
                       }}
@@ -264,12 +266,13 @@ const PostComparison = ({ post1, post2 }) => {
                   renderPriceTag(feature.prediction2)
                 ) : feature.isContact && feature.value2 && feature.value2 !== "No phone number" ? (
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Phone sx={{ color: "#4CAF50" }} />
+                    <Phone sx={{ color: "#234c3e", fontSize: 18 }} />
                     <Typography
                       component="a"
                       href={`tel:${feature.value2}`}
                       sx={{
-                        color: "#4CAF50",
+                        color: "#234c3e",
+                        fontWeight: 600,
                         textDecoration: "none",
                         "&:hover": { textDecoration: "underline" },
                       }}

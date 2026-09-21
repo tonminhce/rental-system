@@ -19,6 +19,12 @@
   display: flex;
   overflow-y: auto;
   overflow-x: hidden;
+  border-radius: 10px;
+  border: 1px solid #dce3d4;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(35, 76, 62, 0.1);
+  padding: 4px;
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
   @include custom-scrollbar();
 }
 
@@ -31,17 +37,27 @@
   height: 50px;
   font-size: 0.875rem;
   padding: 2px 16px;
-  border: 1px solid darken($light-grey-color, 20%);
-  border-radius: 5px;
+  border: 1px solid #dce3d4;
+  border-radius: 8px;
   outline: none;
   cursor: pointer;
   position: relative;
   margin-bottom: 8px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
+
+  &:hover {
+    border-color: #234c3e;
+  }
+
+  &:focus-within {
+    border-color: #234c3e;
+    box-shadow: 0 0 0 3px rgba(35, 76, 62, 0.12);
+  }
 
   &Address {
     width: 350px;
@@ -51,11 +67,16 @@
 .icon {
   position: absolute;
   top: 50%;
-  right: 5px;
+  right: 8px;
   transform: translateY(-50%);
-  font-size: 1rem;
-  color: $dark-grey-color;
+  font-size: 1.1rem;
+  color: #70796b;
   cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #234c3e;
+  }
 }
 
 .option {
@@ -65,11 +86,15 @@
   align-items: center;
   cursor: pointer;
   font-size: 0.875rem;
-  padding: 12px 8px;
+  padding: 10px 12px;
   gap: 8px;
+  border-radius: 6px;
+  margin: 1px 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
 
   &:hover {
-    background-color: $light-grey-color;
+    background-color: rgba(35, 76, 62, 0.06);
+    color: #234c3e;
   }
 }
 
@@ -79,32 +104,39 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px 4px 12px;
-  border-top: 1px solid $light-grey-color;
+  border-top: 1px solid #e8ece1;
 
   &Btn {
-    padding: 6px 12px;
-    border: 1px solid $dark-grey-color;
-    border-radius: 5px;
+    padding: 7px 14px;
+    border: 1px solid #dce3d4;
+    border-radius: 8px;
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
     outline: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
     display: flex;
     align-items: center;
     gap: 4px;
 
     &:hover {
-      background-color: $light-grey-color;
+      background-color: #f2f5ee;
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
     }
 
     &Primary {
-      background-color: $primary-color;
-      color: $primary-foreground-color;
-      border-color: $ring-color;
+      background-color: #234c3e;
+      color: #ffffff;
+      border-color: #234c3e;
 
       &:hover {
-        background-color: lighten($primary-color, 5%);
+        background-color: #17382a;
+        box-shadow: 0 3px 10px rgba(35, 76, 62, 0.2);
       }
     }
   }
