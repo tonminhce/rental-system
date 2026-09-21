@@ -1,5 +1,5 @@
-import React from 'react';
-import { Typography, Grid, Paper, Box, Divider, Chip, Tooltip, CircularProgress } from '@mui/material';
+import React from "react";
+import { Typography, Grid, Paper, Box, Divider, Chip, Tooltip, CircularProgress } from "@mui/material";
 import {
   BathtubOutlined,
   BedOutlined,
@@ -17,47 +17,47 @@ import ComparisonMap from "./ComparisionMap";
 const priceTagStyles = {
   tooltip: {
     maxWidth: 220,
-    backgroundColor: '#fff',
-    color: 'rgba(0, 0, 0, 0.87)',
-    boxShadow: '0px 5px 15px rgba(0, 0, 0, 0.2)',
-    borderRadius: '8px',
-    padding: '12px 16px',
-    '& .MuiTooltip-arrow': {
-      color: '#fff'
-    }
+    backgroundColor: "#fff",
+    color: "rgba(0, 0, 0, 0.87)",
+    boxShadow: "0px 5px 15px rgba(0, 0, 0, 0.2)",
+    borderRadius: "8px",
+    padding: "12px 16px",
+    "& .MuiTooltip-arrow": {
+      color: "#fff",
+    },
   },
   chipHigher: {
-    backgroundColor: 'rgba(244, 67, 54, 0.08)',
-    color: '#f44336',
-    border: '1px solid rgba(244, 67, 54, 0.2)',
-    marginLeft: '8px',
-    '&:hover': {
-      backgroundColor: 'rgba(244, 67, 54, 0.12)',
-    }
+    backgroundColor: "rgba(244, 67, 54, 0.08)",
+    color: "#f44336",
+    border: "1px solid rgba(244, 67, 54, 0.2)",
+    marginLeft: "8px",
+    "&:hover": {
+      backgroundColor: "rgba(244, 67, 54, 0.12)",
+    },
   },
   chipLower: {
-    backgroundColor: 'rgba(76, 175, 80, 0.08)',
-    color: '#4caf50',
-    border: '1px solid rgba(76, 175, 80, 0.2)',
-    marginLeft: '8px',
-    '&:hover': {
-      backgroundColor: 'rgba(76, 175, 80, 0.12)',
-    }
-  }
+    backgroundColor: "rgba(76, 175, 80, 0.08)",
+    color: "#4caf50",
+    border: "1px solid rgba(76, 175, 80, 0.2)",
+    marginLeft: "8px",
+    "&:hover": {
+      backgroundColor: "rgba(76, 175, 80, 0.12)",
+    },
+  },
 };
 
 const PostComparison = ({ post1, post2 }) => {
   const getPricePredictionData = (post) => {
-    if (!post?.price) return null;
-    
+    if (!post?.price || !Number.isFinite(post?.predictedPrice)) return null;
+
     const actualPrice = parseFloat(post.price);
-    const predictedPrice = actualPrice * (Math.random() * 0.4 + 0.8); // Random value between 80% and 120% of actual price
+    const predictedPrice = post.predictedPrice;
     const priceDifference = ((actualPrice - predictedPrice) / predictedPrice) * 100;
-    
+
     return {
       predictedPrice,
       priceDifference,
-      isPredicting: false
+      isPredicting: false,
     };
   };
 
@@ -120,53 +120,53 @@ const PostComparison = ({ post1, post2 }) => {
 
   const highlightDifference = (value1, value2, featureType) => {
     // Don't highlight location values
-    if (featureType === 'location') {
+    if (featureType === "location") {
       return {};
     }
-    
+
     // Handle price, bedrooms, area, bathrooms
-    if (['price', 'bedrooms', 'area', 'bathrooms'].includes(featureType)) {
+    if (["price", "bedrooms", "area", "bathrooms"].includes(featureType)) {
       // Extract numeric values for comparison
       const getNumericValue = (value) => {
         if (!value) return null;
         const match = value.match(/[\d.]+/);
         return match ? parseFloat(match[0]) : null;
       };
-      
+
       const num1 = getNumericValue(value1);
       const num2 = getNumericValue(value2);
-      
+
       // If we can extract numbers from both values, compare them
       if (num1 !== null && num2 !== null && num1 !== num2) {
-        if (featureType === 'price') {
+        if (featureType === "price") {
           // For price: lower is better (green), higher is worse (red)
           if (num1 < num2) {
-            return { color: '#4caf50', fontWeight: 'bold' }; // green for lower price
+            return { color: "#4caf50", fontWeight: "bold" }; // green for lower price
           } else {
-            return { color: '#f44336', fontWeight: 'bold' }; // red for higher price
+            return { color: "#f44336", fontWeight: "bold" }; // red for higher price
           }
         } else {
           // For other features: higher is better (green), lower is worse (red)
           if (num1 < num2) {
-            return { color: '#f44336', fontWeight: 'bold' }; // red for lower value
+            return { color: "#f44336", fontWeight: "bold" }; // red for lower value
           } else {
-            return { color: '#4caf50', fontWeight: 'bold' }; // green for higher value
+            return { color: "#4caf50", fontWeight: "bold" }; // green for higher value
           }
         }
       }
     }
-    
+
     // For non-numeric or equal values, return empty styles
     return {};
   };
 
   const renderPriceTag = (prediction) => {
     if (!prediction) return null;
-    
+
     if (prediction.isPredicting) {
       return <CircularProgress size={16} />;
     }
-    
+
     return (
       <Tooltip
         title={
@@ -174,9 +174,7 @@ const PostComparison = ({ post1, post2 }) => {
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
               Predicted Price
             </Typography>
-            <Typography variant="body2">
-              {prediction.predictedPrice.toFixed(2)} triệu/tháng
-            </Typography>
+            <Typography variant="body2">{prediction.predictedPrice.toFixed(2)} triệu/tháng</Typography>
           </Box>
         }
         arrow
@@ -194,9 +192,9 @@ const PostComparison = ({ post1, post2 }) => {
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 3, mt: 2, maxWidth: '100%' }}>
+    <Paper elevation={3} sx={{ p: 3, mt: 2, maxWidth: "100%" }}>
       <Box display="flex" alignItems="center" mb={2}>
-        <CompareArrows sx={{ mr: 1, color: '#666' }} />
+        <CompareArrows sx={{ mr: 1, color: "#666" }} />
         <Typography variant="h6" color="#333">
           Property Comparison
         </Typography>
@@ -204,7 +202,7 @@ const PostComparison = ({ post1, post2 }) => {
 
       <Grid container>
         {/* Headers */}
-        <Grid container sx={{ backgroundColor: '#f5f5f5', p: 2, borderRadius: '8px 8px 0 0' }}>
+        <Grid container sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: "8px 8px 0 0" }}>
           <Grid item xs={4}>
             <Typography variant="subtitle2" color="#666">
               Description
@@ -225,26 +223,33 @@ const PostComparison = ({ post1, post2 }) => {
         {/* Features */}
         {features.map((feature, index) => (
           <React.Fragment key={feature.label}>
-            <Grid container sx={{
-              p: 2,
-              backgroundColor: index % 2 === 0 ? '#fff' : '#fafafa',
-              '&:hover': { backgroundColor: '#f0f7ff' }
-            }}>
-              <Grid item xs={4} sx={{ display: 'flex', alignItems: 'center' }}>
-                {feature.icon && <feature.icon sx={{ mr: 1, color: '#666' }} />}
+            <Grid
+              container
+              sx={{
+                p: 2,
+                backgroundColor: index % 2 === 0 ? "#fff" : "#fafafa",
+                "&:hover": { backgroundColor: "#f0f7ff" },
+              }}
+            >
+              <Grid item xs={4} sx={{ display: "flex", alignItems: "center" }}>
+                {feature.icon && <feature.icon sx={{ mr: 1, color: "#666" }} />}
                 <Typography color="#666">{feature.label}</Typography>
               </Grid>
               <Grid item xs={4}>
                 {feature.isPriceTag ? (
                   renderPriceTag(feature.prediction1)
                 ) : feature.isContact && feature.value1 && feature.value1 !== "No phone number" ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Phone sx={{ color: '#4CAF50' }} />
-                    <Typography component="a" href={`tel:${feature.value1}`} sx={{
-                      color: '#4CAF50',
-                      textDecoration: 'none',
-                      '&:hover': { textDecoration: 'underline' }
-                    }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Phone sx={{ color: "#4CAF50" }} />
+                    <Typography
+                      component="a"
+                      href={`tel:${feature.value1}`}
+                      sx={{
+                        color: "#4CAF50",
+                        textDecoration: "none",
+                        "&:hover": { textDecoration: "underline" },
+                      }}
+                    >
                       {feature.value1}
                     </Typography>
                   </Box>
@@ -258,13 +263,17 @@ const PostComparison = ({ post1, post2 }) => {
                 {feature.isPriceTag ? (
                   renderPriceTag(feature.prediction2)
                 ) : feature.isContact && feature.value2 && feature.value2 !== "No phone number" ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Phone sx={{ color: '#4CAF50' }} />
-                    <Typography component="a" href={`tel:${feature.value2}`} sx={{
-                      color: '#4CAF50',
-                      textDecoration: 'none',
-                      '&:hover': { textDecoration: 'underline' }
-                    }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Phone sx={{ color: "#4CAF50" }} />
+                    <Typography
+                      component="a"
+                      href={`tel:${feature.value2}`}
+                      sx={{
+                        color: "#4CAF50",
+                        textDecoration: "none",
+                        "&:hover": { textDecoration: "underline" },
+                      }}
+                    >
                       {feature.value2}
                     </Typography>
                   </Box>
@@ -292,14 +301,17 @@ const PostComparison = ({ post1, post2 }) => {
       {/* Legend */}
       <Box mt={2} pt={2} borderTop="1px solid #eee">
         <Typography variant="caption" color="#666" display="flex" alignItems="center">
-          <Box component="span" sx={{
-            width: 10,
-            height: 10,
-            backgroundColor: '#ff6b6b',
-            borderRadius: '50%',
-            display: 'inline-block',
-            mr: 1
-          }} />
+          <Box
+            component="span"
+            sx={{
+              width: 10,
+              height: 10,
+              backgroundColor: "#ff6b6b",
+              borderRadius: "50%",
+              display: "inline-block",
+              mr: 1,
+            }}
+          />
           Lower values are highlighted in red
         </Typography>
       </Box>
@@ -307,4 +319,4 @@ const PostComparison = ({ post1, post2 }) => {
   );
 };
 
-export default PostComparison; 
+export default PostComparison;

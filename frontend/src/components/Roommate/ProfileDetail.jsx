@@ -76,7 +76,7 @@ export default function ProfileDetail({ profile, isLoading, error }) {
   }
 
   return (
-    <Box>
+    <Box className="animate-fade-in">
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Roommate Profile</Typography>
         <Button 
@@ -88,7 +88,7 @@ export default function ProfileDetail({ profile, isLoading, error }) {
         </Button>
       </Box>
 
-      <Card>
+      <Card className="animate-fade-in-up">
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h5">

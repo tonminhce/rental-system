@@ -11,9 +11,15 @@ export default function PropertyList({ properties, currentPage, totalPages, hand
 
   return (
     <Grid container spacing={2}>
-      {properties.map((property) => {
+      {properties.map((property, idx) => {
         return (
-          <Grid key={property.id} sm={12} md={6}>
+          <Grid
+            key={property.id}
+            xs={12}
+            sm={6}
+            className="animate-fade-in-up"
+            style={{ animationDelay: `${(idx % 12) * 50}ms` }}
+          >
             <PropertyCard property={property} />
           </Grid>
         );

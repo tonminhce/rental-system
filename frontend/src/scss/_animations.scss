@@ -1,0 +1,225 @@
+/* ==========================================================================
+   renTalk Global Modern Animation System
+   Production-ready smooth transitions, keyframes, and micro-interactions
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 0.92;
+  }
+}
+
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes shimmerEffect {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Page entrance animations */
+.page-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.page-fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Utility animation classes */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out both;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-left {
+  animation: fadeInLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-right {
+  animation: fadeInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Stagger delay utilities */
+.delay-50 {
+  animation-delay: 50ms !important;
+}
+.delay-100 {
+  animation-delay: 100ms !important;
+}
+.delay-150 {
+  animation-delay: 150ms !important;
+}
+.delay-200 {
+  animation-delay: 200ms !important;
+}
+.delay-250 {
+  animation-delay: 250ms !important;
+}
+.delay-300 {
+  animation-delay: 300ms !important;
+}
+.delay-400 {
+  animation-delay: 400ms !important;
+}
+.delay-500 {
+  animation-delay: 500ms !important;
+}
+
+/* Interactive Card Micro-interactions */
+.card-interactive {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
+  will-change: transform, box-shadow;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(35, 76, 62, 0.12) !important;
+  }
+
+  &:active {
+    transform: translateY(-2px);
+  }
+}
+
+/* Image Zoom on Card Hover */
+.image-zoom-container {
+  overflow: hidden;
+  position: relative;
+
+  img {
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+  }
+
+  &:hover img {
+    transform: scale(1.05);
+  }
+}
+
+/* Button smooth states */
+.btn-animated {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              box-shadow 0.2s ease,
+              color 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(35, 76, 62, 0.2);
+  }
+
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(35, 76, 62, 0.15);
+  }
+}
+
+/* Badge gentle pulse */
+.badge-gentle-pulse {
+  animation: pulseSubtle 3s ease-in-out infinite;
+}
+
+/* Floating element */
+.float-subtle {
+  animation: floatGentle 4s ease-in-out infinite;
+}
+
+/* Tab indicator & item transitions */
+.tab-smooth {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Skeleton Loading Shimmer */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmerEffect 1.5s infinite;
+}

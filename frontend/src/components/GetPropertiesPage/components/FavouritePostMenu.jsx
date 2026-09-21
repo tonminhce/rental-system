@@ -4,6 +4,8 @@ import { Menu, Divider, Stack, Typography, CardMedia, Box, Button, Link, IconBut
 import { grey } from "@mui/material/colors";
 import Image from "next/image";
 import { useEffect } from "react";
+import { useSelector } from "react-redux";
+import NextLink from "next/link";
 
 function NoFavouritePostContent() {
   return (
@@ -40,9 +42,18 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
           }}
         >
           <Box style={{ position: "relative", height: "80px", width: "100px" }}>
-            <Image src={property?.images[0]?.url} width={100} height={80} alt={property.name} />
+            {property?.images?.[0]?.url && (
+              <Image src={property.images[0].url} width={100} height={80} alt={property.name} />
+            )}
           </Box>
-          <Typography key={property.id} variant="body2" ml={1} mr={3}>
+          <Typography
+            component={NextLink}
+            href={`/posts/${property.id}`}
+            key={property.id}
+            variant="body2"
+            ml={1}
+            mr={3}
+          >
             {property.name}
           </Typography>
           <CloseOutlined
@@ -62,7 +73,8 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
 }
 
 export default function FavouritePostMenu({ anchorEl, open, onCancel }) {
-  const { data, loading, refetch } = useGetFavouritesQuery();
+  const authenticated = useSelector((state) => state.auth.isAuthenticated);
+  const { data, isLoading: loading, refetch } = useGetFavouritesQuery(undefined, { skip: !authenticated });
   const [removeFromFavourite] = useRemoveFromFavouriteMutation();
 
   const handleDeleteFavourite = async (postId) => {
@@ -75,10 +87,11 @@ export default function FavouritePostMenu({ anchorEl, open, onCancel }) {
   };
 
   useEffect(() => {
+    if (!authenticated) return;
     window.addEventListener("favourite-post-updated", refetch);
 
     return () => window.removeEventListener("favourite-post-updated", refetch);
-  }, []);
+  }, [authenticated, refetch]);
 
   return (
     <Menu

@@ -1,39 +1,29 @@
 "use client";
-import { grey, orange } from "@mui/material/colors";
 import { createTheme } from "@mui/material/styles";
-
-const theme = createTheme({
+export default createTheme({
   palette: {
-    primary: {
-      main: orange[800],
-      contrastText: "#fff",
-    },
-    secondary: {
-      main: "#f44336",
-    },
-    blue: {
-      main: "#5F9DF7",
-      contrastText: "#fff",
-    },
+    primary: { main: "#234c3e", dark: "#16392e", contrastText: "#ffffff" },
+    secondary: { main: "#9b6647" },
+    blue: { main: "#466b5b", contrastText: "#fff" },
+    background: { default: "#fbfaf7", paper: "#ffffff" },
+    text: { primary: "#26372d", secondary: "#70796b" },
+    divider: "#e3e7dc",
   },
+  shape: { borderRadius: 10 },
   typography: {
-    button: {
-      textTransform: "none",
-      fontWeight: "normal",
-    },
-    h4: {
-      fontWeight: 600,
-      color: grey[900],
-    },
+    fontFamily: "var(--font-sans), Arial, sans-serif",
+    button: { textTransform: "none", fontWeight: 600 },
+    h4: { fontWeight: 600, letterSpacing: "-0.8px" },
+    h5: { fontWeight: 600, letterSpacing: "-0.5px" },
   },
   components: {
-    MuiListItemIcon: {
-      styleOverrides: {
-        root: {
-          minWidth: 36,
-        },
-      },
+    MuiButton: {
+      defaultProps: { disableElevation: true },
+      styleOverrides: { root: { borderRadius: 8, minHeight: 40 } },
     },
+    MuiListItemIcon: { styleOverrides: { root: { minWidth: 36 } } },
+    MuiOutlinedInput: { styleOverrides: { root: { backgroundColor: "#fff", fontSize: 14 } } },
+    MuiCard: { styleOverrides: { root: { boxShadow: "none", borderColor: "#e3e7dc" } } },
+    MuiTooltip: { defaultProps: { arrow: true } },
   },
 });
-export default theme;
