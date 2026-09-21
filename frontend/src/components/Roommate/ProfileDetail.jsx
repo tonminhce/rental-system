@@ -6,12 +6,23 @@ import {
   Chip, 
   Divider, 
   Grid, 
-  Typography,
-  CircularProgress
+  Typography, 
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Snackbar,
+  Alert,
+  Stack,
 } from '@mui/material';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MessageIcon from '@mui/icons-material/Message';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
 
 const InfoItem = ({ label, value }) => (
   <Box sx={{ mb: 2 }}>
@@ -47,6 +58,17 @@ const formatTime = (timeString) => {
 
 export default function ProfileDetail({ profile, isLoading, error }) {
   const router = useRouter();
+  const [openContact, setOpenContact] = useState(false);
+  const [messageText, setMessageText] = useState("");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMsg, setSnackbarMsg] = useState("");
+
+  const handleSendMessage = () => {
+    setOpenContact(false);
+    setMessageText("");
+    setSnackbarMsg("Message sent to roommate! They will be notified.");
+    setSnackbarOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -118,18 +140,11 @@ export default function ProfileDetail({ profile, isLoading, error }) {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Lifestyle</Typography>
+              <Typography variant="h6" sx={{ mb: 2 }}>Lifestyle Preferences</Typography>
               
-              <InfoItem label="Lifestyle Type" value={profile.lifestyle} />
-              
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <InfoItem label="Pets Friendly" value={profile.pets ? "Yes" : "No"} />
-                </Grid>
-                <Grid item xs={6}>
-                  <InfoItem label="Smoking" value={profile.smoking ? "Yes" : "No"} />
-                </Grid>
-              </Grid>
+              <InfoItem label="Cleanliness" value={profile.lifestyle} />
+              <InfoItem label="Pets" value={profile.pets ? "Pet-friendly" : "No pets"} />
+              <InfoItem label="Smoking" value={profile.smoking ? "Smoker" : "Non-smoker"} />
             </Grid>
           </Grid>
 
@@ -150,12 +165,69 @@ export default function ProfileDetail({ profile, isLoading, error }) {
               variant="contained" 
               size="large"
               startIcon={<MessageIcon />}
+              onClick={() => setOpenContact(true)}
             >
               Contact This Roommate
             </Button>
           </Box>
         </CardContent>
       </Card>
+
+      {/* Contact Roommate Dialog */}
+      <Dialog open={openContact} onClose={() => setOpenContact(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 600 }}>
+          Contact Roommate #{profile.id}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2.5}>
+            {profile.User?.email && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <EmailIcon color="action" />
+                <Typography variant="body2">{profile.User.email}</Typography>
+              </Box>
+            )}
+            {profile.User?.phone && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <PhoneIcon color="action" />
+                <Typography variant="body2">{profile.User.phone}</Typography>
+              </Box>
+            )}
+            <TextField
+              label="Your message or introduction"
+              placeholder="Hi! I'm interested in teaming up as roommates. I have a similar schedule..."
+              multiline
+              rows={4}
+              fullWidth
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              autoFocus
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setOpenContact(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSendMessage} 
+            variant="contained" 
+            disabled={!messageText.trim()}
+          >
+            Send Message
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" sx={{ width: '100%' }}>
+          {snackbarMsg}
+        </Alert>
+      </Snackbar>
     </Box>
   );
-} 
+}

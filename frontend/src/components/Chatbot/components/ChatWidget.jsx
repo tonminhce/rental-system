@@ -12,15 +12,19 @@ import { toggleChatWidget } from "@/redux/features/system/systemSlice";
 
 const ChatbotContainer = styled(Box)(({ theme }) => ({
   position: "fixed",
-  right: { xs: 16, sm: 24 },
-  bottom: { xs: 76, sm: 84 },
-  width: "calc(100% - 32px)",
+  right: 24,
+  bottom: 84,
+  width: "calc(100% - 48px)",
   maxWidth: 420,
-  mx: "auto",
-  zIndex: 1100,
-  display: "none",
+  zIndex: 1200,
+  display: "block",
   animation: "scaleIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards",
   transformOrigin: "bottom right",
+  [theme.breakpoints.down("sm")]: {
+    right: 16,
+    bottom: 76,
+    width: "calc(100% - 32px)",
+  },
 }));
 
 const ChatHeader = styled(Box)(({ theme }) => ({
@@ -64,15 +68,29 @@ const ChatWidget = () => {
   const filterState = useSelector((state) => state.filter);
 
   const isChatOpened = useSelector((state) => state.system.isChatOpened);
-  const [threadId, setThreadId] = useState("");
+  const getThreadId = () => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = sessionStorage.getItem("chatThreadId");
+        if (saved) return saved;
+        const newId = typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `thread-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        sessionStorage.setItem("chatThreadId", newId);
+        return newId;
+      } catch {
+        return `thread-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      }
+    }
+    return "thread-default";
+  };
+  const [threadId, setThreadId] = useState(getThreadId);
 
   useEffect(() => {
-    if (isChatOpened) {
-      const savedThread = sessionStorage.getItem("chatThreadId") || crypto.randomUUID();
-      sessionStorage.setItem("chatThreadId", savedThread);
-      setThreadId(savedThread);
+    if (isChatOpened && !threadId) {
+      setThreadId(getThreadId());
     }
-  }, [isChatOpened]);
+  }, [isChatOpened, threadId]);
 
   const streamedMessageRef = useRef("");
 
@@ -173,10 +191,13 @@ const ChatWidget = () => {
   };
 
   const handleSend = async () => {
-    if (input.trim() === "" || isTyping || !threadId || !isChatOpened) return;
+    const userMessage = input.trim();
+    if (userMessage === "" || isTyping) return;
+
+    const activeThreadId = threadId || getThreadId();
+    if (!threadId) setThreadId(activeThreadId);
 
     // Add the user's message to the chat
-    const userMessage = input.trim();
     setMessages((prev) => [...prev, { text: userMessage, sender: "user" }]);
     setInput("");
     setIsTyping(true);
@@ -195,7 +216,7 @@ const ChatWidget = () => {
 
       await chatService.sendMessageStream(
         userMessage,
-        threadId,
+        activeThreadId,
         queryParams,
         (token) => {
           const processedToken = processChatbotResponse(token);
@@ -266,7 +287,7 @@ const ChatWidget = () => {
   }
 
   return (
-    <ChatbotContainer sx={{ display: isChatOpened ? "block" : "none" }}>
+    <ChatbotContainer>
       <Paper
         sx={{
           display: "flex",

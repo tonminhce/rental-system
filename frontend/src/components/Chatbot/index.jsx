@@ -11,7 +11,7 @@ export default function ChatbotProvider({ children }) {
   const dispatch = useDispatch();
   const isChatOpened = useSelector((s) => s.system.isChatOpened);
 
-  if (pathname !== "/rent" && pathname !== "/") return children;
+  if (pathname === "/login" || pathname === "/signup") return children;
 
   return (
     <>
