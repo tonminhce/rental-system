@@ -20,15 +20,15 @@ export default function LoginRedirectPopup({ open, message, onClose }) {
         sx: {
           borderRadius: 3,
           padding: 2,
-          border: "1px solid #e8ece1",
-          boxShadow: "0 16px 40px rgba(35, 76, 62, 0.16)",
+          border: "1px solid var(--rt-border)",
+          boxShadow: "0 16px 40px rgba(var(--rt-brand-rgb), 0.16)",
           minWidth: 320,
         },
       }}
     >
       <DialogTitle id="alert-dialog-title" sx={{ pb: 1 }}>
         <Stack direction="row" alignItems="center" gap={1.2}>
-          <LockOutlinedIcon sx={{ color: "#234c3e" }} />
+          <LockOutlinedIcon sx={{ color: "var(--rt-brand)" }} />
           {"Authentication Required"}
         </Stack>
       </DialogTitle>

@@ -63,7 +63,7 @@ function LoginPage() {
               placeholder="Password*"
             />
             <ErrorMessage className="auth_form-message auth_form-message--error" name="password" component="p" />
-            <AuthSubmitButton loading={isSubmitting}>Login</AuthSubmitButton>
+            <AuthSubmitButton loading={isSubmitting}>Log in</AuthSubmitButton>
           </Form>
         )}
       </Formik>
