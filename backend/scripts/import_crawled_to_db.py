@@ -7,6 +7,7 @@ import os
 import sys
 import csv
 import json
+import math
 import pymysql
 
 DB_HOST = os.getenv("DB_HOST_WRITE", "127.0.0.1")
@@ -39,6 +40,8 @@ def parse_price_million(raw):
     return None
 
 def main():
+    if DB_NAME != "rentalk_local" or os.getenv("NODE_ENV") == "production":
+        raise RuntimeError("Legacy importer is local-only; production needs a validated, authorized feed.")
     max_to_import = int(sys.argv[1]) if len(sys.argv) > 1 else 300
     conn = pymysql.connect(
         host=DB_HOST,
@@ -102,10 +105,12 @@ def main():
                     toilets = 1
 
                 try:
-                    lat = float(row.get("latitude") or 10.776)
-                    lng = float(row.get("longitude") or 106.700)
+                    lat = float(row.get("latitude"))
+                    lng = float(row.get("longitude"))
+                    if not math.isfinite(lat) or not math.isfinite(lng) or not -85 <= lat <= 85 or not -180 <= lng <= 180 or (lat == 0 and lng == 0):
+                        raise ValueError("Invalid coordinates")
                 except Exception:
-                    lat, lng = 10.776, 106.700
+                    lat, lng = None, None
 
                 prov = (row.get("region_name") or row.get("province") or "TP Hồ Chí Minh")[:100]
                 dist = (row.get("area_name") or row.get("district") or "Quận 1")[:100]
