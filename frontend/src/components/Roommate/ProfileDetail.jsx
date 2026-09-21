@@ -1,12 +1,12 @@
-import { 
-  Box, 
-  Button, 
-  Card, 
-  CardContent, 
-  Chip, 
-  Divider, 
-  Grid, 
-  Typography, 
+import NextLink from 'next/link';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Divider,
+  Grid,
+  Typography,
   CircularProgress,
   Dialog,
   DialogTitle,
@@ -15,6 +15,7 @@ import {
   TextField,
   Snackbar,
   Alert,
+  Avatar,
   Stack,
 } from '@mui/material';
 import { useState } from 'react';
@@ -23,38 +24,28 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MessageIcon from '@mui/icons-material/Message';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
+import LockOutlined from '@mui/icons-material/LockOutlined';
+import formatTime from '@/utils/formatTime';
 
 const InfoItem = ({ label, value }) => (
   <Box sx={{ mb: 2 }}>
-    <Typography color="text.secondary" variant="body2">{label}</Typography>
-    <Typography variant="body1" fontWeight={500}>{value}</Typography>
+    <Typography
+      variant="caption"
+      sx={{
+        color: 'var(--rt-muted)',
+        fontWeight: 500,
+        letterSpacing: '0.3px',
+        textTransform: 'uppercase',
+        fontSize: '10px',
+      }}
+    >
+      {label}
+    </Typography>
+    <Typography variant="body1" sx={{ fontWeight: 600, color: 'var(--rt-ink)', mt: 0.25 }}>
+      {value || '—'}
+    </Typography>
   </Box>
 );
-
-// Format time from "HH:MM:SS" to "HH:MM AM/PM" format
-const formatTime = (timeString) => {
-  if (!timeString) return '';
-  
-  // Handle case where the time might already be formatted
-  if (timeString.includes('AM') || timeString.includes('PM')) {
-    return timeString;
-  }
-  
-  try {
-    // Parse the time string 
-    const [hours, minutes] = timeString.split(':');
-    const hour = parseInt(hours, 10);
-    
-    // Convert to 12-hour format
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const formattedHour = hour % 12 || 12; // Convert 0 to 12 for 12 AM
-    
-    return `${formattedHour}:${minutes} ${period}`;
-  } catch (error) {
-    console.error('Error formatting time:', error);
-    return timeString; // Return original if parsing fails
-  }
-};
 
 export default function ProfileDetail({ profile, isLoading, error }) {
   const router = useRouter();
@@ -62,12 +53,27 @@ export default function ProfileDetail({ profile, isLoading, error }) {
   const [messageText, setMessageText] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
-  const handleSendMessage = () => {
+  const requiresSignIn = error?.status === 401 || error?.status === 403;
+
+  const notify = (msg, severity = "success") => {
+    setSnackbarMsg(msg);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
+  /* There is no messaging endpoint on the backend, so this copies the draft for
+     the visitor to paste into the listed email or phone number. */
+  const handleCopyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(messageText);
+      notify("Message copied to your clipboard. Paste it to the contact above.");
+    } catch {
+      notify("Couldn’t copy your message. Select and copy it manually instead.", "warning");
+    }
     setOpenContact(false);
     setMessageText("");
-    setSnackbarMsg("Message sent to roommate! They will be notified.");
-    setSnackbarOpen(true);
   };
 
   if (isLoading) {
@@ -80,22 +86,56 @@ export default function ProfileDetail({ profile, isLoading, error }) {
 
   if (error || !profile) {
     return (
-      <Box sx={{ textAlign: 'center', py: 4 }}>
-        <Typography variant="h6" color="error" sx={{ mb: 2 }}>
-          Failed to load roommate profile
-        </Typography>
-        <Typography color="text.secondary" sx={{ mb: 3 }}>
-          {error?.data?.message || "The profile you're looking for might not exist or there was an error loading it."}
-        </Typography>
-        <Button 
-          variant="contained" 
-          onClick={() => router.push("/roommate")}
+      <Box className="animate-fade-in" sx={{ textAlign: 'center', py: 8, maxWidth: 460, mx: 'auto' }}>
+        <Box
+          sx={{
+            width: 56,
+            height: 56,
+            mx: 'auto',
+            mb: 2.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 'var(--rt-radius-md)',
+            bgcolor: 'var(--rt-surface-tint)',
+            color: 'var(--rt-brand)',
+          }}
         >
-          Back to Roommate List
-        </Button>
+          {requiresSignIn ? <LockOutlined /> : <MessageIcon />}
+        </Box>
+        <p className="eyebrow" style={{ justifyContent: 'center' }}>
+          {requiresSignIn ? 'Sign in required' : 'Not available'}
+        </p>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 600, mt: 1.5, color: 'var(--rt-ink)' }}>
+          {requiresSignIn ? 'Sign in to view this profile' : 'We couldn’t load this profile'}
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'var(--rt-muted)', mt: 1.5 }}>
+          {requiresSignIn
+            ? 'Contact details are only shared with signed-in members.'
+            : 'The profile may have been removed, or the link is out of date.'}
+        </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="center" sx={{ mt: 4 }}>
+          {requiresSignIn ? (
+            <>
+              <Button component={NextLink} href="/login" variant="contained">
+                Sign in
+              </Button>
+              <Button component={NextLink} href="/roommate" variant="outlined" color="inherit">
+                Back to profiles
+              </Button>
+            </>
+          ) : (
+            <Button variant="contained" onClick={() => router.push("/roommate")}>
+              Back to Roommate List
+            </Button>
+          )}
+        </Stack>
       </Box>
     );
   }
+
+  const name = profile.user?.name || `Roommate #${profile.id}`;
+  const initial = (name.replace(/[^a-zA-Z0-9]/g, "")[0] || "R").toUpperCase();
 
   return (
     <Box className="animate-fade-in">
@@ -103,6 +143,7 @@ export default function ProfileDetail({ profile, isLoading, error }) {
         <Typography variant="h4">Roommate Profile</Typography>
         <Button 
           variant="outlined" 
+          color="inherit"
           startIcon={<ArrowBackIcon />}
           onClick={() => router.back()}
         >
@@ -112,21 +153,28 @@ export default function ProfileDetail({ profile, isLoading, error }) {
 
       <Card className="animate-fade-in-up">
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h5">
-              Roommate #{profile.id}
+          <Box display="flex" alignItems="center" gap={1.5} mb={3}>
+            <Avatar
+              sx={{
+                bgcolor: 'var(--rt-brand-muted)',
+                color: 'var(--rt-on-brand)',
+                width: 46,
+                height: 46,
+                fontSize: '17px',
+                fontWeight: 700,
+              }}
+            >
+              {initial}
+            </Avatar>
+            <Typography variant="h5" component="h2" sx={{ fontWeight: 700, color: 'var(--rt-ink)' }}>
+              {name}
             </Typography>
-            <Chip 
-              label={`Compatibility Score: ${profile.totalScore}/10`}
-              color="primary"
-              variant="outlined"
-            />
           </Box>
 
           <Grid container spacing={4}>
             <Grid item xs={12} md={6}>
               <Typography variant="h6" sx={{ mb: 2 }}>Personal Information</Typography>
-              
+
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <InfoItem label="Age" value={profile.age} />
@@ -135,7 +183,7 @@ export default function ProfileDetail({ profile, isLoading, error }) {
                   <InfoItem label="Gender" value={profile.gender} />
                 </Grid>
               </Grid>
-              
+
               <InfoItem label="Personality" value={profile.personality} />
             </Grid>
 
@@ -174,23 +222,48 @@ export default function ProfileDetail({ profile, isLoading, error }) {
       </Card>
 
       {/* Contact Roommate Dialog */}
-      <Dialog open={openContact} onClose={() => setOpenContact(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 600 }}>
-          Contact Roommate #{profile.id}
+      <Dialog
+        open={openContact}
+        onClose={() => setOpenContact(false)}
+        fullWidth
+        maxWidth="sm"
+        aria-labelledby="roommate-contact-title"
+      >
+        <DialogTitle id="roommate-contact-title" sx={{ fontWeight: 600 }}>
+          Contact {name}
         </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5}>
-            {profile.User?.email && (
+            {profile.user?.email && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <EmailIcon color="action" />
-                <Typography variant="body2">{profile.User.email}</Typography>
+                <EmailIcon sx={{ color: 'var(--rt-muted)' }} />
+                <Typography
+                  component={NextLink}
+                  href={`mailto:${profile.user.email}`}
+                  variant="body2"
+                  sx={{ color: 'var(--rt-brand)', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                >
+                  {profile.user.email}
+                </Typography>
               </Box>
             )}
-            {profile.User?.phone && (
+            {profile.user?.phone && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <PhoneIcon color="action" />
-                <Typography variant="body2">{profile.User.phone}</Typography>
+                <PhoneIcon sx={{ color: 'var(--rt-muted)' }} />
+                <Typography
+                  component={NextLink}
+                  href={`tel:${profile.user.phone}`}
+                  variant="body2"
+                  sx={{ color: 'var(--rt-brand)', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                >
+                  {profile.user.phone}
+                </Typography>
               </Box>
+            )}
+            {!profile.user?.email && !profile.user?.phone && (
+              <Typography variant="body2" sx={{ color: 'var(--rt-muted)' }}>
+                No contact details were listed for this profile.
+              </Typography>
             )}
             <TextField
               label="Your message or introduction"
@@ -200,7 +273,6 @@ export default function ProfileDetail({ profile, isLoading, error }) {
               fullWidth
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
-              autoFocus
             />
           </Stack>
         </DialogContent>
@@ -208,12 +280,12 @@ export default function ProfileDetail({ profile, isLoading, error }) {
           <Button onClick={() => setOpenContact(false)} color="inherit">
             Cancel
           </Button>
-          <Button 
-            onClick={handleSendMessage} 
-            variant="contained" 
+          <Button
+            onClick={handleCopyMessage}
+            variant="contained"
             disabled={!messageText.trim()}
           >
-            Send Message
+            Copy message
           </Button>
         </DialogActions>
       </Dialog>
@@ -224,7 +296,7 @@ export default function ProfileDetail({ profile, isLoading, error }) {
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity="success" sx={{ width: '100%' }}>
+        <Alert severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMsg}
         </Alert>
       </Snackbar>

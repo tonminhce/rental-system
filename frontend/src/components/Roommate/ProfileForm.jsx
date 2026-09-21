@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSelector } from 'react-redux';
-import { useCreateOrUpdateProfileMutation, useGetMyProfileQuery } from '@/redux/features/roommate/roommateApi';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
+import { useCreateOrUpdateProfileMutation, useGetMyProfileQuery } from "@/redux/features/roommate/roommateApi";
 import {
   Box,
   Button,
@@ -24,16 +24,16 @@ import {
   InputLabel,
   CircularProgress,
   Snackbar,
-  Alert
-} from '@mui/material';
+  Alert,
+} from "@mui/material";
 
 export default function ProfileForm({ initialData, isEdit = false }) {
   const router = useRouter();
   const user = useSelector((state) => state.auth.user);
   const [createOrUpdateProfile, { isLoading }] = useCreateOrUpdateProfileMutation();
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [dataInitialized, setDataInitialized] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     gender: "Male",
     lifestyle: "Clean",
@@ -42,7 +42,7 @@ export default function ProfileForm({ initialData, isEdit = false }) {
     personality: "Introvert",
     age: 25,
     wakeUpTime: "07:00",
-    bedTime: "23:00"
+    bedTime: "23:00",
   });
 
   // Initialize form data from profile if editing
@@ -50,21 +50,25 @@ export default function ProfileForm({ initialData, isEdit = false }) {
     if (initialData && !dataInitialized) {
       try {
         // Extract time values properly
-        const wakeUpTime = initialData.wakeUpTime ? 
-          (initialData.wakeUpTime.includes(':') ? initialData.wakeUpTime.substring(0, 5) : "07:00") : 
-          "07:00";
-          
-        const bedTime = initialData.bedTime ? 
-          (initialData.bedTime.includes(':') ? initialData.bedTime.substring(0, 5) : "23:00") : 
-          "23:00";
-        
+        const wakeUpTime = initialData.wakeUpTime
+          ? initialData.wakeUpTime.includes(":")
+            ? initialData.wakeUpTime.substring(0, 5)
+            : "07:00"
+          : "07:00";
+
+        const bedTime = initialData.bedTime
+          ? initialData.bedTime.includes(":")
+            ? initialData.bedTime.substring(0, 5)
+            : "23:00"
+          : "23:00";
+
         // Parse age to ensure it's a number
         const age = initialData.age ? parseInt(initialData.age) : 25;
-        
+
         // Convert boolean values explicitly
         const pets = initialData.pets === true || initialData.pets === "true";
         const smoking = initialData.smoking === true || initialData.smoking === "true";
-        
+
         const updatedFormData = {
           gender: initialData.gender || "Male",
           lifestyle: initialData.lifestyle || "Clean",
@@ -73,9 +77,9 @@ export default function ProfileForm({ initialData, isEdit = false }) {
           personality: initialData.personality || "Introvert",
           age: age,
           wakeUpTime: wakeUpTime,
-          bedTime: bedTime
+          bedTime: bedTime,
         };
-        
+
         setFormData(updatedFormData);
         setDataInitialized(true);
       } catch (error) {
@@ -87,7 +91,7 @@ export default function ProfileForm({ initialData, isEdit = false }) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (type === "checkbox") {
       setFormData({
         ...formData,
@@ -103,16 +107,16 @@ export default function ProfileForm({ initialData, isEdit = false }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
-      const response = await createOrUpdateProfile(formData).unwrap();
-      
+      const response = await createOrUpdateProfile({ ...formData, age: Number(formData.age) }).unwrap();
+
       setSnackbar({
         open: true,
-        message: isEdit ? 'Profile updated successfully!' : 'Profile created successfully!',
-        severity: 'success'
+        message: isEdit ? "Profile updated successfully!" : "Profile created successfully!",
+        severity: "success",
       });
-      
+
       // Redirect after a short delay to show the success message
       setTimeout(() => {
         router.push("/roommate");
@@ -120,8 +124,8 @@ export default function ProfileForm({ initialData, isEdit = false }) {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: error.data?.message || 'Failed to save profile. Please try again.',
-        severity: 'error'
+        message: error.data?.message || "Failed to save profile. Please try again.",
+        severity: "error",
       });
     }
   };
@@ -134,19 +138,19 @@ export default function ProfileForm({ initialData, isEdit = false }) {
   const sectionCardStyle = {
     mb: 3,
     p: 3,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: '900px', mx: 'auto' }} className="animate-fade-in-up">
-      <Card sx={{ mb: 4, overflow: 'visible', borderRadius: 3, border: '1px solid #e3e7dc' }}>
-        <CardHeader 
+    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: "900px", mx: "auto" }} className="animate-fade-in-up">
+      <Card sx={{ mb: 4, overflow: "visible", borderRadius: 3, border: "1px solid var(--rt-border)" }}>
+        <CardHeader
           title={
-            <Typography variant="h5" sx={{ fontWeight: 600, color: '#234c3e' }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: "var(--rt-brand)" }}>
               {isEdit ? "Update Personal Profile" : "Create Roommate Profile"}
             </Typography>
           }
-          sx={{ borderBottom: 1, borderColor: 'divider', pb: 1 }}
+          sx={{ borderBottom: 1, borderColor: "divider", pb: 1 }}
         />
         <CardContent sx={{ pt: 3 }}>
           {isEdit && !dataInitialized && (
@@ -154,26 +158,34 @@ export default function ProfileForm({ initialData, isEdit = false }) {
               Loading your profile data...
             </Alert>
           )}
-          
+
           {/* Basic Info Section */}
-          <Paper elevation={0} sx={{ ...sectionCardStyle, border: '1px solid #e8ece1', borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#234c3e', display: 'flex', alignItems: 'center' }}>
-              <Box component="span" sx={{ 
-                width: 26, 
-                height: 26, 
-                borderRadius: '50%', 
-                bgcolor: '#edf3ec', 
-                color: '#234c3e', 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                mr: 1.2,
-                fontSize: '0.85rem', 
-                fontWeight: 700 
-              }}>1</Box>
+          <Paper elevation={0} sx={{ ...sectionCardStyle, border: "1px solid var(--rt-border)", borderRadius: 2 }}>
+            <Typography
+              variant="h6"
+              sx={{ mb: 3, fontWeight: 600, color: "var(--rt-brand)", display: "flex", alignItems: "center" }}
+            >
+              <Box
+                component="span"
+                sx={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  bgcolor: "var(--rt-surface-tint)",
+                  color: "var(--rt-brand)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mr: 1.2,
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                }}
+              >
+                1
+              </Box>
               Basic Information
             </Typography>
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -190,15 +202,9 @@ export default function ProfileForm({ initialData, isEdit = false }) {
               <Grid item xs={12} sm={6}>
                 <FormControl component="fieldset" fullWidth>
                   <FormLabel component="legend">Gender</FormLabel>
-                  <RadioGroup
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    row
-                  >
+                  <RadioGroup name="gender" value={formData.gender} onChange={handleChange} row>
                     <FormControlLabel value="Male" control={<Radio />} label="Male" />
                     <FormControlLabel value="Female" control={<Radio />} label="Female" />
-                    <FormControlLabel value="Other" control={<Radio />} label="Other" />
                   </RadioGroup>
                 </FormControl>
               </Grid>
@@ -214,32 +220,39 @@ export default function ProfileForm({ initialData, isEdit = false }) {
                   >
                     <MenuItem value="Introvert">Introvert</MenuItem>
                     <MenuItem value="Extrovert">Extrovert</MenuItem>
-                    <MenuItem value="Ambivert">Ambivert</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
             </Grid>
           </Paper>
-          
+
           {/* Lifestyle Preferences Section */}
-          <Paper elevation={0} sx={{ ...sectionCardStyle, border: '1px solid #e8ece1', borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#234c3e', display: 'flex', alignItems: 'center' }}>
-              <Box component="span" sx={{ 
-                width: 26, 
-                height: 26, 
-                borderRadius: '50%', 
-                bgcolor: '#edf3ec', 
-                color: '#234c3e', 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                mr: 1.2,
-                fontSize: '0.85rem', 
-                fontWeight: 700 
-              }}>2</Box>
+          <Paper elevation={0} sx={{ ...sectionCardStyle, border: "1px solid var(--rt-border)", borderRadius: 2 }}>
+            <Typography
+              variant="h6"
+              sx={{ mb: 3, fontWeight: 600, color: "var(--rt-brand)", display: "flex", alignItems: "center" }}
+            >
+              <Box
+                component="span"
+                sx={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  bgcolor: "var(--rt-surface-tint)",
+                  color: "var(--rt-brand)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mr: 1.2,
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                }}
+              >
+                2
+              </Box>
               Lifestyle Preferences
             </Typography>
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
@@ -252,24 +265,24 @@ export default function ProfileForm({ initialData, isEdit = false }) {
                     label="Cleanliness Level"
                   >
                     <MenuItem value="Clean">Clean</MenuItem>
-                    <MenuItem value="Moderate">Moderate</MenuItem>
+                    <MenuItem value="Normal">Easygoing</MenuItem>
                     <MenuItem value="Messy">Messy</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Box sx={{ border: 1, borderColor: '#e3e7dc', borderRadius: 2, p: 2, bgcolor: '#fbfaf7' }}>
-                  <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary', fontWeight: 600 }}>
+                <Box sx={{ border: 1, borderColor: "var(--rt-border)", borderRadius: 2, p: 2, bgcolor: "var(--rt-bg)" }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: "text.secondary", fontWeight: 600 }}>
                     Preferences
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                     <FormControlLabel
                       control={
                         <Checkbox
                           name="pets"
                           checked={formData.pets}
                           onChange={handleChange}
-                          sx={{ color: '#234c3e', '&.Mui-checked': { color: '#234c3e' } }}
+                          sx={{ color: "var(--rt-brand)", "&.Mui-checked": { color: "var(--rt-brand)" } }}
                         />
                       }
                       label="Pets Friendly"
@@ -280,7 +293,7 @@ export default function ProfileForm({ initialData, isEdit = false }) {
                           name="smoking"
                           checked={formData.smoking}
                           onChange={handleChange}
-                          sx={{ color: '#234c3e', '&.Mui-checked': { color: '#234c3e' } }}
+                          sx={{ color: "var(--rt-brand)", "&.Mui-checked": { color: "var(--rt-brand)" } }}
                         />
                       }
                       label="Smoking"
@@ -292,24 +305,32 @@ export default function ProfileForm({ initialData, isEdit = false }) {
           </Paper>
 
           {/* Schedule Section */}
-          <Paper elevation={0} sx={{ ...sectionCardStyle, border: '1px solid #e8ece1', borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#234c3e', display: 'flex', alignItems: 'center' }}>
-              <Box component="span" sx={{ 
-                width: 26, 
-                height: 26, 
-                borderRadius: '50%', 
-                bgcolor: '#edf3ec', 
-                color: '#234c3e', 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                mr: 1.2,
-                fontSize: '0.85rem', 
-                fontWeight: 700 
-              }}>3</Box>
+          <Paper elevation={0} sx={{ ...sectionCardStyle, border: "1px solid var(--rt-border)", borderRadius: 2 }}>
+            <Typography
+              variant="h6"
+              sx={{ mb: 3, fontWeight: 600, color: "var(--rt-brand)", display: "flex", alignItems: "center" }}
+            >
+              <Box
+                component="span"
+                sx={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  bgcolor: "var(--rt-surface-tint)",
+                  color: "var(--rt-brand)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mr: 1.2,
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                }}
+              >
+                3
+              </Box>
               Daily Schedule
             </Typography>
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -346,40 +367,36 @@ export default function ProfileForm({ initialData, isEdit = false }) {
         </CardContent>
       </Card>
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
-        <Button 
-          variant="outlined" 
-          onClick={() => router.push("/roommate")}
-          sx={{ px: 3 }}
-        >
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 4 }}>
+        <Button variant="outlined" onClick={() => router.push("/roommate")} sx={{ px: 3 }}>
           Cancel
         </Button>
-        <Button 
-          type="submit" 
-          variant="contained" 
+        <Button
+          type="submit"
+          variant="contained"
           disabled={isLoading}
           startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
-          sx={{ 
-            bgcolor: '#234c3e', 
-            '&:hover': { bgcolor: '#17382a' },
+          sx={{
+            bgcolor: "var(--rt-brand)",
+            "&:hover": { bgcolor: "var(--rt-brand-hover)" },
             px: 4,
-            py: 1
+            py: 1,
           }}
         >
-          {isLoading ? 'Saving...' : (isEdit ? 'Update Profile' : 'Create Profile')}
+          {isLoading ? "Saving..." : isEdit ? "Update Profile" : "Create Profile"}
         </Button>
       </Box>
 
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
     </Box>
   );
-} 
+}
