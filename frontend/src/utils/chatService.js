@@ -20,9 +20,9 @@ export const chatService = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "*/*",
+          Accept: "*/*",
           "Accept-Language": "en-US,en;q=0.9",
-          "Connection": "keep-alive",
+          Connection: "keep-alive",
         },
         credentials: "include",
         body: JSON.stringify({
@@ -55,23 +55,17 @@ export const chatService = {
    * @param {function} onError - Callback xử lý khi có lỗi
    * @returns {Promise<void>} Promise hoàn thành khi stream kết thúc
    */
-  sendMessageStream: async (
-    message,
-    threadId,
-    queryParams = {},
-    onToken = (token) => {},
-    onError = (error) => {}
-  ) => {
+  sendMessageStream: async (message, threadId, queryParams = {}, onToken = (token) => {}, onError = (error) => {}) => {
     try {
       const url = `${API_URL}/api/v1/chat/chat/stream`;
-      
+
       const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "*/*",
+          Accept: "*/*",
           "Accept-Language": "en-US,en;q=0.9",
-          "Connection": "keep-alive",
+          Connection: "keep-alive",
         },
         credentials: "include",
         body: JSON.stringify({
@@ -87,15 +81,16 @@ export const chatService = {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let pending = "";
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk
-          .split("\n")
-          .filter((line) => line.trim() !== "" && line.startsWith("data: "));
+        pending += decoder.decode(value, { stream: true });
+        const events = pending.split(/\r?\n\r?\n/);
+        pending = events.pop();
+        const lines = events.flatMap((event) => event.split(/\r?\n/)).filter((line) => line.startsWith("data: "));
 
         for (const line of lines) {
           try {
@@ -120,4 +115,4 @@ export const chatService = {
       onError(error.message);
     }
   },
-}; 
+};
