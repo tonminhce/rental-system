@@ -40,11 +40,17 @@ async def lifespan(app):
         await app.state.ai.close()
 
 app = FastAPI(title="renTalk rental assistant", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGIN", "http://localhost:4000,http://127.0.0.1:4000").split(","), allow_methods=["POST", "GET"], allow_headers=["Content-Type"], allow_credentials=True)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.getenv("CORS_ORIGIN", "http://localhost:4000,http://127.0.0.1:4000,http://localhost:3000").split(","),
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True,
+)
 
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
-    thread_id: UUID
+    thread_id: str = Field(min_length=1, max_length=120)
     query_params: dict | None = None
 
 class SearchFilters(BaseModel):

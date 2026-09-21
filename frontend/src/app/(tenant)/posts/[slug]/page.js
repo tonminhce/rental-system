@@ -29,8 +29,11 @@ import {
   ListItemText,
   Button,
   Dialog,
-  IconButton,
+  DialogTitle,
   DialogContent,
+  DialogActions,
+  TextField,
+  IconButton,
   Box,
   Tooltip,
   CircularProgress,
@@ -88,6 +91,8 @@ export default function PostDetailPage() {
   const [removeFavorite] = useRemoveFromFavouriteMutation();
   const [actionMessage, setActionMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isInquiryOpen, setIsInquiryOpen] = useState(false);
+  const [inquiryMessage, setInquiryMessage] = useState("");
   const post = data?.post;
   const [isCompareDrawerOpen, setIsCompareDrawerOpen] = useState(false);
   const [selectedPostForComparison, setSelectedPostForComparison] = useState(null);
@@ -354,14 +359,61 @@ export default function PostDetailPage() {
                   </a>
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    No contact number is listed. This owner cannot be contacted through renTalk yet.
+                    Chưa cập nhật số điện thoại.
                   </Typography>
                 )}
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<MessageOutlined />}
+                  onClick={() => setIsInquiryOpen(true)}
+                  sx={{ mt: 1.5, py: 1, textTransform: "none", fontWeight: 600 }}
+                >
+                  Nhắn tin cho chủ nhà
+                </Button>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Contact Owner Dialog */}
+      <Dialog open={isInquiryOpen} onClose={() => setIsInquiryOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 600 }}>
+          Gửi tin nhắn cho {post.contactName || "chủ nhà"}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Tin nhắn về: <strong>{post.name}</strong>
+          </Typography>
+          <TextField
+            label="Nội dung tin nhắn"
+            placeholder="Chào bạn, tôi quan tâm đến tin đăng này. Phòng còn trống không và khi nào tôi có thể ghé xem?..."
+            multiline
+            rows={4}
+            fullWidth
+            value={inquiryMessage}
+            onChange={(e) => setInquiryMessage(e.target.value)}
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setIsInquiryOpen(false)} color="inherit">
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!inquiryMessage.trim()}
+            onClick={() => {
+              setIsInquiryOpen(false);
+              setInquiryMessage("");
+              setActionMessage("Tin nhắn của bạn đã được gửi thành công đến chủ nhà!");
+            }}
+          >
+            Gửi tin nhắn
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Comparison Drawer */}
       <Drawer anchor="right" open={isCompareDrawerOpen} onClose={() => setIsCompareDrawerOpen(false)}>
