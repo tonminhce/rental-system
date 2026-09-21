@@ -9,127 +9,137 @@ import { Op } from 'sequelize';
 
 @Injectable()
 export class RoommateService {
-    private weightConfig: any;
+  private weightConfig: any;
 
-    constructor(
-        @InjectModel(UserProfile)
-        private userProfileModel: typeof UserProfile,
-    ) {
-        const configPath = path.resolve(__dirname, '../../config/profile-weight-config.json');
-        this.weightConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  constructor(
+    @InjectModel(UserProfile)
+    private userProfileModel: typeof UserProfile,
+  ) {
+    const configPath = path.resolve(
+      __dirname,
+      '../../config/profile-weight-config.json',
+    );
+    this.weightConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  }
+
+  async getAllProfiles(): Promise<UserProfile[]> {
+    return this.userProfileModel.findAll({
+      // The public directory must not expose account contact information.
+      include: [{ model: User, attributes: ['id', 'name'] }],
+      order: [['createdAt', 'DESC']],
+    });
+  }
+
+  async getProfileById(id: number): Promise<UserProfile> {
+    const profile = await this.userProfileModel.findByPk(id, {
+      include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
+    });
+    if (!profile) throw new NotFoundException('Profile not found');
+    return profile;
+  }
+
+  async getProfileByUserId(userId: number): Promise<UserProfile | null> {
+    const profile = await this.userProfileModel.findOne({
+      where: {
+        userId: { [Op.eq]: userId },
+      },
+      include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
+    });
+    return profile;
+  }
+
+  async createProfile(
+    userId: number,
+    createUserProfileDto: CreateUserProfileDto,
+  ): Promise<UserProfile> {
+    const totalScore = this.calculateTotalScore(createUserProfileDto);
+
+    const [profile, created] = await this.userProfileModel.upsert({
+      ...createUserProfileDto,
+      userId,
+      totalScore, // Update total score after created profile
+    });
+
+    return profile;
+  }
+
+  private calculateTotalScore(profile: Partial<UserProfile>): number {
+    let score = 0;
+    for (const key in this.weightConfig) {
+      if (profile[key] !== undefined) {
+        const value = profile[key].toString();
+        score += this.weightConfig[key][value] || 0;
+      }
+    }
+    return score;
+  }
+
+  private getTimeGapInHours(time1: string, time2: string): number {
+    const [h1, m1] = time1.split(':').map(Number);
+    const [h2, m2] = time2.split(':').map(Number);
+    const minutes1 = h1 * 60 + m1;
+    const minutes2 = h2 * 60 + m2;
+    return Math.abs(minutes1 - minutes2) / 60;
+  }
+
+  private calculateSimilarityScore(
+    profileA: UserProfile,
+    profileB: UserProfile,
+  ): number {
+    let scoreA = this.calculateTotalScore(profileA);
+    let scoreB = this.calculateTotalScore(profileB);
+
+    if (Math.abs(profileA.age - profileB.age) <= 1) {
+      scoreA += 1;
+      scoreB += 1;
     }
 
-    async getAllProfiles(): Promise<UserProfile[]> {
-        return this.userProfileModel.findAll({
-            include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
-            order: [['createdAt', 'DESC']],
-        });
+    if (this.getTimeGapInHours(profileA.wakeUpTime, profileB.wakeUpTime) <= 1) {
+      scoreA += 1;
+      scoreB += 1;
     }
 
-    async getProfileById(id: number): Promise<UserProfile> {
-        const profile = await this.userProfileModel.findByPk(id, {
-            include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
-        });
-        if (!profile) throw new NotFoundException('Profile not found');
-        return profile;
+    if (this.getTimeGapInHours(profileA.bedTime, profileB.bedTime) <= 1) {
+      scoreA += 1;
+      scoreB += 1;
     }
 
-    async getProfileByUserId(userId: number): Promise<UserProfile | null> {
-        const profile = await this.userProfileModel.findOne({
-            where: {
-                userId: { [Op.eq]: userId },
-            },
-            include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
-        });
-        return profile;
+    const similarity = 1 / (1 + Math.abs(scoreA - scoreB));
+    return similarity;
+  }
+
+  async getRoommateSuggestions(
+    userId: number,
+    topN = 5,
+  ): Promise<UserProfile[]> {
+    const currentUser = await this.userProfileModel.findOne({
+      where: {
+        userId: { [Op.eq]: userId },
+      },
+    });
+
+    if (!currentUser) {
+      return [];
     }
 
-    async createProfile(
-        userId: number,
-        createUserProfileDto: CreateUserProfileDto,
-    ): Promise<UserProfile> {
-        const totalScore = this.calculateTotalScore(createUserProfileDto);
+    const allProfiles = await this.userProfileModel.findAll({
+      where: {
+        userId: { [Op.ne]: userId }, // Exclude current user
+      },
+      include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
+    });
 
-        const [profile, created] = await this.userProfileModel.upsert({
-            ...createUserProfileDto,
-            userId,
-            totalScore, // Update total score after created profile
-        });
-
-        return profile;
+    if (!allProfiles || allProfiles.length === 0) {
+      return [];
     }
 
-    private calculateTotalScore(profile: Partial<UserProfile>): number {
-        let score = 0;
-        for (const key in this.weightConfig) {
-            if (profile[key] !== undefined) {
-                const value = profile[key].toString();
-                score += this.weightConfig[key][value] || 0;
-            }
-        }
-        return score;
-    }
+    const scoredProfiles = allProfiles.map((profile) => ({
+      profile,
+      similarity: this.calculateSimilarityScore(currentUser, profile),
+    }));
 
-    private getTimeGapInHours(time1: string, time2: string): number {
-        const [h1, m1] = time1.split(':').map(Number);
-        const [h2, m2] = time2.split(':').map(Number);
-        const minutes1 = h1 * 60 + m1;
-        const minutes2 = h2 * 60 + m2;
-        return Math.abs(minutes1 - minutes2) / 60;
-    }
+    scoredProfiles.sort((a, b) => b.similarity - a.similarity);
 
-    private calculateSimilarityScore(profileA: UserProfile, profileB: UserProfile): number {
-        let scoreA = this.calculateTotalScore(profileA);
-        let scoreB = this.calculateTotalScore(profileB);
-
-        if (Math.abs(profileA.age - profileB.age) <= 1) {
-            scoreA += 1;
-            scoreB += 1;
-        }
-
-        if (this.getTimeGapInHours(profileA.wakeUpTime, profileB.wakeUpTime) <= 1) {
-            scoreA += 1;
-            scoreB += 1;
-        }
-
-        if (this.getTimeGapInHours(profileA.bedTime, profileB.bedTime) <= 1) {
-            scoreA += 1;
-            scoreB += 1;
-        }
-
-        const similarity = 1 / (1 + Math.abs(scoreA - scoreB));
-        return similarity;
-    }
-
-    async getRoommateSuggestions(userId: number, topN = 5): Promise<UserProfile[]> {
-        const currentUser = await this.userProfileModel.findOne({
-            where: {
-                userId: { [Op.eq]: userId },
-            },
-        });
-     
-        if (!currentUser) {
-            return [];
-        }
-
-        const allProfiles = await this.userProfileModel.findAll({
-            where: {
-                userId: { [Op.ne]: userId }, // Exclude current user
-            },
-            include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
-        });
-
-        if (!allProfiles || allProfiles.length === 0) {
-            return [];
-        }
-       
-        const scoredProfiles = allProfiles.map(profile => ({
-            profile,
-            similarity: this.calculateSimilarityScore(currentUser, profile),
-        }));
-
-        scoredProfiles.sort((a, b) => b.similarity - a.similarity);
-
-        return scoredProfiles.slice(0, topN).map(item => item.profile);
-    }
+    return scoredProfiles.slice(0, topN).map((item) => item.profile);
+  }
 }
