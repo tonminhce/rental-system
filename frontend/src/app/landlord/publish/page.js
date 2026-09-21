@@ -49,8 +49,8 @@ export default function PublishPage() {
   return (
     <Container component="main" id="main-content" maxWidth="md" sx={{ py: 5 }}>
       <Box className="animate-fade-in">
-        <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 2 }}>
-          MAKE ROOM FOR SOMEONE’S NEXT CHAPTER
+        <Typography component="p" className="eyebrow">
+          Make room for someone’s next chapter
         </Typography>
         <Typography component="h1" variant="h4" sx={{ my: 2 }}>
           List your property.

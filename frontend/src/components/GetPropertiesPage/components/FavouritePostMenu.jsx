@@ -38,7 +38,7 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
             borderRadius: "8px",
             transition: "background-color 0.2s ease",
             "&:hover": {
-              backgroundColor: "rgba(35, 76, 62, 0.06)",
+              backgroundColor: "rgba(var(--rt-brand-rgb), 0.06)",
             },
             "&:hover .delete-icon": {
               display: "block",
@@ -60,8 +60,8 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
             sx={{
               fontWeight: 500,
               textDecoration: "none",
-              color: "#26372d",
-              "&:hover": { color: "#234c3e" },
+              color: "var(--rt-ink)",
+              "&:hover": { color: "var(--rt-brand)" },
             }}
           >
             {property.name}
@@ -76,9 +76,9 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
               top: "50%",
               transform: "translateY(-50%)",
               fontSize: 18,
-              color: "#70796b",
+              color: "var(--rt-muted)",
               transition: "color 0.2s ease",
-              "&:hover": { color: "#d32f2f" },
+              "&:hover": { color: "var(--rt-danger)" },
             }}
           />
         </Stack>
@@ -128,14 +128,14 @@ export default function FavouritePostMenu({ anchorEl, open, onCancel }) {
           style: {
             width: "380px",
             borderRadius: "14px",
-            border: "1px solid #dce3d4",
-            boxShadow: "0 12px 36px rgba(35, 76, 62, 0.14)",
+            border: "1px solid var(--rt-border)",
+            boxShadow: "0 12px 36px rgba(var(--rt-brand-rgb), 0.14)",
           },
         },
       }}
     >
       <Stack direction="column" p={1.5}>
-        <Typography variant="body1" fontWeight="700" color="#234c3e" component="h6" align="center">
+        <Typography variant="body1" fontWeight="700" color="var(--rt-brand)" component="h6" align="center">
           Saved Homes
         </Typography>
 

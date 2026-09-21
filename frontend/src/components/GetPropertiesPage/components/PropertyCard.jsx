@@ -6,20 +6,24 @@ import {
   FavoriteBorderOutlined,
   BedOutlined,
   ArrowOutward,
+  PlaceOutlined,
 } from "@mui/icons-material";
-import { Alert, IconButton, Snackbar } from "@mui/material";
+import { Alert, Button, IconButton, Snackbar } from "@mui/material";
+import { formatRent } from "@/utils/rentalSearch.mjs";
+import { PROPERTY_TYPES } from "@/constants/propertyTypes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import "./PropertyCard.scss";
 
-export default function PropertyCard({ property }) {
+export default function PropertyCard({ property, onLocate }) {
   const { id, name, price, area, thumbnail, bedrooms, district, displayedAddress, propertyType, isFavourite } =
     property;
   const router = useRouter();
   const [saved, setSaved] = useState(!!isFavourite);
   const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => setImageFailed(false), [thumbnail]);
   const [error, setError] = useState("");
   const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
   const [add, addState] = useAddToFavouriteMutation();
@@ -42,9 +46,7 @@ export default function PropertyCard({ property }) {
       setError("Couldn’t update your saved homes. Please try again.");
     }
   };
-  const type =
-    { apartment: "Apartment", house: "House", room: "Room", room: "Room", villa: "Villa" }[propertyType] ||
-    "Rental home";
+  const type = PROPERTY_TYPES[propertyType]?.label || "Rental home";
   return (
     <article className="property-card">
       <div className="property-image">
@@ -84,12 +86,26 @@ export default function PropertyCard({ property }) {
         </div>
         <div className="property-bottom">
           <p>
-            <strong>{price != null ? `${Number(price).toLocaleString("en-US")}m ₫` : "Ask for price"}</strong>
-            {price != null && <span> / month</span>}
+            <strong>{formatRent(price)}</strong>
+            {Number(price) > 0 && <span> / month</span>}
           </p>
-          <Link href={`/posts/${id}`} aria-label={`Details for ${name}`}>
-            <ArrowOutward />
-          </Link>
+          {onLocate &&
+          property.coordinates?.coordinates?.length === 2 &&
+          property.coordinates.coordinates.every(Number.isFinite) ? (
+            <Button
+              className="locate-home"
+              size="small"
+              startIcon={<PlaceOutlined />}
+              onClick={() => onLocate(property)}
+              aria-label={`Show ${name} on map`}
+            >
+              Map
+            </Button>
+          ) : (
+            <Link href={`/posts/${id}`} aria-label={`Details for ${name}`}>
+              <ArrowOutward />
+            </Link>
+          )}
         </div>
       </div>
       <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError("")}>

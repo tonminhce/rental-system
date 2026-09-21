@@ -6,12 +6,17 @@ module.exports = (phase) => ({
   poweredByHeader: false,
   outputFileTracingRoot: __dirname,
   async headers() {
-    return [{ source: "/:path*", headers: [
-      { key: "X-Content-Type-Options", value: "nosniff" },
-      { key: "X-Frame-Options", value: "DENY" },
-      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
-    ] }];
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+        ],
+      },
+    ];
   },
   sassOptions: {
     includePaths: [path.join(__dirname, "scss")],
@@ -19,6 +24,7 @@ module.exports = (phase) => ({
   reactStrictMode: false,
   images: {
     remotePatterns: [
+      { protocol: "https", hostname: "cdn.chotot.com", pathname: "/**" },
       {
         protocol: "https",
         hostname: "m.media-amazon.com",
@@ -26,7 +32,7 @@ module.exports = (phase) => ({
       { protocol: "https", hostname: "images.unsplash.com" },
       {
         protocol: "https",
-        hostname: "www.pngitem.com"
+        hostname: "www.pngitem.com",
       },
       {
         protocol: "https",

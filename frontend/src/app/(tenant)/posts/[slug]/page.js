@@ -5,6 +5,9 @@ import PostMap from "@/components/PostMap";
 import PropertyImage from "@/components/PropertyImage/PropertyImage";
 import { useGetPropertyByIdQuery, useGetPropertiesQuery } from "@/redux/features/properties/propertyApi";
 import formatAddress from "@/utils/formatAddress";
+import { PROPERTY_TYPES } from "@/constants/propertyTypes";
+import { formatRent } from "@/utils/rentalSearch.mjs";
+import clsx from "clsx";
 import {
   BathtubOutlined,
   BedOutlined,
@@ -12,6 +15,7 @@ import {
   ChevronRightOutlined,
   CropFree,
   FavoriteBorder,
+  Favorite,
   IosShare,
   MessageOutlined,
   PaidOutlined,
@@ -64,7 +68,7 @@ const priceTagStyles = {
   },
   chipHigher: {
     backgroundColor: "rgba(244, 67, 54, 0.08)",
-    color: "#f44336",
+    color: "var(--rt-danger)",
     border: "1px solid rgba(244, 67, 54, 0.2)",
     marginLeft: "8px",
     "&:hover": {
@@ -73,7 +77,7 @@ const priceTagStyles = {
   },
   chipLower: {
     backgroundColor: "rgba(76, 175, 80, 0.08)",
-    color: "#4caf50",
+    color: "var(--rt-success)",
     border: "1px solid rgba(76, 175, 80, 0.2)",
     marginLeft: "8px",
     "&:hover": {
@@ -93,6 +97,7 @@ export default function PostDetailPage() {
   const [saving, setSaving] = useState(false);
   const [isInquiryOpen, setIsInquiryOpen] = useState(false);
   const [inquiryMessage, setInquiryMessage] = useState("");
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const post = data?.post;
   const [isCompareDrawerOpen, setIsCompareDrawerOpen] = useState(false);
   const [selectedPostForComparison, setSelectedPostForComparison] = useState(null);
@@ -103,12 +108,15 @@ export default function PostDetailPage() {
   const { predictedPrice, isPredicting, priceDifference, getPriceDifferenceText } = usePricePrediction(post);
 
   // Fetch properties with pagination
-  const { data: propertiesData, isLoading: isLoadingProperties } = useGetPropertiesQuery({
-    page: currentPage,
-    limit: ITEMS_PER_PAGE,
-    propertyType: post?.propertyType,
-    transactionType: post?.transactionType,
-  });
+  const { data: propertiesData, isLoading: isLoadingProperties } = useGetPropertiesQuery(
+    {
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+      propertyType: post?.propertyType,
+      transactionType: post?.transactionType,
+    },
+    { skip: !post },
+  );
 
   const otherProperties = useMemo(() => {
     if (!propertiesData?.properties || !post) return [];
@@ -116,7 +124,8 @@ export default function PostDetailPage() {
   }, [propertiesData?.properties, post]);
 
   const getPostSummary = ({ propertyType, address }) => {
-    return `${_.capitalize(propertyType)} in ${formatAddress(address)}`;
+    const typeLabel = PROPERTY_TYPES[propertyType]?.label || _.capitalize(propertyType) || "Home";
+    return `${typeLabel} in ${formatAddress(address)}`;
   };
 
   const handleCompare = () => {
@@ -151,7 +160,7 @@ export default function PostDetailPage() {
   const features = [
     {
       label: "Price",
-      value: post?.price ? `${post.price} triệu/tháng` : "Thoả thuận",
+      value: formatRent(post?.price),
       icon: PaidOutlined,
       prediction: isPredicting ? (
         <CircularProgress size={16} />
@@ -162,7 +171,9 @@ export default function PostDetailPage() {
               <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
                 Predicted Price
               </Typography>
-              <Typography variant="body2">{predictedPrice?.toFixed(2)} triệu/tháng</Typography>
+              <Typography variant="body2">
+                {predictedPrice != null ? `${formatRent(predictedPrice)} / month` : "—"}
+              </Typography>
             </Box>
           }
           arrow
@@ -185,7 +196,7 @@ export default function PostDetailPage() {
     },
     {
       label: "Area",
-      value: `${post?.area} m²`,
+      value: Number(post?.area) > 0 ? `${Number(post.area)} m²` : "Not listed",
       icon: CropFree,
     },
     {
@@ -248,17 +259,28 @@ export default function PostDetailPage() {
           {post.displayedAddress || formatAddress(post.address || post)}
         </Typography>
 
-        {process.env.NEXT_PUBLIC_DEMO_MODE === "true" && (
+        {post.sourceUrl ? (
           <Typography sx={{ mt: 2, color: "text.secondary" }} variant="body2">
-            Sample listing · Photos are illustrative. This is not a verified rental offer.
+            Imported listing · Photos and availability have not been verified.
           </Typography>
+        ) : (
+          process.env.NEXT_PUBLIC_DEMO_MODE === "true" && (
+            <Typography sx={{ mt: 2, color: "text.secondary" }} variant="body2">
+              Sample listing · Photos are illustrative. This is not a verified rental offer.
+            </Typography>
+          )
         )}
         <div className={`posts_gallery ${photos.length <= 1 ? "posts_gallery--single" : ""}`}>
           {photos.length ? (
             photos
               .slice(0, 4)
               .map((photo, index) => (
-                <PropertyImage key={photo.id || index} src={photo.url} alt={`${post.name} — photo ${index + 1}`} />
+                <PropertyImage
+                  key={photo.id || index}
+                  src={photo.url}
+                  alt={`${post.name} — photo ${index + 1}`}
+                  priority={index === 0}
+                />
               ))
           ) : (
             <Box sx={{ p: 5 }}>No photos have been added to this home.</Box>
@@ -269,9 +291,10 @@ export default function PostDetailPage() {
           <div className="posts_left">
             {/* Overview */}
             <div className="posts_info">
-              <h4 className="posts_summary">{getPostSummary(post)}</h4>
+              <h2 className="posts_summary">{getPostSummary(post)}</h2>
               <p className="posts_price">
-                {post.price + " triệu/tháng"}
+                {formatRent(post.price)}
+                {Number(post.price) > 0 && " / month"}
                 {priceDifference !== null && (
                   <Tooltip
                     title={
@@ -279,7 +302,9 @@ export default function PostDetailPage() {
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
                           Predicted Price
                         </Typography>
-                        <Typography variant="body2">{predictedPrice?.toFixed(2)} triệu/tháng</Typography>
+                        <Typography variant="body2">
+                          {predictedPrice != null ? `${formatRent(predictedPrice)} / month` : "—"}
+                        </Typography>
                       </Box>
                     }
                     arrow
@@ -300,8 +325,17 @@ export default function PostDetailPage() {
                   <IosShare sx={{ fontSize: 20 }} />
                   Share
                 </button>
-                <button className="posts_action" onClick={save} disabled={saving}>
-                  <FavoriteBorder sx={{ fontSize: 20 }} />
+                <button
+                  className={clsx("posts_action", post.isFavourite && "posts_action--saved")}
+                  onClick={save}
+                  disabled={saving}
+                  aria-pressed={Boolean(post.isFavourite)}
+                >
+                  {post.isFavourite ? (
+                    <Favorite sx={{ fontSize: 20 }} />
+                  ) : (
+                    <FavoriteBorder sx={{ fontSize: 20 }} />
+                  )}
                   {post.isFavourite ? "Saved" : "Save"}
                 </button>
                 <button className="posts_action" onClick={() => setIsCompareDrawerOpen(true)}>
@@ -317,7 +351,7 @@ export default function PostDetailPage() {
             )}
             {/* Features */}
             <div className="posts_feature">
-              <h4 style={{ fontWeight: 500 }}>Home Highlights</h4>
+              <h2>Home Highlights</h2>
               <div className="posts_featureList">
                 {features.map((feature) => (
                   <div className="posts_featureItem" key={feature.label}>
@@ -331,16 +365,26 @@ export default function PostDetailPage() {
               </div>
             </div>
             {/* Description */}
-            <div className="posts_description">
-              <h4>Home Description</h4>
+            <div className={clsx("posts_description", !descriptionExpanded && "posts_description--clamped")}>
+              <h2>Home Description</h2>
               <p>{post.description}</p>
+              {post.description?.length > 320 && (
+                <button
+                  type="button"
+                  className="posts_descriptionButton"
+                  aria-expanded={descriptionExpanded}
+                  onClick={() => setDescriptionExpanded((open) => !open)}
+                >
+                  {descriptionExpanded ? "Show less" : "Read more"}
+                </button>
+              )}
             </div>
             {/* Map */}
             <div className="posts_location">
-              <h4>See on map</h4>
+              <h2>See on map</h2>
               <p>{formatAddress(post.address)}</p>
 
-              <PostMap coordinates={post.coordinates?.coordinates} address={post.address} />
+              <PostMap coordinates={post.coordinates?.coordinates} />
             </div>
           </div>
           {/* RIGHT */}
@@ -359,7 +403,7 @@ export default function PostDetailPage() {
                   </a>
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    Chưa cập nhật số điện thoại.
+                    No phone number listed yet.
                   </Typography>
                 )}
                 <Button
@@ -369,7 +413,7 @@ export default function PostDetailPage() {
                   onClick={() => setIsInquiryOpen(true)}
                   sx={{ mt: 1.5, py: 1, textTransform: "none", fontWeight: 600 }}
                 >
-                  Nhắn tin cho chủ nhà
+                  Message the owner
                 </Button>
               </div>
             </div>
@@ -378,17 +422,23 @@ export default function PostDetailPage() {
       </div>
 
       {/* Contact Owner Dialog */}
-      <Dialog open={isInquiryOpen} onClose={() => setIsInquiryOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 600 }}>
-          Gửi tin nhắn cho {post.contactName || "chủ nhà"}
+      <Dialog
+        open={isInquiryOpen}
+        onClose={() => setIsInquiryOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        aria-labelledby="listing-inquiry-title"
+      >
+        <DialogTitle id="listing-inquiry-title" sx={{ fontWeight: 600 }}>
+          Message about this listing
         </DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Tin nhắn về: <strong>{post.name}</strong>
+            Regarding: <strong>{post.name}</strong>
           </Typography>
           <TextField
-            label="Nội dung tin nhắn"
-            placeholder="Chào bạn, tôi quan tâm đến tin đăng này. Phòng còn trống không và khi nào tôi có thể ghé xem?..."
+            label="Your message"
+            placeholder="Hi, I’m interested in this listing. Is it still available, and when could I visit?…"
             multiline
             rows={4}
             fullWidth
@@ -399,26 +449,36 @@ export default function PostDetailPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={() => setIsInquiryOpen(false)} color="inherit">
-            Hủy
+            Cancel
           </Button>
           <Button
             variant="contained"
             disabled={!inquiryMessage.trim()}
-            onClick={() => {
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(inquiryMessage);
+                setActionMessage("Message copied to your clipboard. Paste it when you contact the owner.");
+              } catch {
+                setActionMessage("Couldn’t copy your message. Select and copy it manually instead.");
+              }
               setIsInquiryOpen(false);
               setInquiryMessage("");
-              setActionMessage("Tin nhắn của bạn đã được gửi thành công đến chủ nhà!");
             }}
           >
-            Gửi tin nhắn
+            Copy message
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Comparison Drawer */}
-      <Drawer anchor="right" open={isCompareDrawerOpen} onClose={() => setIsCompareDrawerOpen(false)}>
+      <Drawer
+        anchor="right"
+        open={isCompareDrawerOpen}
+        onClose={() => setIsCompareDrawerOpen(false)}
+        ModalProps={{ "aria-labelledby": "compare-drawer-title" }}
+      >
         <div style={{ width: 300, padding: 16, height: "100%", display: "flex", flexDirection: "column" }}>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" id="compare-drawer-title" gutterBottom>
             Compare with
           </Typography>
 
@@ -441,17 +501,17 @@ export default function PostDetailPage() {
                         mb: 1,
                         transition: "all 0.15s ease",
                         "&:hover": {
-                          backgroundColor: "rgba(35, 76, 62, 0.06)",
+                          backgroundColor: "rgba(var(--rt-brand-rgb), 0.06)",
                         },
                         "&.Mui-selected": {
-                          backgroundColor: "rgba(35, 76, 62, 0.12)",
-                          color: "#234c3e",
+                          backgroundColor: "rgba(var(--rt-brand-rgb), 0.12)",
+                          color: "var(--rt-brand)",
                         },
                       }}
                     >
                       <ListItemText
                         primary={property.name}
-                        secondary={`${property.price} triệu/tháng · ${property.area} m²`}
+                        secondary={`${formatRent(property.price)} · ${property.area ? `${Number(property.area)} m²` : "Area n/a"}`}
                       />
                     </ListItem>
                   ))}
@@ -459,7 +519,7 @@ export default function PostDetailPage() {
               </Box>
 
               {totalPages > 1 && (
-                <Box sx={{ pt: 1, borderTop: "1px solid #eee" }}>
+                <Box sx={{ pt: 1, borderTop: "1px solid var(--rt-border)" }}>
                   <SimplePagination
                     currentPage={currentPage}
                     totalPages={totalPages}
@@ -479,9 +539,9 @@ export default function PostDetailPage() {
             disabled={!selectedPostForComparison}
             sx={{
               mt: 2,
-              bgcolor: "#234c3e",
+              bgcolor: "var(--rt-brand)",
               "&:hover": {
-                bgcolor: "#17382a",
+                bgcolor: "var(--rt-brand-hover)",
               },
             }}
           >
@@ -491,17 +551,27 @@ export default function PostDetailPage() {
       </Drawer>
 
       {/* Comparison Modal */}
-      <Dialog open={isComparisonModalOpen} onClose={handleCloseModal} maxWidth="lg" fullWidth>
+      <Dialog
+        open={isComparisonModalOpen}
+        onClose={handleCloseModal}
+        maxWidth="lg"
+        fullWidth
+        aria-labelledby="comparison-modal-title"
+      >
+        <DialogTitle id="comparison-modal-title" sx={{ position: "absolute", left: -20000 }}>
+          Property comparison
+        </DialogTitle>
         <DialogContent sx={{ p: 0, position: "relative" }}>
           <IconButton
             onClick={handleCloseModal}
+            aria-label="Close comparison"
             sx={{
               position: "absolute",
               right: 8,
               top: 8,
-              color: "grey.500",
-              bgcolor: "white",
-              "&:hover": { bgcolor: "grey.100" },
+              color: "var(--rt-muted)",
+              bgcolor: "var(--rt-paper)",
+              "&:hover": { bgcolor: "var(--rt-surface-tint)" },
               zIndex: 1,
             }}
           >
