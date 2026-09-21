@@ -1,6 +1,5 @@
 import { ConfigService } from '@nestjs/config';
 import { SequelizeModuleOptions } from '@nestjs/sequelize';
-import { Logger } from 'src/shared/utils/log.util';
 import { User } from 'src/database/entities/user.entity';
 import { RentalPost } from 'src/database/entities/rental-post.entity';
 import { RentalImage } from 'src/database/entities/rental-image.entity';

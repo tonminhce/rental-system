@@ -6,8 +6,6 @@ import {
   Param,
   Delete,
   Query,
-  Request,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PostService } from './post.service';
@@ -27,7 +25,7 @@ export class PostController {
   @ApiOperation({ summary: 'Get all posts with filters and pagination' })
   @Public()
   @Get()
-  async getPosts(@Query() getPostsDto: GetPostsDto, @Request() req) {
+  async getPosts(@Query() getPostsDto: GetPostsDto) {
     const userId = this._getUserIdFromContext();
     const result = await this.postService.getPosts(getPostsDto, userId);
 
