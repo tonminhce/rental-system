@@ -86,15 +86,19 @@
 
       border: 1px solid $light-grey-color;
       border-color: $input-color;
-      border-radius: $radius;
-      outline: $primary-color;
+      border-radius: 8px;
+      outline: none;
 
-      transition: all 0.3s ease-in-out;
-      box-shadow: rgba(182, 182, 182, 0.18) 0px 2px 2px 0px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      box-shadow: 0 1px 3px rgba(35, 76, 62, 0.04);
 
-      &:focus,
       &:hover {
-        border: 1px solid $input-color;
+        border-color: #7b8e7e;
+      }
+
+      &:focus {
+        border-color: #234c3e !important;
+        box-shadow: 0 0 0 3px rgba(35, 76, 62, 0.14) !important;
       }
 
       &--error {
@@ -103,6 +107,7 @@
         &:focus,
         &:hover {
           border: 1px solid $destructive-color;
+          box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.14) !important;
         }
       }
     }

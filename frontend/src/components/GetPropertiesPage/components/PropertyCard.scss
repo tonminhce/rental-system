@@ -51,16 +51,35 @@
   position: absolute;
   right: 11px;
   top: 10px;
-  background: #fffffff2;
-  width: 32px;
-  height: 32px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  width: 34px;
+  height: 34px;
   color: #39573f;
-}
-.property-image .save-home:hover {
-  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    background: #ffffff;
+    transform: scale(1.14);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    color: #e53935;
+  }
+
+  &:active {
+    transform: scale(0.9);
+  }
+
+  &.saved svg {
+    color: #e53935;
+    animation: heartBeat 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }
 .save-home svg {
   font-size: 17px;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 .property-image-empty {
   height: 100%;

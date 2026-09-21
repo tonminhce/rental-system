@@ -27,6 +27,7 @@ export default function ChatbotProvider({ children }) {
             right: { xs: 16, sm: 24 },
             zIndex: 1100,
             boxShadow: "0 8px 24px rgba(32, 45, 29, 0.22)",
+            animation: isChatOpened ? "none" : "glowPulse 3s infinite",
             transition: "transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease",
             "&:hover": {
               transform: "scale(1.08) translateY(-2px)",

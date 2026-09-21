@@ -5,11 +5,15 @@ import { Box, styled } from "@mui/material";
 
 const MessageContainer = styled(Box, { shouldForwardProp: (prop) => prop !== "isUser" })(({ theme, isUser }) => ({
   display: "flex",
-  marginBottom: theme.spacing(3),
+  marginBottom: theme.spacing(2.5),
   justifyContent: isUser ? "flex-end" : "flex-start",
   width: "100%",
   paddingLeft: isUser ? theme.spacing(2) : 0,
   paddingRight: isUser ? 0 : theme.spacing(2),
+  animation: isUser
+    ? "fadeInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) both"
+    : "fadeInLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1) both",
+  willChange: "transform, opacity",
 }));
 
 const MessageBubble = styled(Box, { shouldForwardProp: (prop) => prop !== "isUser" })(({ theme, isUser }) => ({
