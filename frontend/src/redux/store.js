@@ -7,7 +7,6 @@ import { landlordApi } from "./features/landlord/api";
 import storage from "redux-persist/lib/storage";
 import { persistReducer, persistStore } from "redux-persist";
 import systemSlice from "./features/system/systemSlice";
-import { roommateApi } from './features/roommate/roommateApi';
 import filterSlice from "./features/filter/filterSlice";
 
 const persistConfig = {
@@ -21,7 +20,6 @@ const rootReducer = combineReducers({
   [apiSlice.reducerPath]: apiSlice.reducer,
   [propertyApi.reducerPath]: propertyApi.reducer,
   [landlordApi.reducerPath]: landlordApi.reducer,
-  [roommateApi.reducerPath]: roommateApi.reducer,
   auth: authSlice,
   createPost: createPostSlice,
   system: systemSlice,
@@ -40,8 +38,7 @@ export const store = configureStore({
     })
       .concat(apiSlice.middleware)
       .concat(propertyApi.middleware)
-      .concat(landlordApi.middleware)
-      .concat(roommateApi.middleware),
+      .concat(landlordApi.middleware),
 });
 
 export const persistor = persistStore(store);

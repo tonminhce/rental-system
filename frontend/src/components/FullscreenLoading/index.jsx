@@ -1,11 +1,12 @@
 import { Backdrop, CircularProgress } from "@mui/material";
 
-export default function FullscreenLoading({ loading }) {
+/* Defaults to `true` so a caller that forgets the prop shows a spinner
+   instead of a blank screen. */
+export default function FullscreenLoading({ loading = true }) {
+  if (!loading) return null;
   return (
-    loading && (
-      <Backdrop open={loading} sx={{ color: "#fff", zIndex: 10000 }}>
-        <CircularProgress color="inherit" size={100} />
-      </Backdrop>
-    )
+    <Backdrop open sx={{ color: "var(--rt-on-brand)", zIndex: (t) => t.zIndex.modal + 20 }}>
+      <CircularProgress size={64} sx={{ color: "var(--rt-on-brand)" }} />
+    </Backdrop>
   );
 }

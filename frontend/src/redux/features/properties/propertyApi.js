@@ -6,6 +6,11 @@ export const propertyApi = createApi({
   reducerPath: "properties",
   baseQuery: baseQueryWithAuth,
   endpoints: (builder) => ({
+    getMapProperties: builder.query({
+      query: (params) => ({ url: "/posts/map", params }),
+      transformResponse: (response) => response.data,
+      keepUnusedDataFor: 15,
+    }),
     getProperties: builder.query({
       query: (queryObject) => ({
         url: "/posts",
@@ -45,6 +50,7 @@ export const propertyApi = createApi({
 });
 
 export const {
+  useGetMapPropertiesQuery,
   useGetPropertiesQuery,
   useGetPropertyByIdQuery,
   useGetFavouritesQuery,

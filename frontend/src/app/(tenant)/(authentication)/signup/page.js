@@ -89,9 +89,9 @@ export default function SignUpPage() {
             </Form>
           )}
         </Formik>
-        <p>
-          Already have an account <Link href="/login">Login</Link>
-        </p>
+        <Link href="/login" className="auth_signup-link">
+          Already have an account? Log in →
+        </Link>
       </div>
     </Suspense>
   );
