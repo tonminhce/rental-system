@@ -1,5 +1,5 @@
-const dotenv = require("dotenv");
-dotenv.config({ path: "../.env" });
+const dotenv = require('dotenv');
+dotenv.config({ path: '.env' });
 module.exports = {
   local: {
     dialect: 'mysql',

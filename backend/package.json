@@ -13,7 +13,8 @@
     "build:prod": "bash ./scripts/build.sh production",
     "run:prod": "bash ./scripts/run.sh production",
     "build": "nest build",
-    "postbuild": "cp -r node_modules package.json dist/",
+    "start:prod": "node dist/main.js",
+    "seed:local": "node scripts/seed-local.cjs",
     "debug": "nest start --debug --watch",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "lint-fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
@@ -40,9 +41,8 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "dayjs": "^1.11.13",
-    "lodash": "^4.17.21",
+    "lodash": "^4.18.1",
     "mysql2": "^3.11.0",
-    "nest-commander": "^3.15.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.0",
@@ -51,7 +51,15 @@
     "sequelize-typescript": "^2.1.6",
     "winston": "^3.14.2"
   },
+  "overrides": {
+    "lodash": "$lodash",
+    "multer": "^2.4.0",
+    "js-yaml": "^4.3.2",
+    "qs": "^6.16.0",
+    "body-parser": "^1.20.8"
+  },
   "devDependencies": {
+    "nest-commander": "3.15.0",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/swagger": "^7.4.0",

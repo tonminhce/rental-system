@@ -27,11 +27,8 @@ export const databaseConfig = (
       min: 0,
       idle: 10000,
     },
-    logging: (msg) => {
-      const logger = new Logger();
-      logger.info(msg, 'Sequelize');
-    },
-    logQueryParameters: true,
+    logging: false,
+    logQueryParameters: false,
     autoLoadModels: false,
     synchronize: false,
     models: [
@@ -44,7 +41,7 @@ export const databaseConfig = (
       Message,
       FavoriteList,
       UserProfile,
-      RefreshToken
+      RefreshToken,
     ],
   };
 };

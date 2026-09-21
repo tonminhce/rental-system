@@ -5,7 +5,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { loggerUtil } from 'src/shared/utils/log.util'
+import { loggerUtil } from 'src/shared/utils/log.util';
 import { responseUtil } from 'src/shared/utils/response.util';
 
 @Catch()
@@ -16,12 +16,12 @@ export class AllExceptionFilter implements ExceptionFilter {
     const { message, stack }: any = exception;
     const optionalError = [stack, 'AllExceptionFilter'];
     const objectResult = responseUtil.error(
-      HttpStatus.BAD_REQUEST,
-      message ?? 'Internal Server Error',
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      'Internal Server Error',
       {},
     );
     loggerUtil.error(message ?? 'Error', ...optionalError);
 
-    response.status(HttpStatus.BAD_REQUEST).json(objectResult);
+    response.status(HttpStatus.INTERNAL_SERVER_ERROR).json(objectResult);
   }
 }
