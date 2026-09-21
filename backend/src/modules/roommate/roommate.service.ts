@@ -54,7 +54,7 @@ export class RoommateService {
   ): Promise<UserProfile> {
     const totalScore = this.calculateTotalScore(createUserProfileDto);
 
-    const [profile, created] = await this.userProfileModel.upsert({
+    const [profile] = await this.userProfileModel.upsert({
       ...createUserProfileDto,
       userId,
       totalScore, // Update total score after created profile
