@@ -1,163 +1,281 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useGetPropertiesQuery } from "@/redux/features/properties/propertyApi";
-import { Alert, Box, Button, Chip, Skeleton, Stack, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  MenuItem,
+  Skeleton,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from "@mui/material";
 import { MapOutlined, ViewModuleOutlined } from "@mui/icons-material";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { updateFilter } from "@/redux/features/filter/filterSlice";
 import eventBus, { CHATBOT_EVENTS } from "@/utils/chatbotEventBus";
+import { rentalFilters, rentalPage, RENTAL_FILTER_KEYS } from "@/utils/rentalSearch.mjs";
+import useRentalFilters from "@/hooks/useRentalFilters";
 import PropertyList from "./components/PropertyList";
 
 const RentalMap = dynamic(() => import("./components/Map"), {
   ssr: false,
   loading: () => <Skeleton variant="rectangular" height="100%" />,
 });
-const supported = [
-  "minPrice",
-  "maxPrice",
-  "minArea",
-  "maxArea",
-  "centerLng",
-  "centerLat",
-  "radius",
-  "bounds",
-  "district",
-  "propertyType",
-];
+
 export default function GetPropertiesPage({ transaction_type = "rent" }) {
   const search = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useDispatch();
   const [showMap, setShowMap] = useState(true);
-  const query = useMemo(() => {
-    const values = Object.fromEntries([...search.entries()].filter(([key, value]) => supported.includes(key) && value));
-    if (search.getAll("propertyType").length) values.propertyType = search.getAll("propertyType").join(",");
-    return {
-      ...values,
-      page: Math.max(1, Math.floor(Number(search.get("page")) || 1)),
-      limit: 12,
-      transactionType: transaction_type,
-    };
-  }, [search, transaction_type]);
-  const { data, error, isLoading, isFetching, refetch } = useGetPropertiesQuery(query);
+  const [mobileView, setMobileView] = useState("list");
+  const [expandedMap, setExpandedMap] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
+  const resultsTop = useRef(null);
+  const mapPanel = useRef(null);
+  const pendingPage = useRef(null);
+  const filterKey = JSON.stringify(rentalFilters(search, transaction_type));
+  const filters = useMemo(() => JSON.parse(filterKey), [filterKey]);
+  const page = rentalPage(search.get("page"));
+  const query = useMemo(() => ({ ...filters, sort: filters.sort || "newest", page, limit: 12 }), [filters, page]);
+  const { currentData: data, error, isFetching, refetch } = useGetPropertiesQuery(query);
+
+  const [, update] = useRentalFilters();
+
   useEffect(() => {
     dispatch(updateFilter(query));
   }, [dispatch, query]);
   useEffect(() => {
-    const update = (values) => {
-      const params = new URLSearchParams(window.location.search);
-      for (const [key, value] of Object.entries(values))
-        if (supported.includes(key)) {
-          if (value == null || value === "") params.delete(key);
-          else params.set(key, String(value));
-        }
-      params.delete("page");
-      router.push(`${pathname}?${params}`, { scroll: false });
-    };
-    const offLocation = eventBus.subscribe(CHATBOT_EVENTS.UPDATE_MAP_LOCATION, update);
-    const offFilters = eventBus.subscribe(CHATBOT_EVENTS.UPDATE_FILTERS, update);
+    setSelectedProperty(null);
+  }, [filterKey]);
+  useEffect(() => {
+    if (mobileView === "map" && window.matchMedia("(max-width: 959px)").matches) {
+      mapPanel.current?.scrollIntoView({ block: "start" });
+    }
+  }, [mobileView]);
+  useEffect(() => {
+    const fromAssistant = (values) =>
+      update(Object.fromEntries(Object.entries(values).filter(([key]) => RENTAL_FILTER_KEYS.includes(key))));
+    const offLocation = eventBus.subscribe(CHATBOT_EVENTS.UPDATE_MAP_LOCATION, fromAssistant);
+    const offFilters = eventBus.subscribe(CHATBOT_EVENTS.UPDATE_FILTERS, fromAssistant);
     return () => {
       offLocation();
       offFilters();
     };
-  }, [pathname, router]);
+  }, [update]);
+  useEffect(() => {
+    const totalPages = data?.pagination?.total_pages;
+    if (totalPages !== undefined && page > Math.max(1, totalPages)) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("page", String(Math.max(1, totalPages)));
+      router.replace(`${pathname}?${params}`, { scroll: false });
+    }
+  }, [data, page, pathname, router]);
+  useEffect(() => {
+    if (data && pendingPage.current === page) {
+      resultsTop.current?.scrollIntoView({ block: "start" });
+      pendingPage.current = null;
+    }
+  }, [data, page]);
+
   const properties = useMemo(
     () => (data?.properties || []).map((p) => ({ ...p, thumbnail: p.images?.[0]?.url })),
     [data],
   );
-  const markers = useMemo(
-    () =>
-      properties
-        .filter((p) => p.coordinates?.coordinates?.every(Number.isFinite))
-        .map((p) => ({ ...p, image: p.thumbnail, displayed_address: p.displayedAddress })),
-    [properties],
-  );
   const center = useMemo(
-    () => [Number(query.centerLng) || 106.701, Number(query.centerLat) || 10.786],
-    [query.centerLng, query.centerLat],
+    () => [Number(filters.centerLng) || 106.701, Number(filters.centerLat) || 10.786],
+    [filters.centerLng, filters.centerLat],
   );
-  const setPage = (_, page) => {
+  const total = data?.pagination?.total_records ?? 0;
+  const setPage = (_, nextPage) => {
+    pendingPage.current = nextPage;
     const params = new URLSearchParams(search);
-    params.set("page", page);
-    router.push(`${pathname}?${params}`);
+    params.set("page", String(nextPage));
+    router.push(`${pathname}?${params}`, { scroll: false });
   };
+  const locate = (property) => {
+    setSelectedProperty(property);
+    setShowMap(true);
+    setMobileView("map");
+  };
+  const searchArea = useCallback(
+    (bounds) => {
+      // A deliberate map search replaces the previous geographic area, while
+      // retaining budget/type/size. The route origin remains the chosen place.
+      update({ bounds, radius: null, district: null, province: null });
+      setMobileView("list");
+      setExpandedMap(false);
+    },
+    [update],
+  );
+  const clearSelection = useCallback(() => setSelectedProperty(null), []);
+  useEffect(() => {
+    if (!expandedMap) return;
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setExpandedMap(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [expandedMap]);
+
   return (
-    <Box sx={{ pb: 6 }}>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        gap={2}
-        sx={{ mb: 3, mt: 1 }}
-        className="animate-fade-in"
-      >
+    <Box sx={{ pb: 5 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2} sx={{ mb: 2.5 }}>
         <Box>
-          <Typography variant="overline" sx={{ letterSpacing: 2, color: "text.secondary", fontSize: 10 }}>
-            FIND YOUR NEXT CHAPTER
+          <Typography
+            component="h1"
+            sx={{ fontSize: { xs: 25, md: 30 }, letterSpacing: "-0.8px", fontWeight: 700, lineHeight: 1.35 }}
+          >
+            {filters.district ? `Homes in ${filters.district}` : "Find a place to call home."}
           </Typography>
-          <Typography component="h1" variant="h4" sx={{ fontSize: { xs: 25, md: 32 }, my: 1 }}>
-            Homes in {query.district || "Ho Chi Minh City"}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {error
-              ? "Listings temporarily unavailable"
-              : isFetching
-                ? "Finding your next home…"
-                : `${data?.pagination?.total_records ?? properties.length} homes to explore`}
+          <Typography color="text.secondary" fontSize={13} sx={{ mt: 1 }}>
+            A neighborhood you love. A space that fits your life.
           </Typography>
         </Box>
         <Button
           variant="outlined"
           startIcon={showMap ? <ViewModuleOutlined /> : <MapOutlined />}
           onClick={() => setShowMap(!showMap)}
-          sx={{ whiteSpace: "nowrap" }}
+          sx={{ whiteSpace: "nowrap", display: { xs: "none", md: "inline-flex" }, bgcolor: "white" }}
         >
           {showMap ? "Hide map" : "Show map"}
         </Button>
       </Stack>
-      {process.env.NEXT_PUBLIC_DEMO_MODE === "true" && (
-        <Alert severity="info" sx={{ mb: 3, bgcolor: "#edf1e7", color: "#526047" }}>
-          Local preview · Sample listings and illustrative photos, not verified availability.
-        </Alert>
-      )}
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: showMap ? "1.15fr 1fr" : "1fr" }, gap: 3 }}>
-        <Box aria-busy={isFetching}>
+      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mb: 2 }}>
+        {filters.bounds && <Chip label="Selected map area" onDelete={() => update({ bounds: null })} />}
+        {filters.district && <Chip label={filters.district} onDelete={() => update({ district: null })} />}
+        <Typography fontSize={12} color="text.secondary" sx={{ alignSelf: "center" }}>
+          Unverified inventory · Confirm availability and exact location with the source before visiting or paying.
+        </Typography>
+      </Stack>
+      <ToggleButtonGroup
+        exclusive
+        value={mobileView}
+        onChange={(_, value) => {
+          if (value) {
+            setMobileView(value);
+            setShowMap(true);
+          }
+        }}
+        size="small"
+        fullWidth
+        aria-label="Browse rentals by list or map"
+        sx={{ mb: 2, display: { md: "none" }, bgcolor: "white", position: "sticky", top: 72, zIndex: 20 }}
+      >
+        <ToggleButton value="list">
+          <ViewModuleOutlined sx={{ mr: 1, fontSize: 18 }} /> List
+        </ToggleButton>
+        <ToggleButton value="map">
+          <MapOutlined sx={{ mr: 1, fontSize: 18 }} /> Map
+        </ToggleButton>
+      </ToggleButtonGroup>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "minmax(0, 1fr)",
+            md: showMap ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr)",
+          },
+          gap: 3,
+          alignItems: "start",
+        }}
+      >
+        <Box
+          aria-busy={isFetching}
+          sx={{ display: { xs: mobileView === "list" ? "block" : "none", md: "block" }, minWidth: 0 }}
+        >
+          <Stack
+            ref={resultsTop}
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            gap={1}
+            sx={{ mb: 2, scrollMarginTop: 100 }}
+          >
+            <Typography variant="body2" aria-live="polite" sx={{ fontSize: 13 }}>
+              {error ? (
+                "Homes unavailable"
+              ) : isFetching ? (
+                "Finding homes…"
+              ) : total ? (
+                <>
+                  <strong>
+                    {((page - 1) * 12 + 1).toLocaleString()}–{Math.min(page * 12, total).toLocaleString()}
+                  </strong>{" "}
+                  of {total.toLocaleString()} homes
+                </>
+              ) : (
+                "No matching homes"
+              )}
+            </Typography>
+            <TextField
+              select
+              size="small"
+              label="Sort by"
+              value={filters.sort || "newest"}
+              onChange={(e) => update({ sort: e.target.value })}
+              sx={{ minWidth: 145, "& .MuiInputBase-input": { fontSize: 12 } }}
+            >
+              <MenuItem value="newest">Newest first</MenuItem>
+              <MenuItem value="price_asc">Price: low to high</MenuItem>
+              <MenuItem value="price_desc">Price: high to low</MenuItem>
+              <MenuItem value="area_desc">Largest first</MenuItem>
+            </TextField>
+          </Stack>
           {error ? (
             <Alert severity="error" action={<Button onClick={refetch}>Retry</Button>}>
               We couldn’t load homes. Please try again.
             </Alert>
-          ) : isLoading ? (
+          ) : !data && isFetching ? (
             <Stack spacing={2}>
               {[1, 2, 3].map((n) => (
-                <Skeleton key={n} variant="rounded" height={230} />
+                <Skeleton key={n} variant="rounded" height={340} />
               ))}
             </Stack>
           ) : (
             <PropertyList
               properties={properties}
               totalPages={data?.pagination?.total_pages ?? 0}
-              currentPage={query.page}
+              currentPage={page}
               handlePageChange={setPage}
+              onLocate={locate}
+              mapVisible={showMap}
             />
           )}
         </Box>
         {showMap && (
           <Box
+            ref={mapPanel}
             aria-label="Rental locations map"
             sx={{
-              height: { xs: 400, md: "calc(100vh - 180px)" },
-              minHeight: 400,
-              position: { md: "sticky" },
-              top: 110,
+              display: { xs: mobileView === "map" ? "block" : "none", md: "block" },
+              height: { xs: "calc(100dvh - 145px)", md: expandedMap ? "calc(100dvh - 114px)" : "calc(100vh - 125px)" },
+              minHeight: 480,
+              scrollMarginTop: 125,
+              position: { md: expandedMap ? "fixed" : "sticky" },
+              top: 100,
+              ...(expandedMap ? { left: 20, right: 20, zIndex: 1100, boxShadow: "0 16px 60px #18352a35" } : {}),
               borderRadius: 3,
               overflow: "hidden",
-              border: "1px solid #dce3d4",
+              border: "1px solid var(--rt-border)",
             }}
           >
-            <RentalMap center={center} markerList={markers} />
+            <RentalMap
+              center={center}
+              filters={filters}
+              selectedProperty={selectedProperty}
+              onSearchArea={searchArea}
+              onCloseSelection={clearSelection}
+              expanded={expandedMap}
+              onExpand={() => setExpandedMap((value) => !value)}
+            />
           </Box>
         )}
       </Box>
