@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useGetMyProfileQuery } from "@/redux/features/roommate/roommateApi";
+import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import ProfileForm from "@/components/Roommate/ProfileForm";
-import { Box, Typography, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Button } from '@mui/material';
 
 export default function RoommateProfilePage() {
-  const { data: myProfile, isLoading, error } = useGetMyProfileQuery();
-  
-  if (isLoading) {
+  const { isAuthenticated, isLoading: isGuardLoading } = useProtectedRoute();
+  const { data: myProfile, isLoading, error, refetch } = useGetMyProfileQuery(null, { skip: !isAuthenticated });
+
+  // Hold rendering until the guard resolves, otherwise the create-profile form
+  // flashes for logged-out visitors before they are bounced to /login.
+  if (isGuardLoading || !isAuthenticated || isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
         <CircularProgress />
@@ -17,15 +19,17 @@ export default function RoommateProfilePage() {
     );
   }
 
-  if (error && error.status !== 404) { // 404 just means profile doesn't exist yet
+  // 404 just means the user hasn’t created a profile yet — show the create form.
+  if (error && error.status !== 404) {
     return (
-      <Box sx={{ textAlign: 'center', py: 4 }}>
-        <Typography variant="h6" color="error" sx={{ mb: 2 }}>
-          Error Loading Profile
+      <Box className="empty-state" sx={{ flexDirection: 'column', alignItems: 'flex-start', gap: 1.5 }}>
+        <Typography variant="h6" sx={{ color: 'var(--rt-danger)' }}>
+          We couldn’t load your profile.
         </Typography>
-        <Typography color="text.secondary">
-          {error.data?.message || "There was an error loading your profile. Please try again later."}
+        <Typography sx={{ color: 'var(--rt-muted)' }}>
+          {error.data?.message || "Please try again in a moment."}
         </Typography>
+        <Button variant="outlined" color="inherit" onClick={refetch}>Try again</Button>
       </Box>
     );
   }
