@@ -1,96 +1,82 @@
 "use client";
-import NextLink from "next/link";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
+import { Avatar, IconButton, Menu, MenuItem } from "@mui/material";
+import { ArrowOutward, FavoriteBorderOutlined, MenuOutlined } from "@mui/icons-material";
 import useMenu from "@/hooks/useMenu";
-import { FavoriteBorderOutlined, NotificationsOutlined } from "@mui/icons-material";
-import { Avatar, Box, Button, Container, IconButton, Link, Stack, styled, Tooltip, Typography } from "@mui/material";
-import { grey } from "@mui/material/colors";
-import { useRouter } from "next/navigation";
-import { useMemo } from "react";
 import FavouritePostMenu from "../GetPropertiesPage/components/FavouritePostMenu";
 import AccountMenu from "./components/AccountMenu";
-
-const HeaderLink = ({ children, ...props }) => (
-  <Link component={NextLink} underline="none" {...props}>
-    {children}
-  </Link>
-);
-
-const HeaderWrapper = styled((props) => <Container maxWidth="xl" {...props} />)(({ theme }) => ({
-  height: "60px",
-  display: "flex",
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  position: "fixed",
-  zIndex: 1000,
-  backgroundColor: "white",
-  boxShadow: "rgba(239, 108, 0, 0.1) 0px 0px 10px 0px",
-}));
-
-function Header() {
-  const router = useRouter();
+import { useState } from "react";
+export default function Header() {
+  const pathname = usePathname();
   const user = useSelector((state) => state.auth.user);
-  const userName = useMemo(() => user?.name || "User", [user]);
-
   const [open, anchorEl, handleClick, handleClose] = useMenu();
-  const [isFavouriteMenuOpen, favouriteBtn, handleOpenFavouriteMenu, handleCloseFavouriteMenu] = useMenu();
-
+  const [savedOpen, savedAnchor, openSaved, closeSaved] = useMenu();
+  const [mobileAnchor, setMobileAnchor] = useState(null);
+  const links = [
+    ["/rent", "Find a home"],
+    ["/roommate", "Find a roommate"],
+    ["/#how-it-works", "How it works"],
+  ];
   return (
     <>
-      <HeaderWrapper>
-        <Stack direction="row" spacing={3} alignItems="center">
-          <HeaderLink href="/rent" sx={{ fontSize: 28, fontWeight: 600, width: 120 }}>
-            renTalk
-          </HeaderLink>
-        </Stack>
-
-        <Stack direction="row" spacing={1}>
-          {/* <Button onClick={() => router.push("/landlord/publish")} size="large" color="inherit">
-            <Typography sx={{ fontSize: 16, fontWeight: 500 }}>Create New Post</Typography>
-          </Button> */}
-
-          {user ? (
-            <>
-              <Tooltip title="List of saved post">
-                <IconButton onClick={handleOpenFavouriteMenu}>
-                  <FavoriteBorderOutlined />
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
+      <header className="site-header">
+        <div className="header-inner">
+          <Link className="brand-word" href="/" aria-label="renTalk home">
+            renTalk<span>.</span>
+          </Link>
+          <nav className="desktop-nav" aria-label="Main navigation">
+            {links.map(([href, label]) => (
+              <Link href={href} key={href} aria-current={pathname === href ? "page" : undefined}>
+                {label}
+              </Link>
+            ))}
+          </nav>
+          <div className="header-actions">
+            {user ? (
+              <>
+                <IconButton aria-label="Saved homes" onClick={openSaved}>
+                  <FavoriteBorderOutlined fontSize="small" />
                 </IconButton>
-              </Tooltip>
-
-              {/* <IconButton>
-                <NotificationsOutlined />
-              </IconButton> */}
-              <Stack
-                direction="row"
-                alignItems="center"
-                spacing={1}
-                sx={{
-                  border: 1,
-                  borderColor: grey[300],
-                  px: 1,
-                  borderRadius: 2,
-                  cursor: "pointer",
-                }}
-                onClick={handleClick}
-              >
-                <Avatar src={user?.avatar} sx={{ width: 30, height: 30 }} />
-                <Typography>{userName}</Typography>
-              </Stack>
-            </>
-          ) : (
-            <Button onClick={() => router.push("/login")} variant="outlined">
-              Sign Up or Login
-            </Button>
-          )}
-        </Stack>
-        <AccountMenu anchorEl={anchorEl} open={open} handleClose={handleClose} />
-      </HeaderWrapper>
-
-      <FavouritePostMenu anchorEl={favouriteBtn} open={isFavouriteMenuOpen} onCancel={handleCloseFavouriteMenu} />
-      <Box sx={{ width: "100%", height: "60px" }}></Box>
+                <button className="account-button" onClick={handleClick} aria-label="Account menu" aria-expanded={open}>
+                  <Avatar src={user.avatar} sx={{ width: 29, height: 29 }} />
+                  <span>{user.name}</span>
+                </button>
+              </>
+            ) : (
+              <Link href="/login" className="login-link">
+                Log in
+              </Link>
+            )}
+            <Link href="/landlord/publish" className="list-home-link">
+              List your property <ArrowOutward sx={{ fontSize: 15 }} />
+            </Link>
+            <IconButton
+              className="mobile-menu-button"
+              aria-label="Open navigation"
+              onClick={(e) => setMobileAnchor(e.currentTarget)}
+            >
+              <MenuOutlined />
+            </IconButton>
+          </div>
+        </div>
+      </header>
+      <Menu anchorEl={mobileAnchor} open={!!mobileAnchor} onClose={() => setMobileAnchor(null)}>
+        {links.map(([href, label]) => (
+          <MenuItem component={Link} href={href} key={href} onClick={() => setMobileAnchor(null)}>
+            {label}
+          </MenuItem>
+        ))}
+        <MenuItem component={Link} href="/landlord/publish" onClick={() => setMobileAnchor(null)}>
+          List your property
+        </MenuItem>
+      </Menu>
+      <AccountMenu anchorEl={anchorEl} open={open} handleClose={handleClose} />
+      <FavouritePostMenu anchorEl={savedAnchor} open={savedOpen} onCancel={closeSaved} />
     </>
   );
 }
-
-export default Header;

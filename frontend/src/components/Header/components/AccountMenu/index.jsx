@@ -1,12 +1,7 @@
 import { ListItemIcon, Menu, MenuItem } from "@mui/material";
 
 import { removeUserInfo } from "@/redux/features/auth/authSlice";
-import {
-  ExitToAppOutlined,
-  HomeOutlined,
-  LockClockOutlined,
-  PersonOutlineOutlined,
-} from "@mui/icons-material";
+import { ExitToAppOutlined, HomeOutlined, LockClockOutlined, PersonOutlineOutlined } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { useState } from "react";
@@ -42,7 +37,12 @@ export default function AccountMenu({ anchorEl, open, handleClose }) {
         transformOrigin={{ horizontal: "right", vertical: "top" }}
         anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
       >
-        <MenuItem onClick={handleClose}>
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            router.push("/roommate/profile");
+          }}
+        >
           <ListItemIcon>
             <PersonOutlineOutlined sx={{ fontSize: 18 }} />
           </ListItemIcon>
@@ -62,10 +62,7 @@ export default function AccountMenu({ anchorEl, open, handleClose }) {
         </MenuItem>
       </Menu>
 
-      <ChangePasswordDialog 
-        open={changePasswordOpen} 
-        onClose={handleChangePasswordClose} 
-      />
+      <ChangePasswordDialog open={changePasswordOpen} onClose={handleChangePasswordClose} />
     </>
   );
 }

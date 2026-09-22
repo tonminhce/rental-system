@@ -1,0 +1,227 @@
+@import "../../../scss/_variables.scss";
+
+.property-card {
+  min-width: 0;
+  border: 1px solid $rt-border;
+  border-radius: 12px;
+  background: white;
+  overflow: hidden;
+  transition:
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s ease;
+  height: 100%;
+}
+.property-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba($rt-brand, 0.12);
+  border-color: $rt-border-strong;
+}
+.property-image {
+  position: relative;
+  height: 215px;
+  overflow: hidden;
+  background: $rt-border;
+}
+.property-image > a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.property-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s;
+}
+.property-card:hover .property-image img {
+  transform: scale(1.04);
+}
+.property-type {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 9px;
+  border-radius: 4px;
+  background: rgba($rt-paper, 0.95);
+  color: $rt-brand-ink;
+}
+.property-image .save-home {
+  position: absolute;
+  right: 11px;
+  top: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  width: 34px;
+  height: 34px;
+  color: $rt-brand-ink;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    background: $rt-paper;
+    transform: scale(1.14);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    color: $rt-danger;
+  }
+
+  &:active {
+    transform: scale(0.9);
+  }
+
+  &.saved svg {
+    color: $rt-danger;
+    animation: heartBeat 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+.save-home svg {
+  font-size: 17px;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+.property-image-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: $rt-brand-muted;
+  gap: 10px;
+  font-size: 12px;
+}
+.property-content {
+  padding: 17px 16px 13px;
+}
+.property-location {
+  color: $rt-muted;
+  font-size: 12px;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.property-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: $rt-ink;
+  text-decoration: none;
+  line-height: 1.65;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  min-height: 3.3em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.property-title:hover {
+  text-decoration: underline;
+}
+.property-specs {
+  display: flex;
+  gap: 17px;
+  margin: 14px 0 16px;
+  color: $rt-muted;
+  font-size: 12px;
+}
+.property-specs span {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.property-specs svg {
+  font-size: 15px;
+}
+.property-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid $rt-border;
+  padding-top: 12px;
+}
+.property-bottom p {
+  font-size: 11px;
+  color: $rt-muted;
+  margin: 0;
+}
+.property-bottom strong {
+  font-size: 18px;
+  letter-spacing: -0.4px;
+  color: $rt-brand-ink;
+  font-weight: 600;
+}
+.property-bottom a {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: $rt-surface;
+  color: $rt-brand-ink;
+  transition:
+    background 0.25s ease,
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.25s ease;
+}
+.property-card:hover .property-bottom a {
+  background: $rt-brand;
+  color: $rt-on-brand;
+  transform: translateX(2px);
+}
+.property-bottom svg {
+  font-size: 16px;
+}
+.property-bottom .locate-home {
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.property-bottom .locate-home .MuiButton-startIcon {
+  margin-right: 3px;
+}
+@media (min-width: 960px) and (max-width: 1199px) {
+  .rental-results--split .property-card {
+    display: grid;
+    grid-template-columns: minmax(140px, 38%) minmax(0, 1fr);
+  }
+  .rental-results--split .property-image {
+    height: 100%;
+    min-height: 235px;
+  }
+  .rental-results--split .property-title {
+    font-size: 14px;
+    -webkit-line-clamp: 3;
+    min-height: 4.95em;
+  }
+  .rental-results--split .property-content {
+    padding: 14px;
+  }
+  .rental-results--split .property-bottom {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .rental-results--split .property-bottom strong {
+    font-size: 16px;
+  }
+}
+@media (max-width: 460px) {
+  .property-image {
+    height: 225px;
+  }
+  .property-title {
+    font-size: 16px;
+  }
+  .property-location,
+  .property-specs {
+    font-size: 12px;
+  }
+  .property-bottom strong {
+    font-size: 19px;
+  }
+}

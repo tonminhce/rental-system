@@ -2,7 +2,7 @@ import { PROPERTY_TYPES } from "@/constants/propertyTypes";
 import { Checkbox, FormControl, ListItemText, MenuItem, OutlinedInput, Select } from "@mui/material";
 import _ from "lodash";
 import { useMemo } from "react";
-import { ArrayParam, useQueryParam, withDefault } from "use-query-params";
+import useRentalFilters from "@/hooks/useRentalFilters";
 
 const ITEM_HEIGHT = 42;
 const ITEM_PADDING_TOP = 40;
@@ -16,15 +16,17 @@ const MenuProps = {
 };
 
 const PropertyTypeSelect = () => {
-  const [propertyTypesQuery, setPropertyTypesQuery] = useQueryParam("propertyType", withDefault(ArrayParam, []));
-  const propertyTypes = useMemo(() =>
-    propertyTypesQuery ? _.intersection(Object.keys(PROPERTY_TYPES), propertyTypesQuery) : []
+  const [search, update] = useRentalFilters();
+  const propertyTypesQuery = search.getAll("propertyType").join(",").split(",");
+  const propertyTypes = useMemo(
+    () => (propertyTypesQuery ? _.intersection(Object.keys(PROPERTY_TYPES), propertyTypesQuery) : []),
+    [propertyTypesQuery],
   );
 
   const handleChange = (e) => {
     const propertyTypes = e.target.value;
 
-    setPropertyTypesQuery(typeof propertyTypes == "string" ? propertyTypes : propertyTypes);
+    update({ propertyType: propertyTypes });
   };
 
   return (
@@ -37,24 +39,30 @@ const PropertyTypeSelect = () => {
           return selected.length === 0
             ? "Any Property Type"
             : selected.length === 1
-            ? PROPERTY_TYPES[selected[0]]?.viLabel
-            : `Property Types (${selected.length})`;
+              ? PROPERTY_TYPES[selected[0]]?.viLabel
+              : `Property Types (${selected.length})`;
         }}
         value={propertyTypes}
         onChange={handleChange}
         input={<OutlinedInput />}
-        inputProps={{ "aria-label": "Without label" }}
+        inputProps={{ "aria-label": "Property type" }}
         MenuProps={MenuProps}
+        sx={{
+          color: propertyTypes.length > 0 ? "var(--rt-ink)" : "var(--rt-muted)",
+          "& .MuiOutlinedInput-notchedOutline": { borderColor: "var(--rt-border-strong)" },
+        }}
       >
         <MenuItem disabled value="">
           Property Type
         </MenuItem>
-        {Object.values(PROPERTY_TYPES).map(({ value, viLabel }) => (
-          <MenuItem sx={{ py: 0, pl: 1 }} key={value} value={value}>
-            <Checkbox checked={propertyTypes.indexOf(value) > -1} />
-            <ListItemText primary={viLabel} />
-          </MenuItem>
-        ))}
+        {Object.values(PROPERTY_TYPES)
+          .filter(({ value }) => ["apartment", "house", "room", "villa", "land", "office", "other"].includes(value))
+          .map(({ value, label }) => (
+            <MenuItem sx={{ py: 0, pl: 1 }} key={value} value={value}>
+              <Checkbox checked={propertyTypes.indexOf(value) > -1} />
+              <ListItemText primary={label} />
+            </MenuItem>
+          ))}
       </Select>
     </FormControl>
   );

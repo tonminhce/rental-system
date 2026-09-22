@@ -1,17 +1,46 @@
 @import "@scss/_variables.scss";
 @import "@scss/_mixins.scss";
 
+.posts_gallery.posts_gallery--single {
+  display: block;
+  height: 450px;
+}
+.posts_cardButton {
+  text-decoration: none;
+}
+@media (max-width: 760px) {
+  .posts_body {
+    grid-template-columns: 1fr !important;
+  }
+  .posts_container {
+    padding: 24px !important;
+  }
+  .posts_gallery,
+  .posts_gallery.posts_gallery--single {
+    height: 280px;
+  }
+  .posts_info {
+    display: flex !important;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .posts_actions {
+    justify-content: flex-start !important;
+  }
+}
+
 .posts {
   &_wrapper {
     width: 100%;
-    // background: linear-gradient(#fff7e9, #fff);
   }
   &_container {
     display: flex;
     flex-direction: column;
-    width: 1200px;
+    width: 100%;
+    max-width: 1200px;
     padding: 16px 32px;
     margin: 0 auto;
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   &_breadcrumbs {
@@ -20,7 +49,7 @@
 
   &_title {
     font-size: 1.875rem;
-    line-height: 3.1.25rem;
+    line-height: 3.125rem;
     font-weight: 500;
     color: $foreground-color;
     margin-top: 8px;
@@ -39,11 +68,17 @@
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
     font-size: 0.875rem;
     text-decoration: none;
     color: $primary-color;
-    font-weight: 500;
+    font-weight: 600;
+    transition: transform 0.2s ease, color 0.2s ease;
+
+    &:hover {
+      transform: translateX(-4px);
+      color: $rt-brand-hover;
+    }
   }
 
   &_content {
@@ -64,6 +99,19 @@
     overflow: hidden;
     gap: 6px;
     margin: 24px 0;
+
+    & > div {
+      overflow: hidden;
+      img {
+        transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        &:hover {
+          transform: scale(1.04);
+        }
+      }
+    }
 
     & div:first-child {
       grid-column-start: 1;
@@ -86,8 +134,9 @@
 
   &_info {
     display: grid;
-    grid-template-columns: 1fr 200px;
-    grid-template-rows: 30px 40px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 24px;
     grid-template-areas:
       "summary actions"
       "price price";
@@ -96,14 +145,16 @@
 
   &_summary {
     grid-area: summary;
-    font-size: 2.1.25rem;
+    align-self: center;
+    margin: 0;
+    font-size: 2.125rem;
     font-weight: 500;
   }
 
   &_price {
     grid-area: price;
     font-size: 1.75rem;
-    line-height: 3.1.25rem;
+    line-height: 3.125rem;
     font-weight: 600;
     color: $primary-color;
     margin: 8px 0;
@@ -122,15 +173,48 @@
   &_action {
     @include flex(row, flex-start, center);
     gap: 8px;
-    font-size: 1rem;
-    padding: 8px;
-    color: $foreground-color;
-    text-decoration: underline;
-    border-radius: $radius;
+    font-size: 0.85rem;
+    padding: 8px 14px;
+    color: $rt-brand;
+    text-decoration: none;
+    border: 1px solid $rt-border;
+    border-radius: 8px;
+    background: $rt-paper;
     cursor: pointer;
+    font-weight: 600;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+    svg {
+      transition: transform 0.2s ease;
+    }
 
     &:hover {
-      background-color: $secondary-color;
+      background-color: $rt-brand;
+      color: $rt-on-brand;
+      border-color: $rt-brand;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba($rt-brand, 0.15);
+
+      svg {
+        transform: scale(1.15);
+      }
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    &--saved {
+      background-color: $rt-brand;
+      border-color: $rt-brand;
+      color: $rt-on-brand;
     }
   }
 
@@ -138,6 +222,12 @@
     border-top: 1px solid $border-color;
     border-bottom: 1px solid $border-color;
     padding: 24px 0;
+
+    h2 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
 
     &List {
       display: flex;
@@ -176,12 +266,17 @@
     margin: 24px 0;
     text-align: justify;
 
-    h4 {
-      margin: 6px 0;
-      font-weight: 500;
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.125rem;
+      font-weight: 600;
     }
 
     p {
+      margin-bottom: 8px;
+    }
+
+    &--clamped p {
       @include line-truncate(6);
     }
 
@@ -194,6 +289,7 @@
 
       font-weight: 500;
       font-size: 1rem;
+      color: $rt-brand;
       text-decoration: underline;
     }
   }
@@ -203,8 +299,10 @@
     margin-top: 24px;
     padding-top: 24px;
 
-    h4 {
-      font-weight: 500;
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.125rem;
+      font-weight: 600;
     }
 
     p {
@@ -213,27 +311,26 @@
     }
   }
 
-  &_map {
-    width: 100%;
-    height: 400px;
-    border: 0px;
-    border-radius: $radius;
-  }
-
   &_card {
-    padding: 16px;
-    border: 1px solid $border-color;
-    border-radius: $radius;
-    box-shadow: 0px 4px 6px 0px rgba(44, 44, 44, 0.04);
-    background-color: $card-color;
+    padding: 20px;
+    border: 1px solid $rt-border;
+    border-radius: 12px;
+    box-shadow: 0px 4px 16px rgba($rt-brand, 0.06);
+    background-color: $rt-paper;
     position: sticky;
-    position: -webkit-sticky; /* Safari */
-    top: 80px;
+    position: -webkit-sticky;
+    top: 96px;
+    transition: box-shadow 0.3s ease;
+
+    &:hover {
+      box-shadow: 0px 8px 24px rgba($rt-brand, 0.1);
+    }
 
     &Actions {
       margin-top: 16px;
       display: flex;
-      gap: 16px;
+      flex-direction: column;
+      gap: 10px;
     }
 
     &Button {
@@ -241,15 +338,28 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 8px;
+      padding: 11px 16px;
       gap: 8px;
-      background-color: $background-color;
-      border: 1px solid $border-color;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 
       &--active {
-        color: $primary-color;
-        border: 1px solid $primary-color;
-        background-color: $card-color;
+        color: $rt-on-brand;
+        border: 1px solid $rt-brand;
+        background-color: $rt-brand;
+
+        &:hover {
+          background-color: $rt-brand-hover;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 14px rgba($rt-brand, 0.22);
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
       }
     }
   }

@@ -3,35 +3,39 @@ import SendIcon from "@mui/icons-material/Send";
 import { Box, IconButton, List, ListItem, Paper, styled, TextField, Typography, Tooltip } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import { useEffect, useRef, useState } from "react";
-import { v4 as uuidv4 } from 'uuid';
 import ChatMessage from "./ChatMessage";
 import { useSelector } from "react-redux";
-import eventBus, { CHATBOT_EVENTS } from '@/utils/chatbotEventBus';
-import CloseIcon from '@mui/icons-material/Close';
+import eventBus, { CHATBOT_EVENTS } from "@/utils/chatbotEventBus";
+import CloseIcon from "@mui/icons-material/Close";
 import { useDispatch } from "react-redux";
 import { toggleChatWidget } from "@/redux/features/system/systemSlice";
 
 const ChatbotContainer = styled(Box)(({ theme }) => ({
   position: "fixed",
-  right: 20,
-  bottom: 80,
-  width: "100%",
-  maxWidth: 500,
-  mx: "auto",
-  mt: 5,
-  zIndex: 1000,
-  display: "none", 
+  right: 24,
+  bottom: 84,
+  width: "calc(100% - 48px)",
+  maxWidth: 420,
+  zIndex: 1200,
+  display: "block",
+  animation: "scaleIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+  transformOrigin: "bottom right",
+  [theme.breakpoints.down("sm")]: {
+    right: 16,
+    bottom: 76,
+    width: "calc(100% - 32px)",
+  },
 }));
 
 const ChatHeader = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
-  color: 'white',
+  color: "white",
   padding: theme.spacing(1.5, 2),
   borderTopLeftRadius: theme.shape.borderRadius,
   borderTopRightRadius: theme.shape.borderRadius,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
 }));
 
 const ChatMessagesContainer = styled(List)(({ theme }) => ({
@@ -39,42 +43,57 @@ const ChatMessagesContainer = styled(List)(({ theme }) => ({
   overflowY: "auto",
   padding: theme.spacing(2),
   backgroundColor: theme.palette.grey[50],
-  '&::-webkit-scrollbar': {
-    width: '6px',
+  "&::-webkit-scrollbar": {
+    width: "6px",
   },
-  '&::-webkit-scrollbar-track': {
-    backgroundColor: 'transparent',
+  "&::-webkit-scrollbar-track": {
+    backgroundColor: "transparent",
   },
-  '&::-webkit-scrollbar-thumb': {
+  "&::-webkit-scrollbar-thumb": {
     backgroundColor: theme.palette.grey[300],
-    borderRadius: '3px',
+    borderRadius: "3px",
   },
 }));
 
 const ChatInputContainer = styled(Box)(({ theme }) => ({
   padding: theme.spacing(2),
-  backgroundColor: 'white',
+  backgroundColor: "white",
   borderTop: `1px solid ${theme.palette.grey[200]}`,
-  display: 'flex',
-  alignItems: 'center',
+  display: "flex",
+  alignItems: "center",
 }));
 
 const ChatWidget = () => {
   const dispatch = useDispatch();
   const filterState = useSelector((state) => state.filter);
-  
-  const isChatOpened = useSelector((state) => state.system.isChatOpened);
-  const [threadId, setThreadId] = useState('');
-  
-  useEffect(() => {
-    if (isChatOpened) {
-      setThreadId(uuidv4());
-      sessionStorage.removeItem("chatMessages");
-    }
-  }, [isChatOpened]);
 
-  const streamedMessageRef = useRef('');
-  
+  const isChatOpened = useSelector((state) => state.system.isChatOpened);
+  const getThreadId = () => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = sessionStorage.getItem("chatThreadId");
+        if (saved) return saved;
+        const newId = typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `thread-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        sessionStorage.setItem("chatThreadId", newId);
+        return newId;
+      } catch {
+        return `thread-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      }
+    }
+    return "thread-default";
+  };
+  const [threadId, setThreadId] = useState(getThreadId);
+
+  useEffect(() => {
+    if (isChatOpened && !threadId) {
+      setThreadId(getThreadId());
+    }
+  }, [isChatOpened, threadId]);
+
+  const streamedMessageRef = useRef("");
+
   const lastMessageEl = useRef(null);
 
   const [messages, setMessages] = useState([]);
@@ -83,12 +102,19 @@ const ChatWidget = () => {
 
   useEffect(() => {
     if (threadId && isChatOpened) {
-      const storedMessages = JSON.parse(sessionStorage.getItem("chatMessages") ?? "[]");
+      let storedMessages = [];
+      try {
+        storedMessages = JSON.parse(sessionStorage.getItem("chatMessages") ?? "[]");
+      } catch {
+        /* Start fresh if storage is invalid. */
+      }
       if (storedMessages.length === 0) {
-        setMessages([{ 
-          text: "Hello! How can i help you today?",
-          sender: "bot" 
-        }]);
+        setMessages([
+          {
+            text: "Hi, let’s find your kind of home. Tell me a neighborhood, your monthly budget, or what matters most to you.\n\nAI suggestions can be imperfect. Always confirm listing details with the owner.",
+            sender: "bot",
+          },
+        ]);
       } else {
         setMessages(storedMessages);
       }
@@ -111,22 +137,22 @@ const ChatWidget = () => {
     try {
       let processedContent = content;
       let didUpdate = false;
-      
+
       if (processedContent.includes("__LOCATION_UPDATE__")) {
         const locationRegex = /__LOCATION_UPDATE__\s*({[\s\S]*?})\s*__END_LOCATION_UPDATE__/;
         const match = processedContent.match(locationRegex);
-        
+
         if (match && match[1]) {
           const locationData = JSON.parse(match[1]);
-          
+
           if (locationData.centerLat && locationData.centerLng) {
             eventBus.publish(CHATBOT_EVENTS.UPDATE_MAP_LOCATION, {
               centerLat: locationData.centerLat,
               centerLng: locationData.centerLng,
               radius: locationData.radius || 1,
-              locationName: locationData.locationName || "Searched Location"
+              locationName: locationData.locationName || "Searched Location",
             });
-            
+
             eventBus.publish(CHATBOT_EVENTS.UPDATE_FILTERS, {
               centerLat: locationData.centerLat,
               centerLng: locationData.centerLng,
@@ -136,20 +162,20 @@ const ChatWidget = () => {
               minArea: locationData.minArea,
               maxArea: locationData.maxArea,
               propertyType: locationData.propertyType,
-              transactionType: locationData.transactionType || 'rent'
+              transactionType: locationData.transactionType || "rent",
             });
-            
+
             didUpdate = true;
           }
-          
+
           processedContent = processedContent.replace(locationRegex, "");
         }
       }
-      
+
       if (processedContent.includes("__FILTER_UPDATE__")) {
         const filterRegex = /__FILTER_UPDATE__\s*({[\s\S]*?})\s*__END_FILTER_UPDATE__/;
         const match = processedContent.match(filterRegex);
-        
+
         if (match && match[1]) {
           const filterData = JSON.parse(match[1]);
           eventBus.publish(CHATBOT_EVENTS.UPDATE_FILTERS, filterData);
@@ -161,39 +187,41 @@ const ChatWidget = () => {
     } catch (error) {
       console.error("Error processing chatbot response for updates:", error);
     }
-        return content;
+    return content;
   };
 
   const handleSend = async () => {
-    if (input.trim() === "" || isTyping || !threadId || !isChatOpened) return;
+    const userMessage = input.trim();
+    if (userMessage === "" || isTyping) return;
+
+    const activeThreadId = threadId || getThreadId();
+    if (!threadId) setThreadId(activeThreadId);
 
     // Add the user's message to the chat
-    const userMessage = input.trim();
-    setMessages(prev => [...prev, { text: userMessage, sender: "user" }]);
+    setMessages((prev) => [...prev, { text: userMessage, sender: "user" }]);
     setInput("");
     setIsTyping(true);
-    
-    streamedMessageRef.current = '';
-    
+
+    streamedMessageRef.current = "";
+
     try {
-      setMessages(prev => [...prev, { text: '', sender: "bot", isPartial: true }]);
-      
+      setMessages((prev) => [...prev, { text: "", sender: "bot", isPartial: true }]);
+
       const queryParams = Object.keys(filterState).reduce((params, key) => {
-        if (filterState[key] !== null && filterState[key] !== undefined && filterState[key] !== '') {
+        if (filterState[key] !== null && filterState[key] !== undefined && filterState[key] !== "") {
           params[key] = filterState[key];
         }
         return params;
       }, {});
-      
-      
+
       await chatService.sendMessageStream(
         userMessage,
-        threadId,
+        activeThreadId,
         queryParams,
         (token) => {
           const processedToken = processChatbotResponse(token);
           streamedMessageRef.current += processedToken;
-          setMessages(prev => {
+          setMessages((prev) => {
             const newMessages = [...prev];
             const lastMessage = newMessages[newMessages.length - 1];
             if (lastMessage) {
@@ -204,7 +232,7 @@ const ChatWidget = () => {
         },
         (error) => {
           console.error("Chat error:", error);
-          setMessages(prev => {
+          setMessages((prev) => {
             const newMessages = [...prev];
             const lastMessage = newMessages[newMessages.length - 1];
             if (lastMessage) {
@@ -213,10 +241,10 @@ const ChatWidget = () => {
             }
             return newMessages;
           });
-        }
+        },
       );
 
-      setMessages(prev => {
+      setMessages((prev) => {
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
         if (lastMessage && lastMessage.isPartial) {
@@ -226,21 +254,24 @@ const ChatWidget = () => {
       });
     } catch (error) {
       console.error("Error in chat:", error);
-      setMessages(prev => {
+      setMessages((prev) => {
         // Check if the last message is a partial bot message
         if (prev.length > 0 && prev[prev.length - 1].isPartial) {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = {
             text: "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.",
-            sender: "bot"
+            sender: "bot",
           };
           return newMessages;
         }
         // Otherwise add a new error message
-        return [...prev, { 
-          text: "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.", 
-          sender: "bot" 
-        }];
+        return [
+          ...prev,
+          {
+            text: "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.",
+            sender: "bot",
+          },
+        ];
       });
     } finally {
       setIsTyping(false);
@@ -256,58 +287,47 @@ const ChatWidget = () => {
   }
 
   return (
-    <ChatbotContainer sx={{ display: isChatOpened ? 'block' : 'none' }}>
-      <Paper 
-        sx={{ 
-          display: "flex", 
+    <ChatbotContainer>
+      <Paper
+        sx={{
+          display: "flex",
           flexDirection: "column",
-          height: "70vh",
+          height: "min(620px, 70dvh)",
           borderRadius: 2,
           overflow: "hidden",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)"
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
         }}
       >
         <ChatHeader>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Rental Assistant          
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: 15 }}>
+            Your home-finding companion
           </Typography>
-          <Box sx={{ display: 'flex' }}>
+          <Box sx={{ display: "flex" }}>
             <Tooltip title="Close">
-              <IconButton 
-                size="small" 
-                onClick={handleClose}
-                sx={{ color: 'white' }}
-              >
+              <IconButton aria-label="Close assistant" size="small" onClick={handleClose} sx={{ color: "white" }}>
                 <CloseIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           </Box>
         </ChatHeader>
 
-        <ChatMessagesContainer>
+        <ChatMessagesContainer aria-live="polite" aria-label="Conversation">
           {messages.map((message, index) => (
-            <ListItem 
-              key={index} 
-              disableGutters 
+            <ListItem
+              key={index}
+              disableGutters
               disablePadding
-              sx={{ 
-                display: 'block',
-                mb: index === messages.length - 1 ? 0 : 1 
+              sx={{
+                display: "block",
+                mb: index === messages.length - 1 ? 0 : 1,
               }}
             >
-              <ChatMessage 
-                message={message.text} 
-                sender={message.sender}
-                isPartial={message.isPartial}
-              />
+              <ChatMessage message={message.text} sender={message.sender} isPartial={message.isPartial} />
             </ListItem>
           ))}
-          {isTyping && !messages[messages.length - 1]?.isPartial && (
-            <ListItem disableGutters sx={{ display: 'block' }}>
-              <ChatMessage 
-                message="..." 
-                sender="bot"
-              />
+          {isTyping && !messages[messages.length - 1]?.text && (
+            <ListItem disableGutters sx={{ display: "block" }}>
+              <ChatMessage message="Looking into that for you…" sender="bot" />
             </ListItem>
           )}
           <div ref={lastMessageEl} />
@@ -320,7 +340,8 @@ const ChatWidget = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Nhập tin nhắn..."
+            placeholder="Tell me what you’re looking for…"
+            inputProps={{ "aria-label": "Message your rental assistant", maxLength: 2000 }}
             disabled={isTyping}
             size="small"
             sx={{
@@ -333,21 +354,22 @@ const ChatWidget = () => {
               },
             }}
           />
-          <IconButton 
-            color="primary" 
-            onClick={handleSend} 
+          <IconButton
+            aria-label="Send message"
+            color="primary"
+            onClick={handleSend}
             disabled={isTyping || input.trim() === ""}
-            sx={{ 
+            sx={{
               ml: 1,
-              backgroundColor: 'primary.main',
-              color: 'white',
-              '&:hover': {
-                backgroundColor: 'primary.dark',
+              backgroundColor: "primary.main",
+              color: "white",
+              "&:hover": {
+                backgroundColor: "primary.dark",
               },
-              '&.Mui-disabled': {
+              "&.Mui-disabled": {
                 backgroundColor: grey[300],
                 color: grey[500],
-              }
+              },
             }}
           >
             <SendIcon />
@@ -359,4 +381,3 @@ const ChatWidget = () => {
 };
 
 export default ChatWidget;
-

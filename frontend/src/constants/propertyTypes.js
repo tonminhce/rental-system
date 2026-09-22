@@ -22,7 +22,7 @@ export const PROPERTY_TYPE_DETAILS = [
     Icon: HomeOutlined,
   },
   {
-    value: "rooming_house",
+    value: "room",
     label: "Rooming House",
     viLabel: "Phòng trọ",
     Icon: HolidayVillageOutlined,
@@ -34,8 +34,8 @@ export const PROPERTY_TYPE_DETAILS = [
     Icon: HomeWorkOutlined,
   },
   {
-    value: "appartment",
-    label: "Appartment",
+    value: "apartment",
+    label: "Apartment",
     viLabel: "Căn hộ chung cư",
     Icon: ApartmentOutlined,
   },
@@ -67,53 +67,9 @@ export const PROPERTY_TYPE_DETAILS = [
 
 export const PROPERTY_TYPE_VALUES = PROPERTY_TYPE_DETAILS.map((propType) => propType.value);
 
-export const PROPERTY_TYPES = {
-  house: {
-    value: "house",
-    label: "House",
-    viLabel: "Nhà riêng",
-    Icon: HomeOutlined,
-  },
-  room: {
-    value: "room",
-    label: "Rooming House",
-    viLabel: "Phòng trọ",
-    Icon: HolidayVillageOutlined,
-  },
-  dormitory: {
-    value: "dormitory",
-    label: "Dormitory",
-    viLabel: "Ký túc xá",
-    Icon: HomeWorkOutlined,
-  },
-  appartment: {
-    value: "appartment",
-    label: "Appartment",
-    viLabel: "Căn hộ chung cư",
-    Icon: ApartmentOutlined,
-  },
-  land: {
-    value: "land",
-    label: "Land",
-    viLabel: "Đất",
-    Icon: YardOutlined,
-  },
-  office: {
-    value: "office",
-    label: "Office",
-    viLabel: "Văn phòng",
-    Icon: BusinessCenterOutlined,
-  },
-  villa: {
-    value: "villa",
-    label: "Villa",
-    viLabel: "Biệt thự",
-    Icon: VillaOutlined,
-  },
-  warehouse: {
-    value: "warehouse",
-    label: "Warehouse",
-    viLabel: "Kho, nhà xưởng",
-    Icon: WarehouseOutlined,
-  },
-};
+export const PROPERTY_TYPES = Object.fromEntries(
+  PROPERTY_TYPE_DETAILS.filter(({ value }) => value !== "all").map((propType) => [
+    propType.value,
+    propType,
+  ]),
+);

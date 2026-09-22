@@ -11,11 +11,10 @@ export function useProtectedRoute() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.replace(`/login?returnURL=${pathname}`);
-    } else {
-      setIsLoading(false);
+      router.replace(`/login?returnURL=${encodeURIComponent(pathname)}`);
     }
+    setIsLoading(false);
   }, [isAuthenticated, router, pathname]);
 
-  return { isLoading };
-} 
+  return { isLoading, isAuthenticated };
+}

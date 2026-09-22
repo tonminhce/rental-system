@@ -5,19 +5,37 @@ import csv
 import re
 from .utils import standardize_district, standardize_ward
 
+import os
+
 class MogiPipeline:
     def __init__(self):
         # In here we will authenticate to the main rental service
         # Login to the rental service
-        res = requests.post(
-            "http://localhost:8080/api/auth/login",
-            json={"email": "mogi@gmail.com", "password": "mogi123"},
-        )
-        if res.status_code != 200:
-            print("Error", res.json())
-            raise Exception("Failed to login to the rental service")
-        
-        self.access_token = res.json()["data"]["token"]
+        self.api_url = os.getenv("RENTAL_API_URL", "http://localhost:8100/api")
+        self.access_token = None
+        api_email = os.getenv("RENTAL_API_EMAIL")
+        api_password = os.getenv("RENTAL_API_PASSWORD")
+        if not api_email or not api_password:
+            # process_item already skips the authenticated POST when no token
+            # was issued, so crawling continues and only reports the gap.
+            print(
+                "Warning: RENTAL_API_EMAIL/RENTAL_API_PASSWORD are unset; "
+                "MogiPipeline will not authenticate with the rental service"
+            )
+            return
+        try:
+            res = requests.post(
+                f"{self.api_url}/auth/login",
+                json={"email": api_email, "password": api_password},
+                timeout=10,
+            )
+            if res.status_code == 200:
+                self.access_token = res.json()["data"]["token"]
+                print("[✓] MogiPipeline authenticated with rental service")
+            else:
+                print("Warning: Failed to login to rental service:", res.status_code, res.text)
+        except Exception as e:
+            print("Warning: rental service connection failed in MogiPipeline:", e)
 
     def process_item(self, item, spider):
         adapter = ItemAdapter(item)
@@ -27,39 +45,39 @@ class MogiPipeline:
         # Extract address components
         address_data = self.parse_address(adapter["address"])
 
-        # We will store to database
-        res = requests.post(
-            "http://localhost:8080/api/posts",
-            headers={"Authorization": f"Bearer {self.access_token}"},
-            json={
-                "name": adapter["title"],
-                "description": adapter["description"],
-                "propertyType": "room",
-                "transactionType": "rent",
-                "price": float(self.parse_price(adapter["price"])),
-                "province": address_data["province"],
-                "district": address_data["district"],
-                "ward": address_data["ward"],
-                "street": address_data["street"],
-                "displayedAddress": adapter["address"],
-                "latitude": float(adapter["coordinates"][0]),
-                "longitude": float(adapter["coordinates"][1]),
-                "images": adapter["images"],
-                "sourceUrl": "mogi.vn",
-                "area": self.parse_area(adapter["area"]),
-                "bedrooms": adapter["bedrooms"],
-                "bathrooms": adapter["bathrooms"],
-                "contactName": adapter["owner_name"],
-                "contactPhone": self.parse_phone_number(adapter["owner_contact"]),
-                "postUrl":adapter["post_url"],
-            },
-        )
-
-        if res.status_code != 201:
-            print("Error in store", res.json())
-            raise Exception(
-                f"Failed to store post to the rental service. Status code: {res.status_code}"
-            )
+        if self.access_token:
+            try:
+                res = requests.post(
+                    f"{self.api_url}/posts",
+                    headers={"Authorization": f"Bearer {self.access_token}"},
+                    json={
+                        "name": adapter["title"],
+                        "description": adapter["description"],
+                        "propertyType": "room",
+                        "transactionType": "rent",
+                        "price": float(self.parse_price(adapter["price"])),
+                        "province": address_data["province"],
+                        "district": address_data["district"],
+                        "ward": address_data["ward"],
+                        "street": address_data["street"],
+                        "displayedAddress": adapter["address"],
+                        "latitude": float(adapter["coordinates"][0]),
+                        "longitude": float(adapter["coordinates"][1]),
+                        "images": adapter["images"],
+                        "sourceUrl": "mogi.vn",
+                        "area": self.parse_area(adapter["area"]),
+                        "bedrooms": adapter["bedrooms"],
+                        "bathrooms": adapter["bathrooms"],
+                        "contactName": adapter["owner_name"],
+                        "contactPhone": self.parse_phone_number(adapter["owner_contact"]),
+                        "postUrl": adapter["post_url"],
+                    },
+                    timeout=10,
+                )
+                if res.status_code != 201:
+                    print("Warning: failed to store post:", res.status_code, res.text[:200])
+            except Exception as e:
+                print("Warning: error storing post to rental service:", e)
             
         return item
 

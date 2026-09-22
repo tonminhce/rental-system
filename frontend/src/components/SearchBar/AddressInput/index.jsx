@@ -1,156 +1,73 @@
 import usePlaceAutocomplete from "@/hooks/usePlaceAutocomplete";
-import { setLocationFilter } from "@/redux/features/filter/filterSlice";
-import { useDispatch } from "react-redux";
+import useRentalFilters from "@/hooks/useRentalFilters";
 import { Autocomplete, TextField } from "@mui/material";
-import React, { useEffect, useState } from "react";
-import { StringParam, useQueryParam } from "use-query-params";
-import eventBus, { CHATBOT_EVENTS } from '@/utils/chatbotEventBus';
+import { useEffect, useRef, useState } from "react";
 
 export default function AddressInput() {
-  const [addressInput, setAddressInput, suggestions] = usePlaceAutocomplete();
-  const [address, setAddress] = useState(null);
-  const [, setFormattedAddress] = useState(null);
-  const [, setCenterLat] = useQueryParam("centerLat", StringParam);
-  const [, setCenterLng] = useQueryParam("centerLng", StringParam);
-  const [, setBoundary] = useQueryParam("bounds", StringParam);
-  const dispatch = useDispatch();
-
-  const handleAddressChange = (_, address) => {
-    setAddress(address);
-  };
-
+  const [input, setInput, suggestions] = usePlaceAutocomplete();
+  const [search, update] = useRentalFilters();
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const pending = useRef(null);
+  const label = search.get("location") || "";
   useEffect(() => {
-    const handleLocationUpdate = (data) => {
-      // console.log("Received location update from chatbot:", data);
-      if (data.centerLat && data.centerLng) {
-        setCenterLat(data.centerLat.toString());
-        setCenterLng(data.centerLng.toString());
-        setBoundary(null);
-        
-        dispatch(setLocationFilter({
-          centerLat: data.centerLat,
-          centerLng: data.centerLng,
-          bounds: null
-        }));
-        
-        if (data.locationName && data.locationName !== "Searched Location") {
-          const mockPlace = {
-            place_id: `chatbot-${Date.now()}`,
-            description: data.locationName,
-          };
-          
-          setFormattedAddress(data.locationName);
-          setAddressInput(data.locationName);
-          setAddress(mockPlace);
-        } else {
-          fetch(`/api/geocoding?lat=${data.centerLat}&lng=${data.centerLng}`)
-            .then(response => response.json())
-            .then(responseData => {
-              if (responseData.results && responseData.results[0] && responseData.results[0].formatted_address) {
-                const formattedAddr = responseData.results[0].formatted_address;
-                const mockPlace = {
-                  place_id: `chatbot-${Date.now()}`,
-                  description: formattedAddr,
-                };
-                
-                setFormattedAddress(formattedAddr);
-                setAddressInput(formattedAddr);
-                setAddress(mockPlace); 
-                // console.log("Updated address input to:", formattedAddr);
-              }
-            })
-            .catch(error => console.error("Error reverse geocoding:", error));
-        }
-      }
-    };
-
-    eventBus.subscribe(CHATBOT_EVENTS.UPDATE_MAP_LOCATION, handleLocationUpdate);
-
-    return () => {
-      eventBus.unsubscribe(CHATBOT_EVENTS.UPDATE_MAP_LOCATION, handleLocationUpdate);
-    };
-  }, [dispatch, setCenterLat, setCenterLng, setBoundary]);
-
-  useEffect(() => {
-    const getGeoData = async (address) => {
-      const url = `/api/geocoding?address=${encodeURIComponent(address)}`;
-      const response = await fetch(url.toString());
-      const data = await response.json();
-      
-      if (data.results && data.results[0] && data.results[0].formatted_address) {
-        setFormattedAddress(data.results[0].formatted_address);
-        setAddressInput(data.results[0].formatted_address);
-      }
-      
-      return data.results[0].geometry;
-    };
-
-    if (address?.place_id) {
-      getGeoData(address.description)
-        .then((geometry) => {
-          const { location, boundary } = geometry;
-          const { lng, lat } = location;
-          setCenterLng(lng.toString());
-          setCenterLat(lat.toString());
-
-          if (boundary) {
-            setBoundary(boundary);
-          } else {
-            setBoundary(null);
-          }
-          
-          dispatch(setLocationFilter({
-            centerLat: lat,
-            centerLng: lng,
-            bounds: boundary || null
-          }));
-        })
-        .catch((e) => {
-          console.error("Error getting geodata:", e);
-          setCenterLat(null);
-          setCenterLng(null);
-          setBoundary(null);
-          
-          dispatch(setLocationFilter({
-            centerLat: null,
-            centerLng: null,
-            bounds: null
-          }));
-        });
-    } else if (!address) {
-      setCenterLat(null);
-      setCenterLng(null);
-      setBoundary(null);
-      
-      dispatch(setLocationFilter({
-        centerLat: null,
-        centerLng: null,
-        bounds: null
-      }));
+    setInput(label);
+  }, [label, setInput]);
+  useEffect(() => () => pending.current?.abort(), []);
+  const select = async (_, place) => {
+    pending.current?.abort();
+    setError("");
+    if (!place) {
+      setBusy(false);
+      update({ centerLat: null, centerLng: null, bounds: null, radius: null, location: null });
+      return;
     }
-  }, [address, setCenterLat, setCenterLng, setBoundary, dispatch]);
-
+    const controller = new AbortController();
+    pending.current = controller;
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/geocoding?address=${encodeURIComponent(place.description)}`, {
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error("Geocoding failed");
+      const data = await response.json();
+      if (controller.signal.aborted) return;
+      const point = data.results?.[0]?.geometry?.location;
+      if (!Number.isFinite(point?.lat) || !Number.isFinite(point?.lng)) throw new Error("No coordinates");
+      update({
+        centerLat: point.lat,
+        centerLng: point.lng,
+        radius: 5,
+        bounds: null,
+        district: null,
+        province: null,
+        location: place.description,
+      });
+    } catch (e) {
+      if (e.name !== "AbortError") setError("Couldn’t find this place. Please try again.");
+    } finally {
+      if (!controller.signal.aborted) setBusy(false);
+    }
+  };
   return (
     <Autocomplete
       size="small"
       id="address-autocomplete"
       filterOptions={(x) => x}
-      noOptionsText="No address found"
-      onChange={handleAddressChange}
-      value={address}
-      inputValue={addressInput}
-      onInputChange={(_, newInputValue) => {
-        setAddressInput(newInputValue);
+      noOptionsText={input.length < 2 ? "Start typing a place" : "No places found"}
+      onChange={select}
+      value={label ? { description: label } : null}
+      inputValue={input}
+      onInputChange={(_, text, reason) => {
+        if (reason !== "reset") setInput(text);
       }}
+      loading={busy}
       options={suggestions}
       getOptionLabel={(option) => option.description || ""}
-      isOptionEqualToValue={(option, value) => 
-        option.place_id === value.place_id || 
-        option.description === value.description
-      }
-      sx={{ width: 300 }}
+      isOptionEqualToValue={(option, value) => option.description === value.description}
+      sx={{ width: { xs: "100%", sm: 300 }, flexGrow: 1 }}
       renderInput={(params) => (
-        <TextField {...params} variant="outlined" label="Search for city, neighborhood or location" />
+        <TextField {...params} label="Search a neighborhood or place" error={!!error} helperText={error || undefined} />
       )}
     />
   );

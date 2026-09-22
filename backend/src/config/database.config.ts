@@ -1,6 +1,5 @@
 import { ConfigService } from '@nestjs/config';
 import { SequelizeModuleOptions } from '@nestjs/sequelize';
-import { Logger } from 'src/shared/utils/log.util';
 import { User } from 'src/database/entities/user.entity';
 import { RentalPost } from 'src/database/entities/rental-post.entity';
 import { RentalImage } from 'src/database/entities/rental-image.entity';
@@ -27,11 +26,8 @@ export const databaseConfig = (
       min: 0,
       idle: 10000,
     },
-    logging: (msg) => {
-      const logger = new Logger();
-      logger.info(msg, 'Sequelize');
-    },
-    logQueryParameters: true,
+    logging: false,
+    logQueryParameters: false,
     autoLoadModels: false,
     synchronize: false,
     models: [
@@ -44,7 +40,7 @@ export const databaseConfig = (
       Message,
       FavoriteList,
       UserProfile,
-      RefreshToken
+      RefreshToken,
     ],
   };
 };

@@ -1,0 +1,60 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { withReauthentication } from "../src/redux/reauthQuery.mjs";
+
+const actions = { setUserInfo: (payload) => ({ type: "set", payload }), removeUserInfo: () => ({ type: "remove" }) };
+const expired = { error: { status: 401, data: { code: "TOKEN_EXPIRED" } } };
+function fixture() {
+  const state = { auth: { accessToken: "old", refreshToken: "refresh", user: { id: 1 } } };
+  const api = {
+    getState: () => state,
+    dispatch(action) {
+      if (action.type === "set")
+        state.auth = { ...state.auth, accessToken: action.payload.token, refreshToken: action.payload.refreshToken };
+      else state.auth = {};
+    },
+  };
+  return { state, api };
+}
+test("concurrent expired requests use one refresh and both retry", async () => {
+  const { api, state } = fixture();
+  let refreshes = 0;
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const query = withReauthentication(async (args) => {
+    if (args.url === "/auth/refresh-token") {
+      refreshes++;
+      await gate;
+      return { data: { data: { token: "new", refreshToken: "new-refresh" } } };
+    }
+    return state.auth.accessToken === "old" ? expired : { data: "ok" };
+  }, actions);
+  const pending = [query({ url: "/roommate/profile/me" }, api), query({ url: "/roommate/suggestions" }, api)];
+  release();
+  const results = await Promise.all(pending);
+  assert.equal(refreshes, 1);
+  assert.deepEqual(results, [{ data: "ok" }, { data: "ok" }]);
+});
+test("a network failure keeps the session for a later retry", async () => {
+  const { api, state } = fixture();
+  const query = withReauthentication(
+    async (args) => (args.url === "/auth/refresh-token" ? { error: { status: "FETCH_ERROR" } } : expired),
+    actions,
+  );
+  await query("/roommate/profile/me", api);
+  assert.equal(state.auth.refreshToken, "refresh");
+});
+test("refresh cannot sign a user back in after logout", async () => {
+  const { api, state } = fixture();
+  const query = withReauthentication(async (args) => {
+    if (args.url === "/auth/refresh-token") {
+      state.auth = {};
+      return { data: { data: { token: "new", refreshToken: "new-refresh" } } };
+    }
+    return expired;
+  }, actions);
+  await query("/roommate/profile/me", api);
+  assert.deepEqual(state.auth, {});
+});

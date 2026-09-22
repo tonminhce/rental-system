@@ -1,19 +1,11 @@
 import "./OwnerCard.scss";
-import Image from "next/image";
-
+import { Avatar } from "@mui/material";
 export default function OwnerCard({ owner }) {
   return (
     <div className="owner_container">
-      <div className="owner_avatar">
-        <Image
-          src="https://m.media-amazon.com/images/I/51U9SFk6SJL._AC_UF1000,1000_QL80_.jpg"
-          fill
-          sizes="100%"
-          alt={owner}
-        />
-      </div>
-      <div className="owner_name">{owner}</div>
-      <div className="owner_joined">Joined 3 months agon</div>
+      <Avatar sx={{ bgcolor: "var(--rt-surface-tint)", color: "var(--rt-brand-ink)", gridArea: "avatar" }}>{(owner || "?").slice(0, 1)}</Avatar>
+      <div className="owner_name">{owner || "Contact not provided"}</div>
+      <div className="owner_joined">Listing contact</div>
     </div>
   );
 }

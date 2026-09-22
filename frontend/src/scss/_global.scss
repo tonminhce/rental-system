@@ -1,5 +1,256 @@
-@import "./_mixins.scss";
 @import "./_variables.scss";
+@import "./_mixins.scss";
+@import "./_animations.scss";
+@import "./_components.scss";
+
+/* Mirror of the SCSS tokens for inline `sx`, styled() blocks and JSX.
+   _tokens.scss owns the values; this is the only place they are emitted. */
+:root {
+  --rt-brand: #{$rt-brand};
+  --rt-brand-rgb: #{$rt-brand-rgb};
+  --rt-brand-hover: #{$rt-brand-hover};
+  --rt-brand-active: #{$rt-brand-active};
+  --rt-brand-muted: #{$rt-brand-muted};
+  --rt-brand-accent: #{$rt-brand-accent};
+  --rt-brand-ink: #{$rt-brand-ink};
+  --rt-ink: #{$rt-ink};
+  --rt-muted: #{$rt-muted};
+  --rt-faint: #{$rt-faint};
+  --rt-on-brand: #{$rt-on-brand};
+  --rt-bg: #{$rt-bg};
+  --rt-paper: #{$rt-paper};
+  --rt-surface: #{$rt-surface};
+  --rt-surface-tint: #{$rt-surface-tint};
+  --rt-surface-sand: #{$rt-surface-sand};
+  --rt-border: #{$rt-border};
+  --rt-border-strong: #{$rt-border-strong};
+  --rt-danger: #{$rt-danger};
+  --rt-danger-hover: #{$rt-danger-hover};
+  --rt-success: #{$rt-success};
+  --rt-gold: #{$rt-gold};
+  --rt-gold-hover: #{$rt-gold-hover};
+  --rt-gold-bright: #{$rt-gold-bright};
+  --rt-on-dark: #{$rt-on-dark};
+  --rt-on-dark-muted: #{$rt-on-dark-muted};
+  --rt-on-dark-accent: #{$rt-on-dark-accent};
+  --rt-radius-sm: #{$rt-radius-sm};
+  --rt-radius: #{$rt-radius};
+  --rt-radius-md: #{$rt-radius-md};
+  --rt-radius-lg: #{$rt-radius-lg};
+  --rt-radius-pill: #{$rt-radius-pill};
+  --rt-shadow-sm: #{$rt-shadow-sm};
+  --rt-shadow-md: #{$rt-shadow-md};
+  --rt-shadow-lg: #{$rt-shadow-lg};
+  --rt-shadow-overlay: #{$rt-shadow-overlay};
+  --rt-ease: #{$rt-ease};
+  --rt-header-height: #{$rt-header-height};
+  --rt-font-sans: var(--font-sans), Arial, sans-serif;
+  --rt-font-editorial: var(--font-editorial), Georgia, serif;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+:focus-visible {
+  outline: 2px solid $rt-brand-accent;
+  outline-offset: 4px;
+}
+.skip-link {
+  position: fixed;
+  top: -60px;
+  left: 20px;
+  z-index: 2000;
+  padding: 12px 20px;
+  background: $rt-brand;
+  color: $rt-on-brand;
+  border-radius: $rt-radius;
+}
+.skip-link:focus {
+  top: 10px;
+}
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba($rt-bg, 0.94);
+  border-bottom: 1px solid rgba($rt-border, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.header-inner {
+  height: $rt-header-height;
+  max-width: $rt-shell-max;
+  padding: 0 $rt-shell-pad;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 25px;
+}
+.brand-word {
+  color: $rt-brand;
+  font-size: 30px;
+  letter-spacing: -1.6px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform $rt-base ease;
+  display: inline-flex;
+  align-items: center;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+}
+.brand-word span {
+  color: $rt-gold;
+  display: inline-block;
+  transition: transform $rt-base $rt-ease;
+}
+.brand-word:hover span {
+  transform: scale(1.3) translateY(-1px);
+}
+.desktop-nav {
+  display: flex;
+  gap: 28px;
+  margin-left: 25px;
+}
+.desktop-nav a,
+.login-link {
+  color: $rt-muted;
+  font-size: 13px;
+  text-decoration: none;
+  font-weight: 500;
+  position: relative;
+  padding: 6px 2px;
+  transition: color 0.2s $rt-ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: $rt-brand;
+    border-radius: 2px;
+    transition: width 0.25s $rt-ease;
+  }
+
+  &:hover,
+  &[aria-current] {
+    color: $rt-brand;
+    text-decoration: none;
+
+    &::after {
+      width: 100%;
+    }
+  }
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 23px;
+}
+.list-home-link {
+  color: $rt-brand-ink;
+  border: 1px solid $rt-border-strong;
+  border-radius: $rt-radius;
+  padding: 10px 16px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.25s $rt-ease;
+
+  svg {
+    transition: transform 0.25s $rt-ease;
+  }
+
+  &:hover {
+    background: $rt-brand;
+    color: $rt-on-brand;
+    border-color: $rt-brand;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba($rt-brand, 0.18);
+
+    svg {
+      transform: translate(2px, -2px);
+      color: $rt-on-brand;
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+.account-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: $rt-surface-tint;
+  font-size: 12px;
+  color: $rt-brand;
+  padding: 5px 12px 5px 5px;
+  border-radius: $rt-radius-pill;
+  transition: all 0.2s $rt-ease;
+
+  &:hover {
+    background: $rt-border;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($rt-brand, 0.12);
+  }
+}
+.header-actions .mobile-menu-button {
+  display: none;
+}
+@media (max-width: 1050px) {
+  .header-inner {
+    padding: 0 32px;
+  }
+  .desktop-nav {
+    gap: 20px;
+    margin-left: 0;
+  }
+  .header-actions {
+    gap: 17px;
+  }
+}
+@media (max-width: 760px) {
+  .header-inner {
+    height: 68px;
+    padding: 0 22px;
+  }
+  .brand-word {
+    font-size: 28px;
+  }
+  .desktop-nav,
+  .list-home-link {
+    display: none;
+  }
+  .header-actions .mobile-menu-button {
+    display: inline-flex;
+  }
+  .header-actions {
+    gap: 18px;
+  }
+  .account-button > span {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 * {
   margin: 0;
@@ -8,13 +259,14 @@
 }
 
 html {
-  // font-size: 62.5%;
-  font-family: "Open, sans-serif";
-  line-height: 1.15; /* 1 */
-  -webkit-text-size-adjust: 100%; /* 2 */
+  font-family: var(--rt-font-sans);
+  line-height: 1.15;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
+  background: $rt-bg;
+  color: $rt-ink;
   width: 100%;
   min-height: 100vh;
   overflow-x: hidden;
@@ -36,129 +288,23 @@ sup {
   margin: 0 auto;
 }
 
-button {
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.5rem;
-  text-transform: capitalize;
-
-  padding: 6px 16px;
-
+/* Zero-specificity base so component and utility classes always win. */
+:where(button) {
+  font-family: inherit;
+  color: inherit;
   border: none;
-  border-radius: $radius;
+  background: none;
   cursor: pointer;
-
-  transition-duration: 0.15s, 0.15s, 0.15s, 0.15s;
-  transition-property: color, background-color, border-color, box-shadow;
-  transition-timing-function: ease-in-out, ease-in-out, ease-in-out, ease-in-out;
-}
-
-// .btn {
-//   @include button-mixin(default, $primary-color);
-
-//   @each $variant in $btn-variants {
-//     @each $color, $value in $theme-colors {
-//       &-#{$variant}-#{$color} {
-//         @include button-mixin($variant, $value);
-//       }
-//     }
-//   }
-
-//   &-xl {
-//     font-size: 1.125rem;
-//     padding: 12px 24px;
-//   }
-
-//   &-full {
-//     width: 100%;
-//   }
-// }
-
-.mt-16 {
-  margin-top: 16px;
-}
-
-.flex {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-
-  &-col {
-    flex-direction: column;
-  }
-
-  &-center {
-    align-items: center;
-    justify-content: center;
-  }
-
-  &-gap {
-    &-12 {
-      gap: 12px;
-    }
-
-    &-32 {
-      gap: 32px;
-    }
-  }
 }
 
 .container {
   display: flex;
 
   width: 100%;
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - #{$rt-header-height});
   margin: 0 auto;
   padding: 0 32px;
-  background: $bg-gradient-color;
-}
-
-// FORM
-.form {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding-bottom: 16px;
-
-  &-input {
-    width: 400px;
-    font-size: 1rem;
-
-    margin-top: 16px;
-    padding: 18px 12px;
-
-    background-color: transparent;
-
-    border: 1px solid $light-grey-color;
-    border-color: $input-color;
-    border-radius: 6px;
-    outline: $primary-color;
-
-    transition: all 0.3s ease-in-out;
-    box-shadow: rgba(182, 182, 182, 0.18) 0px 4px 10px 0px;
-
-    &:focus,
-    &:hover {
-      border: 1px solid $black-color;
-    }
-
-    &-error {
-      border: 1px solid $destructive-color;
-
-      &:focus,
-      &:hover {
-        border: 1px solid $destructive-color;
-      }
-    }
-  }
-
-  &-error {
-    width: 100%;
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: $destructive-color;
-  }
+  background: $rt-bg;
 }
 
 // Remove arrow in input type number
@@ -169,51 +315,18 @@ input::-webkit-inner-spin-button {
   margin: 0;
 }
 
-.titleCell {
-  white-space: normal;
-  line-height: 1.5; /* Example of increasing line height */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 10px 0;
-}
-
 /* Custom styles for Goong Maps popup */
 .custom-popup {
   .mapboxgl-popup-tip {
     display: none; // Hide the popup tip/arrow
   }
-  
+
   .mapboxgl-popup-content {
     padding: 0 !important;
     overflow: hidden !important;
     border-radius: 8px !important;
     background: none !important;
     box-shadow: none !important;
-  }
-}
-
-/* Styling for the route info popup */
-.route-info-popup {
-  .mapboxgl-popup-content {
-    padding: 8px !important;
-    border-radius: 8px !important;
-    background: white !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
-    border: 1px solid rgba(0,0,0,0.1) !important;
-    font-family: 'Roboto', Arial, sans-serif !important;
-    font-size: 13px !important;
-    color: #333 !important;
-    font-weight: normal !important;
-    max-width: 200px !important;
-  }
-  
-  .mapboxgl-popup-tip {
-    border-top-color: white !important;
-    border-bottom-color: white !important;
-  }
-  
-  .mapboxgl-popup-close-button {
-    display: block !important;
   }
 }
 

@@ -1,124 +1,167 @@
 import NextLink from "next/link";
-import { Box, Card, CardContent, CardActions, Typography, Grid, Chip, Button } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import { grey, blue, orange } from '@mui/material/colors';
+import { Box, Card, CardContent, CardActions, Typography, Grid, Chip, Button, Avatar } from "@mui/material";
+import { styled } from "@mui/material/styles";
+import PetsOutlined from "@mui/icons-material/PetsOutlined";
+import SmokeFreeOutlined from "@mui/icons-material/SmokeFreeOutlined";
+import SmokingRoomsOutlined from "@mui/icons-material/SmokingRoomsOutlined";
+import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
+import formatTime from "@/utils/formatTime";
 
-const StyledCard = styled(Card)(({ theme, isSuggestion }) => ({
-  border: isSuggestion ? `2px solid ${blue[400]}` : `1px solid ${grey[300]}`,
-  borderRadius: theme.spacing(1),
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  transition: 'transform 0.2s',
-  '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: theme.shadows[4],
-  }
+const StyledCard = styled(Card, { shouldForwardProp: (prop) => prop !== "isSuggestion" })(({ isSuggestion }) => ({
+  border: isSuggestion ? "1.5px solid var(--rt-brand)" : "1px solid var(--rt-border)",
+  borderRadius: "var(--rt-radius-md)",
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  backgroundColor: "var(--rt-paper)",
+  transition:
+    "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease",
+  boxShadow: "0 2px 8px rgba(var(--rt-brand-rgb), 0.04)",
+  "&:hover": {
+    transform: "translateY(-5px)",
+    boxShadow: "0 14px 30px rgba(var(--rt-brand-rgb), 0.12)",
+    borderColor: "var(--rt-brand)",
+  },
 }));
+
+const traitChipSx = {
+  fontSize: "11px",
+  color: "var(--rt-brand-muted)",
+  borderColor: "var(--rt-border-strong)",
+  "& .MuiChip-icon": { color: "inherit", fontSize: 14 },
+};
 
 const InfoItem = ({ label, value }) => (
   <Box>
-    <Typography variant="body2" color="text.secondary">{label}</Typography>
-    <Typography variant="body1" fontWeight={500} sx={{ mt: 0.5 }}>{value}</Typography>
+    <Typography
+      variant="caption"
+      sx={{ color: "var(--rt-muted)", fontWeight: 500, letterSpacing: "0.3px", textTransform: "uppercase", fontSize: "10px" }}
+    >
+      {label}
+    </Typography>
+    <Typography variant="body2" sx={{ fontWeight: 600, color: "var(--rt-ink)", mt: 0.25 }}>
+      {value || "—"}
+    </Typography>
   </Box>
 );
 
-// Format time from "HH:MM:SS" to "HH:MM AM/PM" format
-const formatTime = (timeString) => {
-  if (!timeString) return '';
-  
-  // Handle case where the time might already be formatted
-  if (timeString.includes('AM') || timeString.includes('PM')) {
-    return timeString;
-  }
-  
-  try {
-    // Parse the time string 
-    const [hours, minutes] = timeString.split(':');
-    const hour = parseInt(hours, 10);
-    
-    // Convert to 12-hour format
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const formattedHour = hour % 12 || 12; // Convert 0 to 12 for 12 AM
-    
-    return `${formattedHour}:${minutes} ${period}`;
-  } catch (error) {
-    console.error('Error formatting time:', error);
-    return timeString; // Return original if parsing fails
-  }
-};
-
 export default function RoommateCard({ profile, isSuggestion = false }) {
   if (!profile) return null;
-  
+  const name = profile.user?.name || `Roommate #${profile.id}`;
+  const initial = (name.replace(/[^a-zA-Z0-9]/g, "")[0] || "R").toUpperCase();
+
   return (
     <StyledCard isSuggestion={isSuggestion}>
-      <CardContent sx={{ flexGrow: 1, p: 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-          <Typography variant="h6" component="h3" fontWeight="bold">
-            Roommate #{profile.id}
-          </Typography>
+      <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Avatar
+              sx={{
+                bgcolor: isSuggestion ? "var(--rt-brand)" : "var(--rt-brand-muted)",
+                color: "var(--rt-on-brand)",
+                width: 42,
+                height: 42,
+                fontSize: "16px",
+                fontWeight: 700,
+                boxShadow: "0 2px 6px rgba(var(--rt-brand-rgb), 0.2)",
+                transition: "transform 0.25s ease",
+                "&:hover": { transform: "scale(1.08)" },
+              }}
+            >
+              {initial}
+            </Avatar>
+            <Box>
+              <Typography
+                variant="subtitle1"
+                component="h3"
+                sx={{ fontWeight: 700, color: "var(--rt-ink)", lineHeight: 1.2 }}
+              >
+                {name}
+              </Typography>
+              <Typography variant="caption" sx={{ color: "var(--rt-muted)", fontSize: "11px" }}>
+                {profile.age} yrs · {profile.gender}
+              </Typography>
+            </Box>
+          </Box>
+
           {isSuggestion && (
-            <Chip 
-              label={`Match Score: ${profile.totalScore}/10`} 
+            <Chip
+              label="Suggested"
               size="small"
-              sx={{ 
-                backgroundColor: blue[50], 
-                color: blue[800], 
-                fontWeight: 500 
+              sx={{
+                backgroundColor: "var(--rt-surface-tint)",
+                color: "var(--rt-brand)",
+                fontWeight: 700,
+                fontSize: "11px",
+                border: "1px solid var(--rt-border-strong)",
               }}
             />
           )}
         </Box>
 
-        <Grid container spacing={3}>
-          <Grid item xs={6}>
-            <InfoItem label="Age" value={profile.age} />
-          </Grid>
-          <Grid item xs={6}>
-            <InfoItem label="Gender" value={profile.gender} />
-          </Grid>
-          
-          <Grid item xs={6}>
-            <InfoItem label="Lifestyle" value={profile.lifestyle} />
-          </Grid>
-          <Grid item xs={6}>
-            <InfoItem label="Personality" value={profile.personality} />
-          </Grid>
-          
-          <Grid item xs={6}>
-            <InfoItem label="Wake Up Time" value={formatTime(profile.wakeUpTime)} />
-          </Grid>
-          <Grid item xs={6}>
-            <InfoItem label="Bed Time" value={formatTime(profile.bedTime)} />
-          </Grid>
-        </Grid>
-
-        <Box display="flex" gap={4} mt={2}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <Typography variant="body2" color="text.secondary">Pets:</Typography>
-            <Typography variant="body2" fontWeight={500}>{profile.pets ? "Yes" : "No"}</Typography>
-          </Box>
-          <Box display="flex" alignItems="center" gap={1}>
-            <Typography variant="body2" color="text.secondary">Smoking:</Typography>
-            <Typography variant="body2" fontWeight={500}>{profile.smoking ? "Yes" : "No"}</Typography>
-          </Box>
-        </Box>
-      </CardContent>
-      
-      <CardActions sx={{ p: 2, pt: 0 }}>
-        <Button 
-          component={NextLink}
-          href={`/roommate/${profile.id}`}
-          sx={{ 
-            color: orange[600],
-            '&:hover': { bgcolor: 'transparent', color: orange[800] },
-            textTransform: 'none',
+        <Box
+          sx={{
+            bgcolor: "var(--rt-surface)",
+            p: 1.5,
+            borderRadius: "var(--rt-radius)",
+            border: "1px solid var(--rt-border)",
+            mb: 2,
           }}
         >
-          View Details
+          <Grid container spacing={1.5}>
+            <Grid item xs={6}>
+              <InfoItem label="Lifestyle" value={profile.lifestyle} />
+            </Grid>
+            <Grid item xs={6}>
+              <InfoItem label="Personality" value={profile.personality} />
+            </Grid>
+            <Grid item xs={6}>
+              <InfoItem label="Wake Up" value={formatTime(profile.wakeUpTime)} />
+            </Grid>
+            <Grid item xs={6}>
+              <InfoItem label="Bed Time" value={formatTime(profile.bedTime)} />
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Box display="flex" gap={1.5} flexWrap="wrap">
+          <Chip
+            label={profile.pets ? "Pet friendly" : "No pets"}
+            icon={<PetsOutlined />}
+            size="small"
+            variant="outlined"
+            sx={traitChipSx}
+          />
+          <Chip
+            label={profile.smoking ? "Smoking" : "Non-smoking"}
+            icon={profile.smoking ? <SmokingRoomsOutlined /> : <SmokeFreeOutlined />}
+            size="small"
+            variant="outlined"
+            sx={traitChipSx}
+          />
+        </Box>
+      </CardContent>
+
+      <CardActions sx={{ p: 2, pt: 0, borderTop: "1px solid var(--rt-border)" }}>
+        <Button
+          component={NextLink}
+          href={`/roommate/${profile.id}`}
+          fullWidth
+          endIcon={<ArrowForwardOutlined sx={{ fontSize: 16 }} />}
+          sx={{
+            color: "var(--rt-brand)",
+            fontWeight: 600,
+            fontSize: "12px",
+            textTransform: "none",
+            py: 0.8,
+            borderRadius: "var(--rt-radius-sm)",
+            transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+            "&:hover": { bgcolor: "var(--rt-surface-tint)", color: "var(--rt-brand-hover)" },
+          }}
+        >
+          View profile &amp; contact
         </Button>
       </CardActions>
     </StyledCard>
   );
-} 
+}

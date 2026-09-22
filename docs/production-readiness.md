@@ -1,0 +1,52 @@
+# Production-readiness review — 2026-09-21
+
+## Status
+
+Local UI/integration preview, **not approved for public deployment**. The inherited UI work and the map/search/roommate/auth follow-up are committed on `production-readiness`, which is pushed to `origin` and open as PR #13. Nothing has been deployed. `docs/demo/rental-system-demo-60s.mp4` is a one-minute 60fps cut of the branch running locally, and `docs/demo/rental-system-demo.mp4` is the full 4½-minute take.
+
+Latest evidence and inventory caveats: [Rental discovery follow-up](rental-map-ux.md). The current local database has 4,089 active listings from the inherited import, and existing coordinates need a provenance audit. The older six-sample verification below describes the initial baseline, not the current inventory.
+
+## Implemented
+
+- Responsive homepage, rental cards, filters, neighborhood links, desktop/mobile navigation, authentication styling, listing details, and a basic owner listing form.
+- Shared color/typography tokens, keyboard focus states, skip links, reduced-motion support, image fallbacks, and loading/empty/error states.
+- Safe handling of sparse image galleries, working detail-page save/share actions, correct longitude/latitude order, and corrected SQL distance calculations.
+- Working MiniMax tool-calling assistant using a fixed rental API and allowlisted/validated filters; bounded turns, timeouts, concurrency and local rate limits. No arbitrary URLs or database writes from AI tools. In-memory conversation history is bounded and expires from reuse after 30 minutes.
+- Goong REST credentials stay server-side. Maptiles credentials are intentionally browser-visible. Map proxy inputs have validation, upstream timeouts, generic errors, and a per-process ceiling.
+- Next.js upgraded from 14.1.0 to patched 15.5.25; production/development build outputs separated. Dependency lockfiles updated; unused mapping packages removed; vulnerable transitive packages patched with documented package overrides.
+- Passwords now use salted scrypt. Existing MD5 hashes are accepted only to upgrade on successful login. A forward-only migration widens password storage and preserves decimal price/area precision.
+- Production startup requires explicit credentials, strong separate signing keys, and explicit CORS origins. API binds to loopback by default. SQL parameter logging and browser token logging removed. Basic auth throttling and security headers added.
+- Reproducible local DB configuration, migrations, guarded idempotent seeds, backend integration smoke tests, password unit tests, and assistant validation tests.
+
+## Verification evidence
+
+- Frontend production compilation and route generation succeeded on Next.js 15.5.25.
+- Backend compilation, three password tests, and local end-to-end API smoke checks succeeded.
+- Five assistant tests succeeded. Live MiniMax greeting and filtered inventory search succeeded; filtered result identified the sample listing and used a real local listing URL.
+- Browser checks: desktop home, search with district/type/budget, Goong tiles and price markers, single-photo detail page, unauthenticated save-to-login transition, 390px mobile home/listing layout, and mobile menu. No horizontal page overflow at the checked mobile viewport.
+- Final frontend runtime audit: **0 reported vulnerabilities**. Final backend runtime audit: **0 high/critical**, with **8 moderate dependency entries** remaining. The optional nest-commander CLI is pinned to the existing Nest 10-compatible release and classified as a development dependency. Full development-dependency audits may have additional findings. Counts are not proof of exploitability or a substitute for a security review.
+- Final Goong proxy checks: live autocomplete/geocoding returned provider `OK`; missing/invalid input returned HTTP 400. The server REST key was absent from compiled browser JavaScript. Mobile assistant UI received a real MiniMax reply with a working property link and updated the price filter.
+- Existing React hook and Sass deprecation warnings remain; they are not hidden by disabling build checks.
+
+## Release gates requiring further work or owner decisions
+
+1. **Rotate all keys shared in chat or previously committed.** Cleaned source files do not erase Git history. Review history with a secret scanner. Store deployment secrets in your host's secret manager. Restrict Goong maptiles to exact deployment domains and enforce quotas. Confirm MiniMax plan permissions and spending limits.
+
+   GitGuardian reported two "Generic Password" findings on this branch, which turned out to be one credential seen twice: the Mogi crawler signed in as `mogi@gmail.com` with `mogi123`, and `MD5("mogi123")` — an unsalted digest — was the seeded password for every demo account, with `verifyPassword` still accepting that legacy form. The demo-users seeder additionally stored `user123`, `owner123` and `abc@123` in plaintext or as an unsalted MD5 annotated with its own plaintext. Any environment seeded from that history has accounts whose password is derivable from the public repository.
+
+   Remediated at the tip of this branch: seeders now derive a salted `scrypt:` hash at seed time from `SEED_DEMO_PASSWORD` (or a per-run generated one, printed once), the crawler reads `RENTAL_API_EMAIL`/`RENTAL_API_PASSWORD` from its environment, and `backend/.env.local` is no longer tracked. **Still outstanding and owner-only:** revoke and reissue both Goong keys and the `TOKEN_SECRET`/`DB_PASSWORD` in that file, confirm no deployed database still carries a seeded demo account, and purge the blobs from history — rewriting published history is not done by this task.
+2. **Choose deployment, domain and TLS.** Provision production DB credentials, private DB networking, backups with restore drills, migration rollout/rollback plans, persistent logs and uptime monitoring. Replace localhost URLs at build time. This task did not select a host or create public infrastructure.
+3. **Complete the security review.** Moderate Nest/Sequelize dependency findings remain and require a compatibility-tested upgrade or documented assessment. Auth tokens are still stored in browser storage; move production sessions to secure HttpOnly cookies/BFF with CSRF protection and a tested CSP. Add distributed rather than per-process throttling and abuse limits for paid APIs. Do not run the legacy chatbot publicly.
+4. **Production identity and privacy.** Add email/phone verification, password recovery, consent/privacy/retention policies, user deletion/export, and abuse reporting. The local assistant's UUID-based in-memory history is not an authenticated cross-device conversation store.
+5. **Real inventory and ownership.** Sample homes must never be marketed as available homes. Remove local sample data from production, disable `NEXT_PUBLIC_DEMO_MODE`, and load owner-authorized listings/photos. The basic listing form has no photo-upload service; listing ownership, moderation, editing/deletion and authorization need a complete implementation and regression tests before opening landlord publishing publicly.
+6. **Unfinished inherited features.** Owner messaging, landlord management endpoints, and the separate price-prediction service are not integrated. Random comparison price estimates were removed. Roommate matching still needs real profiles, privacy review, and end-to-end acceptance tests. No fake owner age, verification, or availability claims were added.
+7. **Broader acceptance testing.** Add repeatable browser automation in CI, accessibility audits, offline/network failure tests, authenticated UI scenarios, cross-browser coverage, concurrency/load tests, token-revocation tests and provider cost/timeout monitoring. Protect publication with a staging acceptance gate.
+8. **Delete the unreachable legacy modules.** About fifteen modules have no importers and were left in place rather than removed: `components/Map/Map.jsx` (still points at the retired Goong style), `AddressDropdown/*`, `PostManagementPage/*`, `ConfirmDialog` (reachable only through `PostManagementPage`), `ProtectedRoute`/`PrivateRoute`, `ReactMap`, `SideMap`/`SideBar`, `RoommateTabs.jsx`, `getQueryFromFilter.js`, `formatPrice.js`, the empty `getDisplayDate.js`, and `getPropertyTypeLabel.js`, which imports a constant that does not exist and would throw if it were ever used. Deletion is irreversible, so it waits for an owner decision; the audit only removed dead rules from files that are still live.
+9. **Sign in before accepting the authenticated screens.** The local database holds real accounts, so verification uses only the repository's own seeded fixtures. Recording the demo signed in as the seeded owner and reached the saved-homes menu, the compare drawer and the landlord publish form; `/roommate/[id]` and the landlord dashboard are still unreviewed. Add a disposable test account to the fixture set so those views can be checked end to end.
+10. **The assistant cannot search by district.** While scripting the demo's assistant beat, `search_homes` returned nothing for every Ho Chi Minh City district tried - Bình Thạnh, Thủ Đức, Quận 12 - so the model answered with a clarifying question or reported a technical failure. The rental API itself is fine: `GET /api/posts?district=Quận%2012&maxPrice=10.0&propertyType=apartment&transactionType=rent` returns five homes. The seeded inventory is the problem - it was crawled from Mogi and is mostly Hanoi (Nam Từ Liêm, Cầu Giấy, Đống Đa), so an HCMC assistant pointed at it has almost nothing to find. `SearchFilters.district` also takes the model's literal string with no normalization or geocoding fallback, so a district typed without diacritics cannot match. Fix before demoing the assistant to anyone: load HCMC inventory, or resolve the district through `find_location` and search by coordinates.
+
+## Local data and rollback
+
+`docker-compose.local.yml` uses an isolated named volume and loopback port 3307. Other Docker services were left untouched. The auth smoke test removes only its temporary test account; the six preview listings remain. Stop local services with Ctrl-C in their terminals; `docker compose -f docker-compose.local.yml stop` stops MySQL without deleting its data. No destructive volume reset is part of setup.
+
+The password migration intentionally refuses a lossy down migration. Take a backup before applying it outside the disposable local database; do not shrink scrypt hashes back to the old 32-character field.

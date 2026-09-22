@@ -1,40 +1,21 @@
 import { PRICE_SUGGESTIONS } from "@/constants/price";
 import { getPriceOptionLabel, getPriceSelectLabel } from "@/utils/getPriceLabel";
 import { ArrowDropDown, ArrowRight, CachedOutlined } from "@mui/icons-material";
-import {
-  Box,
-  Button,
-  Divider,
-  Menu,
-  MenuItem,
-  Slider,
-  Stack,
-  styled,
-  TextField,
-  Typography,
-  useTheme,
-} from "@mui/material";
-import { grey } from "@mui/material/colors";
+import { Box, Button, Divider, Menu, MenuItem, Slider, Stack, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import { NumberParam, useQueryParam, withDefault } from "use-query-params";
-
-const StyledButton = styled((props) => <Button size="small" variant="outlined" color="inherit" {...props} />)(
-  ({ theme }) => ({
-    borderColor: theme.palette.grey[400],
-    fontSize: theme.typography.body1.fontSize,
-  })
-);
+import useRentalFilters from "@/hooks/useRentalFilters";
+import FilterTriggerButton from "../FilterTriggerButton";
 
 export default function PriceSelect() {
-  const [bottomPrice, setBottomPrice] = useQueryParam("minPrice", withDefault(NumberParam, 0));
-  const [topPrice, setTopPrice] = useQueryParam("maxPrice", withDefault(NumberParam, 0));
+  const [search, update] = useRentalFilters();
+  const bottomPrice = Number(search.get("minPrice")) || 0;
+  const topPrice = Number(search.get("maxPrice")) || 0;
 
   const [priceRange, setPriceRange] = useState([bottomPrice, topPrice]);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
   const priceConfig = { min: 0, max: 100, step: 0.5 };
-
-  const theme = useTheme();
+  const hasPrice = bottomPrice > 0 || topPrice > 0;
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -48,14 +29,12 @@ export default function PriceSelect() {
     const newBottomPrice = Math.min(...newPriceRange);
     const newTopPrice = Math.max(...newPriceRange);
 
-    setTopPrice(newTopPrice === 0 ? undefined : newTopPrice);
-    setBottomPrice(newBottomPrice === 0 ? undefined : newBottomPrice);
+    update({ minPrice: newBottomPrice || null, maxPrice: newTopPrice || null });
     handleClose();
   };
 
   const handleReset = () => {
-    setBottomPrice(undefined);
-    setTopPrice(undefined);
+    update({ minPrice: null, maxPrice: null });
     handleClose();
   };
 
@@ -70,20 +49,21 @@ export default function PriceSelect() {
 
   return (
     <>
-      <StyledButton
+      <FilterTriggerButton
         onClick={handleClick}
         aria-controls={open ? "price-select-menu" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
-        sx={{ borderColor: open ? theme.palette.primary.main : grey[400] }}
+        sx={{ borderColor: open ? "var(--rt-brand)" : undefined, color: hasPrice ? "var(--rt-ink)" : undefined }}
       >
-        {getPriceSelectLabel([bottomPrice, topPrice])} <ArrowDropDown color={grey[400]} />
-      </StyledButton>
+        {getPriceSelectLabel([bottomPrice, topPrice])}
+        <ArrowDropDown sx={{ color: "var(--rt-faint)", fontSize: 20 }} />
+      </FilterTriggerButton>
       <Menu onClose={handleClose} anchorEl={anchorEl} open={open}>
         <Box width={300}>
           <Box px={2}>
-            <Typography variant="body1" color={grey[500]} gutterBottom>
-              Price range
+            <Typography variant="body2" sx={{ color: "var(--rt-muted)" }} gutterBottom>
+              Monthly rent · million ₫
             </Typography>
             <Stack direction="row" spacing={2} alignItems="center">
               <TextField
@@ -91,6 +71,7 @@ export default function PriceSelect() {
                 size="small"
                 variant="outlined"
                 value={priceRange[0]}
+                label="Minimum"
                 inputProps={{ type: "number", ...priceConfig }}
                 onChange={(e) => setPriceRange((prev) => [e.target.value, prev[1]])}
               />
@@ -100,6 +81,7 @@ export default function PriceSelect() {
                 size="small"
                 variant="outlined"
                 value={priceRange[1]}
+                label="Maximum"
                 inputProps={{ type: "number", ...priceConfig }}
                 onChange={(e) => setPriceRange((prev) => [prev[0], e.target.value])}
               />

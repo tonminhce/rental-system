@@ -4,6 +4,8 @@ import { Menu, Divider, Stack, Typography, CardMedia, Box, Button, Link, IconBut
 import { grey } from "@mui/material/colors";
 import Image from "next/image";
 import { useEffect } from "react";
+import { useSelector } from "react-redux";
+import NextLink from "next/link";
 
 function NoFavouritePostContent() {
   return (
@@ -26,23 +28,42 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
           direction="row"
           key={property.id}
           py={1}
+          px={1}
+          alignItems="center"
           sx={{
             textDecoration: "none",
             color: "inherit",
             cursor: "pointer",
             position: "relative",
+            borderRadius: "8px",
+            transition: "background-color 0.2s ease",
             "&:hover": {
-              backgroundColor: grey[200],
+              backgroundColor: "rgba(var(--rt-brand-rgb), 0.06)",
             },
             "&:hover .delete-icon": {
               display: "block",
             },
           }}
         >
-          <Box style={{ position: "relative", height: "80px", width: "100px" }}>
-            <Image src={property?.images[0]?.url} width={100} height={80} alt={property.name} />
+          <Box style={{ position: "relative", height: "70px", width: "90px", borderRadius: "6px", overflow: "hidden", flexShrink: 0 }}>
+            {property?.images?.[0]?.url && (
+              <Image src={property.images[0].url} fill sizes="90px" style={{ objectFit: "cover" }} alt={property.name} />
+            )}
           </Box>
-          <Typography key={property.id} variant="body2" ml={1} mr={3}>
+          <Typography
+            component={NextLink}
+            href={`/posts/${property.id}`}
+            key={property.id}
+            variant="body2"
+            ml={1.5}
+            mr={3}
+            sx={{
+              fontWeight: 500,
+              textDecoration: "none",
+              color: "var(--rt-ink)",
+              "&:hover": { color: "var(--rt-brand)" },
+            }}
+          >
             {property.name}
           </Typography>
           <CloseOutlined
@@ -51,8 +72,13 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
             sx={{
               display: "none",
               position: "absolute",
-              right: 5,
-              top: 25,
+              right: 8,
+              top: "50%",
+              transform: "translateY(-50%)",
+              fontSize: 18,
+              color: "var(--rt-muted)",
+              transition: "color 0.2s ease",
+              "&:hover": { color: "var(--rt-danger)" },
             }}
           />
         </Stack>
@@ -62,7 +88,8 @@ function FavouritePostsContent({ properties = [], onDeleteFavourite }) {
 }
 
 export default function FavouritePostMenu({ anchorEl, open, onCancel }) {
-  const { data, loading, refetch } = useGetFavouritesQuery();
+  const authenticated = useSelector((state) => state.auth.isAuthenticated);
+  const { data, isLoading: loading, refetch } = useGetFavouritesQuery(undefined, { skip: !authenticated });
   const [removeFromFavourite] = useRemoveFromFavouriteMutation();
 
   const handleDeleteFavourite = async (postId) => {
@@ -75,10 +102,11 @@ export default function FavouritePostMenu({ anchorEl, open, onCancel }) {
   };
 
   useEffect(() => {
+    if (!authenticated) return;
     window.addEventListener("favourite-post-updated", refetch);
 
     return () => window.removeEventListener("favourite-post-updated", refetch);
-  }, []);
+  }, [authenticated, refetch]);
 
   return (
     <Menu
@@ -99,13 +127,16 @@ export default function FavouritePostMenu({ anchorEl, open, onCancel }) {
         paper: {
           style: {
             width: "380px",
+            borderRadius: "14px",
+            border: "1px solid var(--rt-border)",
+            boxShadow: "0 12px 36px rgba(var(--rt-brand-rgb), 0.14)",
           },
         },
       }}
     >
-      <Stack direction="column" p={1}>
-        <Typography variant="body1" fontWeight="bold" component="h6" align="center">
-          Your favourite posts
+      <Stack direction="column" p={1.5}>
+        <Typography variant="body1" fontWeight="700" color="var(--rt-brand)" component="h6" align="center">
+          Saved Homes
         </Typography>
 
         <Divider sx={{ my: 1 }} />

@@ -1,212 +1,284 @@
 "use client";
-import Map from "@/components/GetPropertiesPage/components/Map";
-import useGetPropertyTypes from "@/hooks/useGetPropertyTypes";
+import dynamic from "next/dynamic";
 import { useGetPropertiesQuery } from "@/redux/features/properties/propertyApi";
-import { Box, styled } from "@mui/material";
-import Grid from "@mui/material/Unstable_Grid2/Grid2";
-import { useSearchParams } from "next/navigation";
-import { useMemo, useEffect } from "react";
-import { NumberParam, useQueryParam, withDefault } from "use-query-params";
-import FullscreenLoading from "../FullscreenLoading";
-import PropertyList from "./components/PropertyList";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  MenuItem,
+  Skeleton,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from "@mui/material";
+import { MapOutlined, ViewModuleOutlined } from "@mui/icons-material";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { updateFilter } from "@/redux/features/filter/filterSlice";
-import eventBus, { CHATBOT_EVENTS } from '@/utils/chatbotEventBus';
-import { useRouter } from 'next/navigation';
-import { StringParam } from 'use-query-params';
+import eventBus, { CHATBOT_EVENTS } from "@/utils/chatbotEventBus";
+import { rentalFilters, rentalPage, RENTAL_FILTER_KEYS } from "@/utils/rentalSearch.mjs";
+import useRentalFilters from "@/hooks/useRentalFilters";
+import PropertyList from "./components/PropertyList";
 
-const MapContainer = styled(Box)(({ theme }) => ({
-  position: "sticky",
-  width: "100%",
-  height: "80vh",
-  borderRadius: 2,
-  overflow: "hidden",
-  marginLeft: theme.spacing(2),
-  top: 116,
-}));
+const RentalMap = dynamic(() => import("./components/Map"), {
+  ssr: false,
+  loading: () => <Skeleton variant="rectangular" height="100%" />,
+});
 
 export default function GetPropertiesPage({ transaction_type = "rent" }) {
-  const pageSize = 10;
-  const [currentPage, setCurrentPage] = useQueryParam("page", withDefault(NumberParam, 1));
-  const dispatch = useDispatch();
+  const search = useSearchParams();
+  const pathname = usePathname();
   const router = useRouter();
-  
-  const [, setCenterLat] = useQueryParam("centerLat", StringParam);
-  const [, setCenterLng] = useQueryParam("centerLng", StringParam);
-  const [, setRadius] = useQueryParam("radius", StringParam);
-  
-  const handlePageChange = (event, page) => {
-    setCurrentPage(page);
-  };
+  const dispatch = useDispatch();
+  const [showMap, setShowMap] = useState(true);
+  const [mobileView, setMobileView] = useState("list");
+  const [expandedMap, setExpandedMap] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
+  const resultsTop = useRef(null);
+  const mapPanel = useRef(null);
+  const pendingPage = useRef(null);
+  const filterKey = JSON.stringify(rentalFilters(search, transaction_type));
+  const filters = useMemo(() => JSON.parse(filterKey), [filterKey]);
+  const page = rentalPage(search.get("page"));
+  const query = useMemo(() => ({ ...filters, sort: filters.sort || "newest", page, limit: 12 }), [filters, page]);
+  const { currentData: data, error, isFetching, refetch } = useGetPropertiesQuery(query);
 
-  const searchParam = useSearchParams();
-  const propertyTypes = useGetPropertyTypes();
-  
-  const centerLat = searchParam.get("centerLat");
-  const centerLng = searchParam.get("centerLng");
-  const boundary = searchParam.get("bounds");
-  
-  const defaultLng = 106.660172;
-  const defaultLat = 10.762622;
-
-  const mapCenterLng = centerLng ? parseFloat(centerLng) : defaultLng;
-  const mapCenterLat = centerLat ? parseFloat(centerLat) : defaultLat;
-
-  const supportedQuery = ["minPrice", "maxPrice", "minArea", "maxArea", "centerLng", "centerLat", "radius", "bounds"];
-  const queryObj = useMemo(() => {
-    const res = {};
-    searchParam.forEach((value, key) => {
-      if (supportedQuery.includes(key)) {
-        res[key] = value;
-      }
-    });
-    return res;
-  }, [searchParam]);
+  const [, update] = useRentalFilters();
 
   useEffect(() => {
-    const filterParams = {
-      ...queryObj,
-      page: currentPage,
-      transactionType: transaction_type,
-      propertyType: propertyTypes
-    };
-    
-    if (filterParams.centerLat) filterParams.centerLat = parseFloat(filterParams.centerLat);
-    if (filterParams.centerLng) filterParams.centerLng = parseFloat(filterParams.centerLng);
-    if (filterParams.minPrice) filterParams.minPrice = parseFloat(filterParams.minPrice);
-    if (filterParams.maxPrice) filterParams.maxPrice = parseFloat(filterParams.maxPrice);
-    if (filterParams.minArea) filterParams.minArea = parseFloat(filterParams.minArea);
-    if (filterParams.maxArea) filterParams.maxArea = parseFloat(filterParams.maxArea);
-    if (filterParams.radius) filterParams.radius = parseFloat(filterParams.radius);
-    
-    dispatch(updateFilter(filterParams));
-    
-  }, [queryObj, currentPage, transaction_type, propertyTypes, dispatch]);
-
+    dispatch(updateFilter(query));
+  }, [dispatch, query]);
   useEffect(() => {
-    const locationUnsubscribe = eventBus.subscribe(
-      CHATBOT_EVENTS.UPDATE_MAP_LOCATION,
-      (locationData) => {
-        
-        if (locationData.centerLat && locationData.centerLng) {
-          setCenterLat(locationData.centerLat.toString());
-          setCenterLng(locationData.centerLng.toString());
-          
-          if (locationData.radius) {
-            setRadius(locationData.radius.toString());
-          }
-          
-          window.dispatchEvent(new CustomEvent('refresh-properties'));
-        }
-      }
-    );
-    
-    const filterUnsubscribe = eventBus.subscribe(
-      CHATBOT_EVENTS.UPDATE_FILTERS,
-      (filterData) => {
-        console.log("GetPropertiesPage received filter update:", filterData);
-        
-        if (window.dispatchEvent) {
-          try {
-            const notifyEvent = new CustomEvent('show-notification', { 
-              detail: { 
-                message: "Map filters updated based on your query", 
-                type: "success",
-                duration: 3000
-              } 
-            });
-            window.dispatchEvent(notifyEvent);
-          } catch (e) {
-            console.log("Could not show notification:", e);
-          }
-        }
-        
-        const searchParams = new URLSearchParams();
-        
-        if (filterData.centerLat) searchParams.set('centerLat', filterData.centerLat.toString());
-        if (filterData.centerLng) searchParams.set('centerLng', filterData.centerLng.toString());
-        if (filterData.radius) searchParams.set('radius', filterData.radius.toString());
-        if (filterData.minPrice) searchParams.set('minPrice', filterData.minPrice.toString());
-        if (filterData.maxPrice) searchParams.set('maxPrice', filterData.maxPrice.toString());
-        if (filterData.minArea) searchParams.set('minArea', filterData.minArea.toString());
-        if (filterData.maxArea) searchParams.set('maxArea', filterData.maxArea.toString());
-        if (filterData.propertyType) searchParams.set('propertyType', filterData.propertyType);
-        
-        const url = new URL(window.location.href);
-        url.search = searchParams.toString();
-        window.history.pushState({ path: url.toString() }, '', url.toString());
-        
-        window.dispatchEvent(new CustomEvent('refresh-properties'));
-      }
-    );
-    
-    const handleRefresh = () => {
-      const currentSearchParams = new URLSearchParams(window.location.search);
-      dispatch(updateFilter({
-        ...Object.fromEntries(currentSearchParams.entries())
-      }));
-    };
-    
-    window.addEventListener('refresh-properties', handleRefresh);
-    
+    setSelectedProperty(null);
+  }, [filterKey]);
+  useEffect(() => {
+    if (mobileView === "map" && window.matchMedia("(max-width: 959px)").matches) {
+      mapPanel.current?.scrollIntoView({ block: "start" });
+    }
+  }, [mobileView]);
+  useEffect(() => {
+    const fromAssistant = (values) =>
+      update(Object.fromEntries(Object.entries(values).filter(([key]) => RENTAL_FILTER_KEYS.includes(key))));
+    const offLocation = eventBus.subscribe(CHATBOT_EVENTS.UPDATE_MAP_LOCATION, fromAssistant);
+    const offFilters = eventBus.subscribe(CHATBOT_EVENTS.UPDATE_FILTERS, fromAssistant);
     return () => {
-      locationUnsubscribe();
-      filterUnsubscribe();
-      window.removeEventListener('refresh-properties', handleRefresh);
+      offLocation();
+      offFilters();
     };
-  }, [dispatch, setCenterLat, setCenterLng, setRadius]);
+  }, [update]);
+  useEffect(() => {
+    const totalPages = data?.pagination?.total_pages;
+    if (totalPages !== undefined && page > Math.max(1, totalPages)) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("page", String(Math.max(1, totalPages)));
+      router.replace(`${pathname}?${params}`, { scroll: false });
+    }
+  }, [data, page, pathname, router]);
+  useEffect(() => {
+    if (data && pendingPage.current === page) {
+      resultsTop.current?.scrollIntoView({ block: "start" });
+      pendingPage.current = null;
+    }
+  }, [data, page]);
 
-  const { data, error, isLoading } = useGetPropertiesQuery({
-    page: currentPage,
-    limit: pageSize,
-    propertyType: propertyTypes,
-    transactionType: transaction_type,
-    radius: 1,
-    ...queryObj,
-  });
-
-  const transformedProperties = (data?.properties ?? []).map((property) => ({
-    ...property,
-    thumbnail: property.images?.length > 0 ? property.images[0].url : "https://www.pngitem.com/pimgs/m/152-1527570_default-house-icon-hd-png-download.png",
-    address: {
-      street: property.street || "",
-      district: property.district || "",
-      province: property.province || "",
-      ward: property.ward || "",
+  const properties = useMemo(
+    () => (data?.properties || []).map((p) => ({ ...p, thumbnail: p.images?.[0]?.url })),
+    [data],
+  );
+  const center = useMemo(
+    () => [Number(filters.centerLng) || 106.701, Number(filters.centerLat) || 10.786],
+    [filters.centerLng, filters.centerLat],
+  );
+  const total = data?.pagination?.total_records ?? 0;
+  const setPage = (_, nextPage) => {
+    pendingPage.current = nextPage;
+    const params = new URLSearchParams(search);
+    params.set("page", String(nextPage));
+    router.push(`${pathname}?${params}`, { scroll: false });
+  };
+  const locate = (property) => {
+    setSelectedProperty(property);
+    setShowMap(true);
+    setMobileView("map");
+  };
+  const searchArea = useCallback(
+    (bounds) => {
+      // A deliberate map search replaces the previous geographic area, while
+      // retaining budget/type/size. The route origin remains the chosen place.
+      update({ bounds, radius: null, district: null, province: null });
+      setMobileView("list");
+      setExpandedMap(false);
     },
-  }));
-
-  const propertyMarkers = (data?.properties ?? []).map((property) => ({
-    coordinates: property.coordinates,
-    name: property.name,
-    price: property.price,
-    image: property.images?.length > 0 ? property.images[0].url : "https://www.pngitem.com/pimgs/m/152-1527570_default-house-icon-hd-png-download.png",
-    id: property.id,
-    displayed_address: property.displayedAddress,
-    area: property.area || 0,
-    bedrooms: property.bedrooms || 1,
-    bathrooms: property.bathrooms || 1
-  }));
+    [update],
+  );
+  const clearSelection = useCallback(() => setSelectedProperty(null), []);
+  useEffect(() => {
+    if (!expandedMap) return;
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setExpandedMap(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [expandedMap]);
 
   return (
-    <Grid container>
-      <Grid xs={12} sm={6} md={7}>
-        {isLoading ? (
-          <FullscreenLoading loading={isLoading} />
-        ) : (
-          <PropertyList
-            properties={transformedProperties}
-            totalPages={data?.pagination?.total_pages ?? 0}
-            currentPage={currentPage}
-            handlePageChange={handlePageChange}
-          />
+    <Box sx={{ pb: 5 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2} sx={{ mb: 2.5 }}>
+        <Box>
+          <Typography
+            component="h1"
+            sx={{ fontSize: { xs: 25, md: 30 }, letterSpacing: "-0.8px", fontWeight: 700, lineHeight: 1.35 }}
+          >
+            {filters.district ? `Homes in ${filters.district}` : "Find a place to call home."}
+          </Typography>
+          <Typography color="text.secondary" fontSize={13} sx={{ mt: 1 }}>
+            A neighborhood you love. A space that fits your life.
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={showMap ? <ViewModuleOutlined /> : <MapOutlined />}
+          onClick={() => setShowMap(!showMap)}
+          sx={{ whiteSpace: "nowrap", display: { xs: "none", md: "inline-flex" }, bgcolor: "white" }}
+        >
+          {showMap ? "Hide map" : "Show map"}
+        </Button>
+      </Stack>
+      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mb: 2 }}>
+        {filters.bounds && <Chip label="Selected map area" onDelete={() => update({ bounds: null })} />}
+        {filters.district && <Chip label={filters.district} onDelete={() => update({ district: null })} />}
+        <Typography fontSize={12} color="text.secondary" sx={{ alignSelf: "center" }}>
+          Unverified inventory · Confirm availability and exact location with the source before visiting or paying.
+        </Typography>
+      </Stack>
+      <ToggleButtonGroup
+        exclusive
+        value={mobileView}
+        onChange={(_, value) => {
+          if (value) {
+            setMobileView(value);
+            setShowMap(true);
+          }
+        }}
+        size="small"
+        fullWidth
+        aria-label="Browse rentals by list or map"
+        sx={{ mb: 2, display: { md: "none" }, bgcolor: "white", position: "sticky", top: 72, zIndex: 20 }}
+      >
+        <ToggleButton value="list">
+          <ViewModuleOutlined sx={{ mr: 1, fontSize: 18 }} /> List
+        </ToggleButton>
+        <ToggleButton value="map">
+          <MapOutlined sx={{ mr: 1, fontSize: 18 }} /> Map
+        </ToggleButton>
+      </ToggleButtonGroup>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "minmax(0, 1fr)",
+            md: showMap ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr)",
+          },
+          gap: 3,
+          alignItems: "start",
+        }}
+      >
+        <Box
+          aria-busy={isFetching}
+          sx={{ display: { xs: mobileView === "list" ? "block" : "none", md: "block" }, minWidth: 0 }}
+        >
+          <Stack
+            ref={resultsTop}
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            gap={1}
+            sx={{ mb: 2, scrollMarginTop: 100 }}
+          >
+            <Typography variant="body2" aria-live="polite" sx={{ fontSize: 13 }}>
+              {error ? (
+                "Homes unavailable"
+              ) : isFetching ? (
+                "Finding homes…"
+              ) : total ? (
+                <>
+                  <strong>
+                    {((page - 1) * 12 + 1).toLocaleString()}–{Math.min(page * 12, total).toLocaleString()}
+                  </strong>{" "}
+                  of {total.toLocaleString()} homes
+                </>
+              ) : (
+                "No matching homes"
+              )}
+            </Typography>
+            <TextField
+              select
+              size="small"
+              label="Sort by"
+              value={filters.sort || "newest"}
+              onChange={(e) => update({ sort: e.target.value })}
+              sx={{ minWidth: 145, "& .MuiInputBase-input": { fontSize: 12 } }}
+            >
+              <MenuItem value="newest">Newest first</MenuItem>
+              <MenuItem value="price_asc">Price: low to high</MenuItem>
+              <MenuItem value="price_desc">Price: high to low</MenuItem>
+              <MenuItem value="area_desc">Largest first</MenuItem>
+            </TextField>
+          </Stack>
+          {error ? (
+            <Alert severity="error" action={<Button onClick={refetch}>Retry</Button>}>
+              We couldn’t load homes. Please try again.
+            </Alert>
+          ) : !data && isFetching ? (
+            <Stack spacing={2}>
+              {[1, 2, 3].map((n) => (
+                <Skeleton key={n} variant="rounded" height={340} />
+              ))}
+            </Stack>
+          ) : (
+            <PropertyList
+              properties={properties}
+              totalPages={data?.pagination?.total_pages ?? 0}
+              currentPage={page}
+              handlePageChange={setPage}
+              onLocate={locate}
+              mapVisible={showMap}
+            />
+          )}
+        </Box>
+        {showMap && (
+          <Box
+            ref={mapPanel}
+            aria-label="Rental locations map"
+            sx={{
+              display: { xs: mobileView === "map" ? "block" : "none", md: "block" },
+              height: { xs: "calc(100dvh - 145px)", md: expandedMap ? "calc(100dvh - 114px)" : "calc(100vh - 125px)" },
+              minHeight: 480,
+              scrollMarginTop: 125,
+              position: { md: expandedMap ? "fixed" : "sticky" },
+              top: 100,
+              ...(expandedMap ? { left: 20, right: 20, zIndex: 1100, boxShadow: "0 16px 60px #18352a35" } : {}),
+              borderRadius: 3,
+              overflow: "hidden",
+              border: "1px solid var(--rt-border)",
+            }}
+          >
+            <RentalMap
+              center={center}
+              filters={filters}
+              selectedProperty={selectedProperty}
+              onSearchArea={searchArea}
+              onCloseSelection={clearSelection}
+              expanded={expandedMap}
+              onExpand={() => setExpandedMap((value) => !value)}
+            />
+          </Box>
         )}
-      </Grid>
-      <Grid xs={12} sm={6} md={5} sx={{ position: "relative" }}>
-        <MapContainer>
-          <Map center={[mapCenterLng, mapCenterLat]} markerList={propertyMarkers} />
-        </MapContainer>
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 }

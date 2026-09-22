@@ -1,34 +1,46 @@
-$black-color: rgba(0, 0, 0, 1);
-$light-grey-color: #f4f4f4;
-$dark-grey-color: #484848;
+/* ==========================================================================
+   Compatibility layer. All values now come from _tokens.scss — this file only
+   maps the legacy shadcn-era variable names onto the canonical editorial
+   tokens so existing stylesheets keep compiling.
 
-$bg-gradient-color: linear-gradient(
-  180deg,
-  #ffe6b9 12.06%,
-  #fffbf3 67.57%,
-  #fff 72.83%
-);
+   New code must use the $rt-* tokens (or the --rt-* custom properties
+   published in _global.scss) and never add a colour here.
+   ========================================================================== */
 
-$btn-box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 1px -2px,
-  rgba(0, 0, 0, 0.14) 0px 2px 2px 0px, rgba(0, 0, 0, 0.12) 0px 1px 5px 0px;
+@import "./_tokens.scss";
 
-$background-color: hsl(0, 0%, 100%);
-$foreground-color: hsl(20, 14.3%, 4.1%);
-$card-color: hsl(0, 0%, 100%);
-$card-foreground-color: hsl(20, 14.3%, 4.1%);
-$popover-color: hsl(0, 0%, 100%);
-$popover-foreground-color: hsl(20, 14.3%, 4.1%);
-$primary-color: hsl(24.6, 95%, 53.1%);
-$primary-foreground-color: hsl(60, 9.1%, 97.8%);
-$secondary-color: hsl(60, 4.8%, 95.9%);
-$secondary-foreground-color: hsl(24, 9.8%, 10%);
-$muted-color: hsl(60, 4.8%, 95.9%);
-$muted-foreground-color: hsl(25, 5.3%, 44.7%);
-$accent-color: hsl(60, 4.8%, 95.9%);
-$accent-foreground-color: hsl(24, 9.8%, 10%);
-$destructive-color: hsl(0, 84.2%, 60.2%);
-$destructive-foreground-color: hsl(60, 9.1%, 97.8%);
-$border-color: hsl(20, 5.9%, 90%);
-$input-color: hsl(20, 5.9%, 90%);
-$ring-color: hsl(24.6, 95%, 53.1%);
-$radius: 0.5rem;
+/* Text */
+$black-color: $rt-ink;
+$foreground-color: $rt-ink;
+$card-foreground-color: $rt-ink;
+$popover-foreground-color: $rt-ink;
+$secondary-foreground-color: $rt-ink;
+$accent-foreground-color: $rt-ink;
+$primary-foreground-color: $rt-paper;
+$destructive-foreground-color: $rt-paper;
+$muted-foreground-color: $rt-muted;
+$dark-grey-color: $rt-ink;
+
+/* Surfaces */
+$background-color: $rt-paper;
+$card-color: $rt-paper;
+$popover-color: $rt-paper;
+$secondary-color: $rt-surface;
+$muted-color: $rt-surface;
+$accent-color: $rt-surface;
+$light-grey-color: $rt-surface;
+$bg-gradient-color: $rt-bg;
+
+/* Brand and feedback */
+$primary-color: $rt-brand;
+$ring-color: $rt-brand;
+$destructive-color: $rt-danger;
+
+/* Lines */
+$border-color: $rt-border;
+$input-color: $rt-border;
+
+/* Shape */
+$radius: $rt-radius;
+
+$btn-box-shadow: $rt-shadow-sm;

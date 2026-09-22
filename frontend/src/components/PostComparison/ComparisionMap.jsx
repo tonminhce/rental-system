@@ -1,272 +1,212 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  TextField, 
-  Button, 
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
   Autocomplete,
   CircularProgress,
   ListItem,
-  ListItemText
-} from '@mui/material';
+  ListItemText,
+} from "@mui/material";
 import goongJs from "@goongmaps/goong-js";
 import "@goongmaps/goong-js/dist/goong-js.css";
-import polyline from "@mapbox/polyline";
-import { DirectionsOutlined, LocationOn, PlaceOutlined } from '@mui/icons-material';
+import { DirectionsOutlined, LocationOn, PlaceOutlined } from "@mui/icons-material";
 import usePlaceAutocomplete from "@/hooks/usePlaceAutocomplete";
+import useRenderRoute from "@/hooks/useRenderRoute";
+import { palette } from "@/styles/palette";
+import { GOONG_STYLE_URL } from "@/utils/goongStyle.mjs";
 
-const GOONG_API_KEY = process.env.NEXT_PUBLIC_GOONG_API_KEY || process.env.NEXT_PUBLIC_GOONG_MAPTILES_KEY;
+const GOONG_API_KEY = process.env.NEXT_PUBLIC_GOONG_MAPTILES_KEY;
 
+// Map markers take literal colors because they are painted inside the map canvas.
+const MARKER_COLORS = { property: palette.brand, start: palette.gold };
+
+// These maps are only ~300px tall, so the shared route fit needs a tighter inset
+// than the full-height search map uses.
+const ROUTE_PADDING = { top: 40, bottom: 40, left: 40, right: 40 };
+
+const FALLBACK_CENTER = [106.660172, 10.762622];
+
+// PostGIS stores [lng, lat] while the direction API expects "lat,lng".
+const propertyCoords = (post) => post?.coordinates?.coordinates || null;
+const toLatLngParam = ([lng, lat]) => `${lat},${lng}`;
+
+const createStartMarkerElement = () => {
+  const element = document.createElement("div");
+  element.style.width = "30px";
+  element.style.height = "30px";
+  element.style.borderRadius = "50%";
+  element.style.backgroundColor = MARKER_COLORS.start;
+  element.style.border = `2px solid ${palette.paper}`;
+  element.style.display = "flex";
+  element.style.justifyContent = "center";
+  element.style.alignItems = "center";
+  element.style.color = palette.onBrand;
+  element.style.fontWeight = "bold";
+  element.style.fontSize = "14px";
+  element.textContent = "S";
+  element.title = "Your starting location";
+  return element;
+};
 
 const ComparisonMap = ({ post1, post2 }) => {
-  const mapContainer1Ref = useRef(null);
-  const mapContainer2Ref = useRef(null);
-  const map1Ref = useRef(null);
-  const map2Ref = useRef(null);
+  const container1Ref = useRef(null);
+  const container2Ref = useRef(null);
+  const mapsRef = useRef({ first: null, second: null });
+  const startMarkersRef = useRef({ first: null, second: null });
+
   const [selectedPlace, setSelectedPlace] = useState(null);
-  const [startCoordinates, setStartCoordinates] = useState(null);
+  const [originParam, setOriginParam] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState('');
-  
-  const startMarker1Ref = useRef(null);
-  const startMarker2Ref = useRef(null);
-  
+  const [error, setError] = useState("");
+
   const [searchInput, setSearchInput, suggestions] = usePlaceAutocomplete();
-  
+
+  const dest1Param = propertyCoords(post1) ? toLatLngParam(propertyCoords(post1)) : null;
+  const dest2Param = propertyCoords(post2) ? toLatLngParam(propertyCoords(post2)) : null;
+
+  const route1 = useRenderRoute(mapsRef.current.first, originParam, dest1Param, ROUTE_PADDING);
+  const route2 = useRenderRoute(mapsRef.current.second, originParam, dest2Param, ROUTE_PADDING);
+
   useEffect(() => {
-    if (!mapContainer1Ref.current || !mapContainer2Ref.current) return;
-    
+    if (!container1Ref.current || !container2Ref.current) return;
+
     goongJs.accessToken = GOONG_API_KEY;
-    
-    const getCoordinates = (post) => {
-      if (!post?.coordinates?.coordinates) return [106.660172, 10.762622];
-      return [post.coordinates.coordinates[1], post.coordinates.coordinates[0]];
+
+    const createMap = (container, coords) => {
+      const map = new goongJs.Map({
+        container,
+        style: GOONG_STYLE_URL,
+        zoom: coords ? 14 : 10,
+        center: coords || FALLBACK_CENTER,
+      });
+      // A listing without coordinates stays centred on the region rather than
+      // pinning a marker at an address it does not have.
+      if (coords) {
+        new goongJs.Marker({ color: MARKER_COLORS.property }).setLngLat(coords).addTo(map);
+      }
+      return map;
     };
 
-    const map1Coordinates = getCoordinates(post1);
-    const map1 = new goongJs.Map({
-      container: mapContainer1Ref.current,
-      style: "https://tiles.goong.io/assets/goong_light_v2.json",
-      zoom: 14,
-      center: map1Coordinates
-    });
-    
-    new goongJs.Marker({
-      color: '#4285F4' 
-    })
-      .setLngLat(map1Coordinates)
-      .addTo(map1);
-    
-    const map2Coordinates = getCoordinates(post2);
-    const map2 = new goongJs.Map({
-      container: mapContainer2Ref.current,
-      style: "https://tiles.goong.io/assets/goong_light_v2.json",
-      zoom: 14,
-      center: map2Coordinates
-    });
-    
-    new goongJs.Marker({
-      color: '#EA4335'
-    })
-      .setLngLat(map2Coordinates)
-      .addTo(map2);
-    
-    map1Ref.current = map1;
-    map2Ref.current = map2;
-    
+    const first = createMap(container1Ref.current, propertyCoords(post1));
+    const second = createMap(container2Ref.current, propertyCoords(post2));
+    mapsRef.current = { first, second };
+
     return () => {
-      if (map1Ref.current) map1Ref.current.remove();
-      if (map2Ref.current) map2Ref.current.remove();
+      first.remove();
+      second.remove();
+      mapsRef.current = { first: null, second: null };
+      startMarkersRef.current = { first: null, second: null };
     };
   }, [post1, post2]);
 
   const handlePlaceSelect = (event, place) => {
     if (place) {
       setSelectedPlace(place);
-      setError('');
+      setError("");
     }
+  };
+
+  const addStartMarker = (map, slot, lngLat) => {
+    if (!map) return;
+    startMarkersRef.current[slot]?.remove();
+    startMarkersRef.current[slot] = new goongJs.Marker({ element: createStartMarkerElement() })
+      .setLngLat(lngLat)
+      .addTo(map);
   };
 
   const handleSearch = async () => {
     if (!selectedPlace) {
-      setError('Please select a starting location');
+      setError("Please select a starting location");
       return;
     }
 
     setIsSearching(true);
-    setError('');
+    setError("");
 
     try {
       const encodedAddress = encodeURIComponent(selectedPlace.description);
       const response = await fetch(`/api/geocode?address=${encodedAddress}`);
       const geocodeData = await response.json();
+      const location = geocodeData.results?.[0]?.geometry?.location;
 
-      if (!geocodeData.results || geocodeData.results.length === 0) {
-        setError('Location not found. Please try a different address.');
-        setIsSearching(false);
+      if (!location) {
+        setError("Location not found. Please try a different address.");
         return;
       }
 
-      const location = geocodeData.results[0];
-      const startCoords = [location.geometry.location.lng, location.geometry.location.lat];
-      setStartCoordinates(startCoords);
-
-      addStartMarker(map1Ref.current, startCoords);
-      addStartMarker(map2Ref.current, startCoords);
-
-      const getDestCoords = (post) => {
-        if (!post?.coordinates?.coordinates) return null;
-        return [post.coordinates.coordinates[1], post.coordinates.coordinates[0]];
-      };
-      
-      const dest1Coords = getDestCoords(post1);
-      const dest2Coords = getDestCoords(post2);
-      
-      if (dest1Coords) {
-        const originStr = `${startCoords[1]},${startCoords[0]}`;
-        const destStr = `${dest1Coords[1]},${dest1Coords[0]}`;
-        renderRouteWithVehicle(map1Ref.current, originStr, destStr, 'bike', '#4285F4');
-      }
-      
-      if (dest2Coords) {
-        const originStr = `${startCoords[1]},${startCoords[0]}`;
-        const destStr = `${dest2Coords[1]},${dest2Coords[0]}`;
-        renderRouteWithVehicle(map2Ref.current, originStr, destStr, 'bike', '#EA4335');
-      }
-    } catch (error) {
-      console.error('Error searching for location:', error);
-      setError('An error occurred while searching. Please try again.');
+      addStartMarker(mapsRef.current.first, "first", [location.lng, location.lat]);
+      addStartMarker(mapsRef.current.second, "second", [location.lng, location.lat]);
+      setOriginParam(toLatLngParam([location.lng, location.lat]));
+    } catch (searchError) {
+      console.error("Error searching for location:", searchError);
+      setError("An error occurred while searching. Please try again.");
     } finally {
       setIsSearching(false);
     }
   };
-  
-  const renderRouteWithVehicle = (mapInstance, origin, destination, vehicle, color) => {
-    try {
-      if (mapInstance.getLayer('route-layer')) {
-        mapInstance.removeLayer('route-layer');
-      }
-      if (mapInstance.getSource('route')) {
-        mapInstance.removeSource('route');
-      }
-    } catch (error) {
-      console.error('Error cleaning up route:', error);
-    }
-    
-    const renderRouteWithParams = async () => {
-      try {
-        const routeUrl = `/api/direction?origin=${origin}&destination=${destination}&vehicle=bike`;
-        const routeResponse = await fetch(routeUrl);
-        const routeData = await routeResponse.json();
-  
-        if (!routeData.routes || routeData.routes.length === 0) {
-          console.error('No route found');
-          return;
-        }
-  
-        const route = routeData.routes[0];
-        const routeGeometry = route.overview_polyline.points;
-        const decodedRoute = polyline.decode(routeGeometry);
-        
-        mapInstance.addSource('route', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: decodedRoute.map(point => [point[1], point[0]])
-            }
-          }
-        });
-  
-        mapInstance.addLayer({
-          id: 'route-layer',
-          type: 'line',
-          source: 'route',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-          },
-          paint: {
-            'line-color': color,
-            'line-width': 6,
-            'line-opacity': 0.7
-          }
-        });
-  
-        const bounds = new goongJs.LngLatBounds();
-        const startCoords = origin.split(',').reverse().map(parseFloat);
-        const endCoords = destination.split(',').reverse().map(parseFloat);
-        bounds.extend(startCoords);
-        bounds.extend(endCoords);
-  
-        mapInstance.fitBounds(bounds, {
-          padding: { top: 50, bottom: 50, left: 50, right: 50 }
-        });
-  
-        new goongJs.Popup({ closeButton: false, closeOnClick: false })
-          .setLngLat(endCoords)
-          .setHTML(`
-            <div style="font-family: Arial, sans-serif; padding: 5px;">
-              <strong>Distance:</strong> ${(route.legs[0].distance.value / 1000).toFixed(1)} km<br>
-              <strong>Duration:</strong> ${Math.round(route.legs[0].duration.value / 60)} mins
-            </div>
-          `)
-          .addTo(mapInstance);
-      } catch (error) {
-        console.error('Error rendering route:', error);
-      }
-    };
-    
-    renderRouteWithParams();
+
+  const renderRouteStatus = (route) => {
+    if (route.status === "idle") return null;
+
+    return (
+      <Box
+        role="status"
+        sx={{
+          mt: 1,
+          px: 1.25,
+          py: 0.75,
+          bgcolor: "var(--rt-border)",
+          borderRadius: "var(--rt-radius-sm)",
+          fontSize: 12,
+          lineHeight: 1.7,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          color: "var(--rt-ink)",
+        }}
+      >
+        {route.status === "loading" && (
+          <>
+            <CircularProgress size={14} /> Finding a bike route…
+          </>
+        )}
+        {route.status === "ready" &&
+          (Number.isFinite(route.distance)
+            ? `${(route.distance / 1000).toFixed(1)} km · ${Math.round(route.duration / 60)} min by bike`
+            : "Bike route ready")}
+        {route.status === "error" && "No bike route could be found from this location."}
+      </Box>
+    );
   };
 
-  const addStartMarker = (mapInstance, coords) => {
-    const markerRef = mapInstance === map1Ref.current ? startMarker1Ref : startMarker2Ref;
-    
-    if (markerRef.current) {
-      markerRef.current.remove();
-    }
-    
-    const marker = new goongJs.Marker({
-      color: '#34A853',
-      element: createMarkerElement('start-marker', 'Start')
-    });
-    
-    marker.setLngLat(coords).addTo(mapInstance);
-    markerRef.current = marker;
-  };
-
-  const createMarkerElement = (className, label) => {
-    const element = document.createElement('div');
-    element.className = className;
-    element.style.width = '30px';
-    element.style.height = '30px';
-    element.style.borderRadius = '50%';
-    element.style.backgroundColor = '#34A853';
-    element.style.border = '2px solid white';
-    element.style.display = 'flex';
-    element.style.justifyContent = 'center';
-    element.style.alignItems = 'center';
-    element.style.color = 'white';
-    element.style.fontWeight = 'bold';
-    element.style.fontSize = '14px';
-    element.innerHTML = 'A';
-    element.title = label;
-    
-    return element;
-  };
+  const panels = [
+    { slot: "first", containerRef: container1Ref, label: post1?.name || "Property 1", route: route1 },
+    { slot: "second", containerRef: container2Ref, label: post2?.name || "Property 2", route: route2 },
+  ];
 
   return (
     <Box sx={{ mt: 3 }}>
-      <Box sx={{ mb: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
-        <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+      <Box
+        sx={{
+          mb: 2,
+          p: 2,
+          bgcolor: "var(--rt-surface-tint)",
+          borderRadius: "var(--rt-radius)",
+        }}
+      >
+        <Typography
+          variant="subtitle1"
+          gutterBottom
+          fontWeight="bold"
+          sx={{ color: "var(--rt-ink)" }}
+        >
           Compare Travel Routes
         </Typography>
-        
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <Box sx={{ flexGrow: 1, minWidth: '250px' }}>
+
+        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "flex-start" }}>
+          <Box sx={{ flexGrow: 1, minWidth: "250px" }}>
             <Autocomplete
               value={selectedPlace}
               onChange={handlePlaceSelect}
@@ -277,13 +217,13 @@ const ComparisonMap = ({ post1, post2 }) => {
               noOptionsText="No address found"
               getOptionLabel={(option) => option.description}
               isOptionEqualToValue={(option, value) => option.place_id === value.place_id}
-              renderOption={(props, option) => (
-                <ListItem {...props}>
-                  <PlaceOutlined sx={{ mr: 1, color: '#666' }} />
-                  <ListItemText 
+              renderOption={({ key, ...optionProps }, option) => (
+                <ListItem key={key} {...optionProps}>
+                  <PlaceOutlined sx={{ mr: 1, color: "var(--rt-muted)" }} />
+                  <ListItemText
                     primary={option.structured_formatting?.main_text || option.description}
                     secondary={option.structured_formatting?.secondary_text}
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
+                    primaryTypographyProps={{ fontWeight: "medium" }}
                   />
                 </ListItem>
               )}
@@ -292,14 +232,13 @@ const ComparisonMap = ({ post1, post2 }) => {
                   {...params}
                   fullWidth
                   label="Enter your starting location"
-                  variant="outlined"
                   placeholder="E.g. Đại Học Bách Khoa HCM"
                   size="small"
                   error={!!error}
                   helperText={error}
                   InputProps={{
                     ...params.InputProps,
-                    startAdornment: <LocationOn sx={{ color: '#34A853', mr: 1 }} />,
+                    startAdornment: <LocationOn sx={{ color: "var(--rt-muted)", mr: 1 }} />,
                     endAdornment: (
                       <>
                         {isSearching ? <CircularProgress color="inherit" size={20} /> : null}
@@ -311,95 +250,72 @@ const ComparisonMap = ({ post1, post2 }) => {
               )}
             />
           </Box>
-          
-          <Button 
-            variant="contained" 
-            color="primary" 
+
+          <Button
+            variant="contained"
             onClick={handleSearch}
             disabled={isSearching || !selectedPlace}
-            startIcon={<DirectionsOutlined />}
-            sx={{ minWidth: '120px' }}
+            startIcon={
+              isSearching ? <CircularProgress size={18} color="inherit" /> : <DirectionsOutlined />
+            }
+            sx={{ minWidth: "120px" }}
           >
-            {isSearching ? 'Searching...' : 'Show Routes'}
+            {isSearching ? "Searching..." : "Show Routes"}
           </Button>
         </Box>
       </Box>
-      
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
-        <Box sx={{ flex: 1, minWidth: { xs: '100%', md: '48%' } }}>
-          <Box sx={{ 
-            p: 1, 
-            mb: 1, 
-            bgcolor: '#E3F2FD', 
-            borderRadius: 1,
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <Box 
-              sx={{ 
-                width: 16, 
-                height: 16, 
-                bgcolor: '#4285F4', 
-                borderRadius: '50%',
-                mr: 1 
-              }} 
+
+      <Box sx={{ display: "flex", gap: 2, flexWrap: { xs: "wrap", md: "nowrap" } }}>
+        {panels.map(({ slot, containerRef, label, route }) => (
+          <Box key={slot} sx={{ flex: 1, minWidth: { xs: "100%", md: "48%" } }}>
+            <Box
+              sx={{
+                p: 1,
+                mb: 1,
+                bgcolor: "var(--rt-surface-tint)",
+                borderRadius: "var(--rt-radius-sm)",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <Box
+                sx={{
+                  width: 14,
+                  height: 14,
+                  bgcolor: "var(--rt-brand)",
+                  borderRadius: "50%",
+                  mr: 1,
+                  flexShrink: 0,
+                }}
+              />
+              <Typography variant="subtitle2" sx={{ color: "var(--rt-ink)", fontWeight: 600 }}>
+                {label}
+              </Typography>
+            </Box>
+            <Box
+              ref={containerRef}
+              sx={{
+                height: 300,
+                borderRadius: "var(--rt-radius)",
+                overflow: "hidden",
+                border: "1px solid var(--rt-border)",
+              }}
             />
-            <Typography variant="subtitle2">
-              {post1?.name || 'Property 1'}
-            </Typography>
+            {renderRouteStatus(route)}
           </Box>
-          <Box 
-            ref={mapContainer1Ref} 
-            sx={{ 
-              height: 300, 
-              borderRadius: 1, 
-              overflow: 'hidden',
-              border: '1px solid #e0e0e0'
-            }} 
-          />
-        </Box>
-        
-        <Box sx={{ flex: 1, minWidth: { xs: '100%', md: '48%' } }}>
-          <Box sx={{ 
-            p: 1, 
-            mb: 1, 
-            bgcolor: '#FFEBEE', 
-            borderRadius: 1,
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <Box 
-              sx={{ 
-                width: 16, 
-                height: 16, 
-                bgcolor: '#EA4335', 
-                borderRadius: '50%',
-                mr: 1 
-              }} 
-            />
-            <Typography variant="subtitle2">
-              {post2?.name || 'Property 2'}
-            </Typography>
-          </Box>
-          <Box 
-            ref={mapContainer2Ref} 
-            sx={{ 
-              height: 300, 
-              borderRadius: 1, 
-              overflow: 'hidden',
-              border: '1px solid #e0e0e0'
-            }} 
-          />
-        </Box>
+        ))}
       </Box>
-      
-      {startCoordinates && (
-        <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
-          Route information shows the fastest path by bike from your starting point to each property.
+
+      {originParam && (
+        <Typography
+          variant="caption"
+          sx={{ display: "block", mt: 1, color: "var(--rt-muted)" }}
+        >
+          Route information shows the fastest bike path from your starting point to each property.
         </Typography>
       )}
     </Box>
   );
 };
 
-export default ComparisonMap; 
+export default ComparisonMap;

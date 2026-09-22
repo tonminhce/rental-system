@@ -18,7 +18,7 @@
     line-height: 1.25rem;
     padding: 12px 16px;
     border-radius: 5px;
-    border: 1px solid #d3d3d3;
+    border: 1px solid $rt-border-strong;
     outline: none;
   }
 
@@ -33,11 +33,20 @@
     &Container {
       width: 200px;
       position: relative;
-      border: 1px solid $light-grey-color;
-      border-radius: 5px;
+      border: 1px solid $rt-border;
+      border-radius: 8px;
+      background: $rt-paper;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+      &:hover {
+        border-color: $rt-brand;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba($rt-brand, 0.08);
+      }
 
       &Active {
-        border-color: $black-color;
+        border-color: $rt-brand;
+        box-shadow: 0 0 0 2px rgba($rt-brand, 0.15);
       }
     }
 
@@ -54,7 +63,7 @@
     &Value {
       font-size: 0.875rem;
       line-height: 1.25rem;
-      color: #2c2c2c;
+      color: $rt-ink;
       font-weight: 600;
 
       white-space: nowrap;
@@ -79,12 +88,14 @@
     flex-direction: column;
     position: absolute;
     top: 50px;
-    z-index: 2;
-    background-color: $foreground-color;
-    box-shadow: 0px 8px 20px rgba(182, 182, 182, 0.3);
-    border: 1px solid $light-grey-color;
-    padding: 0 0 8px 0;
-    transition: all 0.3s ease-in-out;
+    z-index: 10;
+    background-color: $rt-paper;
+    box-shadow: 0px 12px 30px rgba($rt-brand, 0.14);
+    border: 1px solid $rt-border;
+    border-radius: 8px;
+    padding: 6px 0;
+    animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: top left;
     overflow-y: auto;
     overflow-x: hidden;
   }

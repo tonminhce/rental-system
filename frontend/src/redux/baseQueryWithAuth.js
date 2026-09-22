@@ -1,11 +1,12 @@
-const { fetchBaseQuery } = require("@reduxjs/toolkit/query/react");
+import { fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { setUserInfo, removeUserInfo } from "./features/auth/authSlice";
+import { withReauthentication } from "./reauthQuery.mjs";
 
 const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_RENTAL_SERVICE_BACKEND_ENDPOINT,
 
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth.accessToken;
-    console.log('token in authorization', token);
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }
@@ -13,4 +14,4 @@ const baseQueryWithAuth = fetchBaseQuery({
   },
 });
 
-export default baseQueryWithAuth;
+export default withReauthentication(baseQueryWithAuth, { setUserInfo, removeUserInfo });
