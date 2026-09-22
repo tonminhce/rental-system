@@ -17,7 +17,7 @@ Recorded in a single continuous take against a local database with seeded listin
 
 **Full walkthrough, 4½ minutes:** [docs/demo/rental-system-demo.mp4](docs/demo/rental-system-demo.mp4). Same tour, plus the sign-in and role gate, your own roommate profile, sign-up, and the 404 page.
 
-Both files play from the GitHub file page. They do not autoplay inside this README: GitHub only embeds media served from its own upload endpoint, and a repository file is not that.
+Both videos are committed to the repository, so these links download them. GitHub will not play either one in place: the blob page refuses with "we can't show files that are this big right now", and `raw.githubusercontent.com` serves them as `application/octet-stream`. To get an inline player, drag the file into an issue or PR comment and link the `user-attachments` URL GitHub hands back.
 
 ## Local preview
 
