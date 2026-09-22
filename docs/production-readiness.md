@@ -2,7 +2,7 @@
 
 ## Status
 
-Local UI/integration preview, **not approved for public deployment**. The inherited UI work and the map/search/roommate/auth follow-up are committed on `production-readiness`. The branch has no upstream configured, so none of this has reached a remote, and nothing has been deployed.
+Local UI/integration preview, **not approved for public deployment**. The inherited UI work and the map/search/roommate/auth follow-up are committed on `production-readiness`, which is pushed to `origin` and open as PR #13. Nothing has been deployed. `docs/demo/rental-system-demo.mp4` is a recorded walkthrough of the branch running locally.
 
 Latest evidence and inventory caveats: [Rental discovery follow-up](rental-map-ux.md). The current local database has 4,089 active listings from the inherited import, and existing coordinates need a provenance audit. The older six-sample verification below describes the initial baseline, not the current inventory.
 
