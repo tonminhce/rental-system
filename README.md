@@ -2,6 +2,22 @@
 
 A rental-home search app for Ho Chi Minh City. The `production-readiness` branch includes a responsive ivory/forest-green UI, Goong maps, and a MiniMax rental assistant.
 
+## Demo
+
+[docs/demo/rental-system-demo.mp4](docs/demo/rental-system-demo.mp4) — 4½ minutes, 1280x720, silent. Recorded in one continuous take against a local database with seeded listings.
+
+1. Landing page and the editorial scroll treatment
+2. Search: filters and sort that re-query the server, with the URL as the source of truth
+3. Map: viewport-scoped markers, clustering, zoom, and pin popups on Goong tiles
+4. Sign in, save a home, and reach the saved-homes menu in the header
+5. Listing detail: gallery, home highlights, price prediction, message the owner
+6. Compare two homes side by side, including the route between them
+7. Roommate directory and a compatibility profile
+8. Your own roommate profile
+9. Publishing: the owner-role gate, then the listing form as an owner account
+10. The rental assistant turning a sentence into real filters
+11. Sign-up, and the 404 page
+
 ## Local preview
 
 - Frontend: http://localhost:4000
