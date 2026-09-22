@@ -4,19 +4,20 @@ A rental-home search app for Ho Chi Minh City. The `production-readiness` branch
 
 ## Demo
 
-[docs/demo/rental-system-demo.mp4](docs/demo/rental-system-demo.mp4) — 4½ minutes, 1280x720, silent. Recorded in one continuous take against a local database with seeded listings.
+**One minute, 60fps, 1280x720:**
 
-1. Landing page and the editorial scroll treatment
-2. Search: filters and sort that re-query the server, with the URL as the source of truth
-3. Map: viewport-scoped markers, clustering, zoom, and pin popups on Goong tiles
-4. Sign in, save a home, and reach the saved-homes menu in the header
-5. Listing detail: gallery, home highlights, price prediction, message the owner
-6. Compare two homes side by side, including the route between them
-7. Roommate directory and a compatibility profile
-8. Your own roommate profile
-9. Publishing: the owner-role gate, then the listing form as an owner account
-10. The rental assistant turning a sentence into real filters
-11. Sign-up, and the 404 page
+[docs/demo/rental-system-demo-60s.mp4](docs/demo/rental-system-demo-60s.mp4)
+
+Recorded in a single continuous take against a local database with seeded listings. Silent. The chapter cards, pointer and captions are drawn over the running app; nothing is mocked.
+
+- `0:00` Landing · `0:04` Filters and sort
+- `0:11` Map and clusters · `0:19` Listing detail and save
+- `0:27` Compare two homes · `0:37` Roommate matching
+- `0:43` Publish a listing · `0:46` Rental assistant
+
+**Full walkthrough, 4½ minutes:** [docs/demo/rental-system-demo.mp4](docs/demo/rental-system-demo.mp4). Same tour, plus the sign-in and role gate, your own roommate profile, sign-up, and the 404 page.
+
+Both files play from the GitHub file page. They do not autoplay inside this README: GitHub only embeds media served from its own upload endpoint, and a repository file is not that.
 
 ## Local preview
 
