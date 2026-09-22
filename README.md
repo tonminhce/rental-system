@@ -1,6 +1,6 @@
 # renTalk
 
-A rental-home search app for Ho Chi Minh City. The `production-readiness` branch includes a responsive ivory/forest-green UI, Goong maps, and a MiniMax rental assistant.
+A rental-home search app for Ho Chi Minh City, with a responsive ivory/forest-green UI, Goong maps, and a MiniMax rental assistant.
 
 ## Demo
 
