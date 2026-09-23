@@ -36,7 +36,7 @@ def get_data(region_code, page, retries=4):
     params = {
         "cg": CATEGORY,
         "limit": LIMIT,
-        "st": "s",  # Sorted by newest
+        "st": "u",  # newest first — the gateway returns 0 ads for st=s (verified 2026-09)
         "region_v2": region_code,
         "page": page,
         "o": offset,

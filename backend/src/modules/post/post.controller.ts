@@ -6,6 +6,7 @@ import {
   Param,
   Delete,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PostService } from './post.service';
@@ -61,7 +62,7 @@ export class PostController {
   @ApiOperation({ summary: 'Get post details by ID' })
   @Public()
   @Get(':id')
-  async getPost(@Param('id') id: number) {
+  async getPost(@Param('id', ParseIntPipe) id: number) {
     const userId = this._getUserIdFromContext();
     const post = await this.postService.getPost(id, userId);
 
@@ -88,7 +89,7 @@ export class PostController {
   @ApiOperation({ summary: 'Add a post to favorites' })
   @ApiBearerAuth()
   @Post(':id/favourites')
-  async addFavorite(@Param('id') id: number) {
+  async addFavorite(@Param('id', ParseIntPipe) id: number) {
     const userId = this._getUserIdFromContext();
     await this.postService.addFavorite(id, userId);
 
@@ -100,7 +101,7 @@ export class PostController {
   @ApiOperation({ summary: 'Remove a post from favorites' })
   @ApiBearerAuth()
   @Delete(':id/favourites')
-  async removeFavorite(@Param('id') id: number) {
+  async removeFavorite(@Param('id', ParseIntPipe) id: number) {
     const userId = this._getUserIdFromContext();
     await this.postService.removeFavorite(id, userId);
 

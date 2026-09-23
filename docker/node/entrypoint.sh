@@ -46,9 +46,10 @@ if [[ ${NODE_ENV} = "local" ]]; then
 fi
 npx sequelize-cli db:migrate
 
-# No db:seed:all at boot: seeders are not idempotent (unique-email crash-loops on
-# restart) and their down() bulk-deletes real tables. Seed manually, via the CLI,
-# on a database you mean to seed.
+# No db:seed:all at boot: seeding is opt-in — boot-time seeding would silently
+# inject demo rows into production. Seeders are idempotent and their down() is
+# scoped to seeded rows, so `npx sequelize-cli db:seed:all` is safe to run
+# manually on a database you mean to seed.
 
 #---------------------------------
 # Start app

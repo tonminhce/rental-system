@@ -23,6 +23,11 @@ import { SequelizeErrorUtil } from 'src/utils/sequelize-error.util';
 
 const _serviceName = 'AuthService';
 
+// ponytail: all-zero digest in verifyPassword's scrypt format — can never
+// authenticate; exists only so the user-not-found login path burns the same
+// scrypt cost as the wrong-password path (no account-enumeration timing gap).
+const DUMMY_SCRYPT_HASH = `scrypt:${'0'.repeat(32)}:${'0'.repeat(128)}`;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -128,6 +133,8 @@ export class AuthService {
         loggerUtil.warn(
           `${_serviceName}.login user not found: ${loginDto.email}`,
         );
+        // Absorb the same scrypt cost as the wrong-password branch below.
+        await verifyPassword(loginDto.password, DUMMY_SCRYPT_HASH);
         throw new UnauthorizedException('Invalid credentials');
       }
 
@@ -323,7 +330,7 @@ export class AuthService {
   async logout(userId: number, token?: string): Promise<boolean> {
     loggerUtil.info(`${_serviceName}.logout begin for user: ${userId}`);
     try {
-      await this.refreshTokenModel.update(
+      const [affected] = await this.refreshTokenModel.update(
         { isRevoked: true },
         {
           where: token
@@ -331,6 +338,21 @@ export class AuthService {
             : { userId, isRevoked: false },
         },
       );
+      if (token && affected === 0) {
+        // Fail-closed on a token that revoked nothing: an already-revoked row
+        // keeps double-logout idempotent (true), an unknown token is a client
+        // error (false) instead of a silent 200.
+        const known = await this.refreshTokenModel.findOne({
+          where: { userId, token: AuthService.hashToken(token) },
+          attributes: ['id'],
+        });
+        if (!known) {
+          loggerUtil.warn(
+            `${_serviceName}.logout unknown refresh token for user: ${userId}`,
+          );
+          return false;
+        }
+      }
       loggerUtil.info(
         `${_serviceName}.logout tokens revoked for user: ${userId}`,
       );

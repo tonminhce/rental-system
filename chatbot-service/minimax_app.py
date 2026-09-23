@@ -80,28 +80,33 @@ def _b64url(segment):
     return base64.urlsafe_b64decode(segment + "=" * (-len(segment) % 4))
 
 def bearer_user_id(request):
-    """User id from a backend access token (HS256 JWT signed with TOKEN_SECRET), else None.
+    """User id from a backend access token (HS256 JWT signed with TOKEN_SECRET).
 
-    The backend payload is {id, email, role, iat, exp}; stdlib verification only.
+    No Authorization header -> None (anonymous). A Bearer token that fails ANY
+    check (malformed, alg != HS256, bad signature, expired) -> 401, so a forged
+    or stale token can never be downgraded to anonymous and slip past thread
+    ownership. The backend payload is {id, email, role, iat, exp}; stdlib only.
     """
     secret = os.getenv("TOKEN_SECRET")
     authorization = request.headers.get("authorization", "")
     if not secret or not authorization.startswith("Bearer "):
-        return None
+        return None  # ponytail: no TOKEN_SECRET -> all-anonymous deployment; nothing can be owned there anyway
     try:
         parts = authorization[7:].strip().split(".")
         if len(parts) != 3 or json.loads(_b64url(parts[0])).get("alg") != "HS256":
-            return None
+            raise ValueError("malformed token")
         expected = hmac.new(secret.encode(), f"{parts[0]}.{parts[1]}".encode(), hashlib.sha256).digest()
         if not hmac.compare_digest(expected, _b64url(parts[2])):
-            return None
+            raise ValueError("bad signature")
         claims = json.loads(_b64url(parts[1]))
         if float(claims.get("exp", 0)) < time.time():
-            return None
+            raise ValueError("expired")
         user = claims.get("sub") or claims.get("id")
-        return str(user) if user is not None else None
+        if user is None:
+            raise ValueError("no subject")
+        return str(user)
     except Exception:
-        return None
+        raise HTTPException(401, "Invalid or expired token.")
 
 def client_addr(request):
     # ponytail: trusts X-Forwarded-For — correct only behind our own nginx; direct exposure lets a client spoof its rate-limit bucket.
@@ -197,7 +202,7 @@ async def conversation(body, user_id):
         now = time.monotonic()
         entry = sessions.get(thread)
         owner = entry[0] if entry else None
-        if owner and user_id and owner != user_id:
+        if owner and owner != user_id:  # ponytail: None (anonymous) never equals an owner — defense-in-depth for validate_request
             raise HTTPException(404, "Thread not found.")
         history = entry[2] if entry and now - entry[1] < 1800 else []
         current = SearchFilters.model_validate({k: v for k, v in (body.query_params or {}).items() if v not in (None, "")}).model_dump(exclude_none=True)
@@ -206,7 +211,7 @@ async def conversation(body, user_id):
         sanitizer = StreamSanitizer()
         visible = []
         answered = False
-        with asyncio.timeout(REQUEST_BUDGET):  # ponytail: hard cap on total work per request
+        async with asyncio.timeout(REQUEST_BUDGET):  # ponytail: hard cap on total work per request
             for _ in range(MAX_ROUNDS):
                 stream = await app.state.ai.chat.completions.create(model=model, messages=messages, tools=TOOLS, temperature=0.7, max_tokens=4096, extra_body={"reasoning_split": True}, stream=True, timeout=LLM_TIMEOUT)
                 pieces = []
@@ -273,9 +278,9 @@ def validate_request(body, request):
         SearchFilters.model_validate({k: v for k, v in (body.query_params or {}).items() if v not in (None, "")})
     except ValueError:
         raise HTTPException(422, "Invalid search filters.")
-    # ponytail: ownership only binds authenticated users; anonymous threads stay capability URLs (unguessable client-side UUIDs). Bind anonymous sessions too once the frontend sends the bearer token.
+    # ponytail: an owned thread 404s for every caller but its owner (user_id=None never equals an owner); anonymous-created threads stay capability URLs (unguessable client-side UUIDs).
     entry = sessions.get(str(body.thread_id))
-    if entry and user_id and entry[0] and entry[0] != user_id:
+    if entry and entry[0] and entry[0] != user_id:
         raise HTTPException(404, "Thread not found.")
     return user_id
 

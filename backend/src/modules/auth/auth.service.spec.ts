@@ -108,6 +108,20 @@ describe('AuthService.logout reports revocation failure', () => {
       }),
     );
   });
+
+  it('returns false for an unknown token, true for an already-revoked one', async () => {
+    const { service, refreshTokenModel } = makeService();
+
+    // revoked nothing + row unknown → failure (no silent 200)
+    refreshTokenModel.update.mockResolvedValueOnce([0]);
+    refreshTokenModel.findOne.mockResolvedValueOnce(null);
+    await expect(service.logout(1, 'bogus')).resolves.toBe(false);
+
+    // revoked nothing + row exists (already revoked) → idempotent success
+    refreshTokenModel.update.mockResolvedValueOnce([0]);
+    refreshTokenModel.findOne.mockResolvedValueOnce({ id: 7 });
+    await expect(service.logout(1, 'already-revoked')).resolves.toBe(true);
+  });
 });
 
 describe('SignupDto phone regex is anchored and stateless', () => {

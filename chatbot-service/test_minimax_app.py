@@ -68,10 +68,11 @@ class IdentityAndOwnershipTests(unittest.IsolatedAsyncioTestCase):
 
     def test_accepts_only_valid_tokens(self):
         self.assertEqual(bearer_user_id(make_request(make_token())), "user-a")
-        self.assertIsNone(bearer_user_id(make_request(make_token() + "x")))
-        self.assertIsNone(bearer_user_id(make_request(make_token(exp=time.time() - 10))))
-        self.assertIsNone(bearer_user_id(make_request(make_token(secret="wrong-secret"))))
-        self.assertIsNone(bearer_user_id(make_request(make_token(alg="none"))))
+        # A Bearer token that fails any check is a 401, never a silent downgrade to anonymous.
+        for bad in (make_token() + "x", make_token(exp=time.time() - 10), make_token(secret="wrong-secret"), make_token(alg="none")):
+            with self.assertRaises(HTTPException) as ctx:
+                bearer_user_id(make_request(bad))
+            self.assertEqual(ctx.exception.status_code, 401)
         self.assertIsNone(bearer_user_id(make_request()))
 
     def test_thread_bound_to_owner_cross_user_gets_404(self):
@@ -80,7 +81,15 @@ class IdentityAndOwnershipTests(unittest.IsolatedAsyncioTestCase):
             validate_request(self.body, make_request(make_token("user-b")))
         self.assertEqual(ctx.exception.status_code, 404)
         self.assertEqual(validate_request(self.body, make_request(make_token("user-a"))), "user-a")
-        self.assertIsNone(validate_request(self.body, make_request()))
+        # Anonymous caller no longer reaches an owned thread's history.
+        with self.assertRaises(HTTPException) as ctx:
+            validate_request(self.body, make_request())
+        self.assertEqual(ctx.exception.status_code, 404)
+
+    def test_anonymous_thread_stays_open_until_owned(self):
+        self.assertIsNone(validate_request(self.body, make_request()))  # no entry yet
+        minimax_app.sessions["thread-1"] = (None, time.monotonic(), [])
+        self.assertIsNone(validate_request(self.body, make_request()))  # capability-URL thread
 
     def test_rate_limit_keys_on_user_not_proxy_ip(self):
         for _ in range(12):
@@ -90,6 +99,20 @@ class IdentityAndOwnershipTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ctx.exception.status_code, 429)
         # Same proxy IP, different authenticated user is unaffected.
         self.assertEqual(validate_request(self.body, make_request(make_token("user-b"), host="1.2.3.4")), "user-b")
+
+class ConversationSmokeTests(unittest.IsolatedAsyncioTestCase):
+    """Regression: `with asyncio.timeout` (missing async) used to TypeError here and 502 every request."""
+    def setUp(self):
+        minimax_app.sessions.clear()
+
+    async def test_conversation_streams_and_binds_thread(self):
+        chunk = SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="Hi there", tool_calls=None))])
+        async def stream():
+            yield chunk
+        app.state.ai = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=AsyncMock(return_value=stream()))))
+        out = [c async for c in minimax_app.conversation(ChatRequest(question="hello", thread_id="smoke-1"), "user-a")]
+        self.assertEqual("".join(out), "Hi there")
+        self.assertEqual(minimax_app.sessions["smoke-1"][0], "user-a")
 
 class StreamSanitizerTests(unittest.TestCase):
     def test_strips_think_and_markers_across_chunk_boundaries(self):

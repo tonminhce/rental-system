@@ -31,6 +31,7 @@ cd "$MIRROR"
 git filter-repo --force \
   --invert-paths \
   --path frontend/.env.development \
+  --path chatbot-service/.env \
   --path-glob 'nhatot-crawler/data/*.csv'
 # 13MB demo MP4s (~50% of clone cost) — owner's call, see docs/REMEDIATION.md §4.
 # To purge them too, re-run with these added to the filter-repo flags above:
@@ -40,7 +41,7 @@ git filter-repo --force \
 echo
 echo "History rewritten in: $MIRROR"
 echo "Verify the blobs are gone, e.g.:"
-echo "  git -C '$MIRROR' log --all --oneline -- frontend/.env.development   # must be empty"
+echo "  git -C '$MIRROR' log --all --oneline -- frontend/.env.development chatbot-service/.env   # must be empty"
 echo "Then push from the mirror (filter-repo removed 'origin' by design):"
 echo "  git -C '$MIRROR' remote add origin <REMOTE_URL>"
 echo "  git -C '$MIRROR' push --force --all && git -C '$MIRROR' push --force --tags"

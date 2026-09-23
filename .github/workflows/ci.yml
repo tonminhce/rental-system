@@ -64,8 +64,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install pip-audit
-      # nhatot-crawler has no requirements file yet — add it here when it gets one.
-      - run: pip-audit -r chatbot-service/requirements.txt -r mogi-crawler/requirements.txt
+      - run: pip-audit -r chatbot-service/requirements.txt -r mogi-crawler/requirements.txt -r nhatot-crawler/requirements.txt
 
   gitleaks:
     runs-on: ubuntu-latest

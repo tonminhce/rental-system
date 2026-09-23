@@ -70,12 +70,14 @@ async function bootstrap() {
   });
   app.setGlobalPrefix(configService.get<string>('APP_PREFIX')); // Use configService
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  // Nest picks the FIRST registered filter whose @Catch type matches (and
-  // @Catch() matches everything), so most-specific must come first — the old
-  // order let AllExceptionFilter flatten every 401 into a 500.
-  app.useGlobalFilters(new JwtExceptionFilter());
-  app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalFilters(new AllExceptionFilter());
+  // Nest REVERSES the registration list before matching (router-exception-filters
+  // does filters.reverse(), then find() takes the first match), so the LAST
+  // registered filter wins: catch-all first, most-specific last.
+  app.useGlobalFilters(
+    new AllExceptionFilter(),
+    new HttpExceptionFilter(),
+    new JwtExceptionFilter(),
+  );
   app.enableCors({
     origin: configService.get<string>('CORS_ORIGIN').split(','),
     credentials: true,

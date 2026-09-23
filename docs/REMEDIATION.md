@@ -15,6 +15,7 @@ considered compromised until rotated:
 | Seeded demo-account passwords (`mogi123`, `user123`, `owner123`, `abc@123` and MD5 forms) | seeders in history | Any deployed DB seeded from that history: delete or reset those accounts |
 | MySQL root/user password `***REDACTED***` | `docker-compose.yml` in history (published on 0.0.0.0:3306) | Set fresh `DB_PASSWORD` / `MYSQL_ROOT_PASSWORD` in the operator environment; the current compose refuses to start without them and no longer publishes 3306 |
 | `TOKEN_SECRET` / `REFRESH_TOKEN_SECRET` (`***REDACTED***` default) | `backend/.env.local` in history + config defaults | Generate fresh independent values (`openssl rand -hex 32` each); compose requires both |
+| MiniMax API key (`MINIMAX_API_KEY` / `OPENAI_API_KEY`, same value) | `chatbot-service/.env` in commit `970315a` on pushed branch `fix/production-readiness` | Revoke + reissue in the MiniMax console; the new key goes only in the untracked env file |
 
 ## 2. Purge history (`scripts/purge-history.sh`)
 
@@ -26,6 +27,7 @@ git clone --mirror . ../rental-system-purge-mirror.git
 cd ../rental-system-purge-mirror.git
 git filter-repo --force --invert-paths \
   --path frontend/.env.development \
+  --path chatbot-service/.env \
   --path-glob 'nhatot-crawler/data/*.csv'
 ```
 
@@ -44,6 +46,9 @@ git push --force --all && git push --force --tags
   you care about.
 - Do this BEFORE merging the remediation branch, so the merge lands on clean
   history (review.md remediation order #1).
+- filter-repo promotes stale remote refs (e.g. `origin/fix/production-readiness`)
+  to local heads, so `push --force --all` republishes them. The rewritten branch
+  is clean, but delete it on the forge afterwards so its old objects can be GC'd.
 
 ## 3. TLS at the edge
 

@@ -17,7 +17,14 @@ export function withReauthentication(baseQuery, actions) {
     const before = api.getState().auth.accessToken;
     const result = await baseQuery(args, api, options);
     const url = typeof args === "string" ? args : args.url;
-    if (result.error?.status !== 401 || url.startsWith("/auth/")) return result;
+    // Only login/signup/refresh-token can't be re-authenticated. Logout and
+    // change-password MUST refresh-then-retry, or an expired access token
+    // leaves the refresh token valid server-side after "logout".
+    if (
+      result.error?.status !== 401 ||
+      ["/auth/login", "/auth/signup", "/auth/refresh-token"].some((p) => url.startsWith(p))
+    )
+      return result;
     // A non-expiry 401 (revoked token, deleted account) can never refresh —
     // end the session instead of leaving a zombie that 401s forever.
     if (result.error?.data?.code !== "TOKEN_EXPIRED") {

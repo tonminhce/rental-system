@@ -64,6 +64,19 @@ test("a non-expiry 401 clears the session and redirects to login", async () => {
     delete globalThis.window;
   }
 });
+test("logout with an expired access token refreshes and retries so the server revoke lands", async () => {
+  const { api, state } = fixture();
+  const calls = [];
+  const query = withReauthentication(async (args, a) => {
+    const url = typeof args === "string" ? args : args.url;
+    calls.push(url);
+    if (url === "/auth/refresh-token") return { data: { data: { token: "new", refreshToken: "new-refresh" } } };
+    return state.auth.accessToken === "old" ? expired : { data: { ok: true } };
+  }, actions);
+  const result = await query({ url: "/auth/logout", method: "POST", body: { refreshToken: "refresh" } }, api);
+  assert.deepEqual(result, { data: { ok: true } });
+  assert.deepEqual(calls, ["/auth/logout", "/auth/refresh-token", "/auth/logout"]);
+});
 test("refresh cannot sign a user back in after logout", async () => {
   const { api, state } = fixture();
   const query = withReauthentication(async (args) => {

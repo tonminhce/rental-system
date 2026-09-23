@@ -135,10 +135,11 @@ export class CreatePostDto {
   @IsOptional()
   images?: string[];
 
+  // ponytail: required because RentalPost.area is allowNull:false — keep DTO and model in sync
   @ApiProperty({ description: 'Area of the property', example: 100 })
   @IsNumber()
-  @IsOptional()
-  area?: number;
+  @Min(0)
+  area: number;
 
   @ApiProperty({
     description: 'Contact name for the listing',

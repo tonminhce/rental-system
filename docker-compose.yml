@@ -22,6 +22,15 @@ services:
     volumes:
       - ./docker/proxy/conf.d:/etc/nginx/conf.d
       # - ./docker/proxy/certs:/etc/nginx/certs:ro  # TLS: see docs/REMEDIATION.md
+    restart: unless-stopped
+    # nginx exits(1) at boot with "host not found in upstream" if it starts
+    # before api/frontend exist — gate it on them (api already gates on mysql).
+    # ponytail: no nginx resolver/variable-upstream rewrite; single-host deploy.
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_started
 
   mysql:
     image: mysql:8.0.37
@@ -82,9 +91,10 @@ services:
       context: ./frontend
       args:
         # ponytail: /api default works behind the bundled nginx; set real origins
-        # (and NEXT_PUBLIC_CHAT — the localhost fallback is dev-only) at deploy time.
+        # at deploy time. Unset NEXT_PUBLIC_CHAT → the Chatbot widget disables
+        # itself (no localhost fallback — never point chat at the visitor's machine).
         NEXT_PUBLIC_RENTAL_SERVICE_BACKEND_ENDPOINT: ${NEXT_PUBLIC_RENTAL_SERVICE_BACKEND_ENDPOINT:-/api}
-        NEXT_PUBLIC_CHAT: ${NEXT_PUBLIC_CHAT:-http://localhost:8000}
+        NEXT_PUBLIC_CHAT: ${NEXT_PUBLIC_CHAT:-}
         # browser-side map key (rotate per docs/REMEDIATION.md — old one is in git history)
         NEXT_PUBLIC_GOONG_MAPTILES_KEY: ${NEXT_PUBLIC_GOONG_MAPTILES_KEY:-}
     container_name: grab_frontend
