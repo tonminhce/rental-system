@@ -1,3 +1,5 @@
+# Deploy-facing compose. Secrets come from the operator's environment/.env file —
+# required vars fail fast with a clear message, no plaintext defaults.
 name: grab-project
 
 volumes:
@@ -14,52 +16,81 @@ services:
     container_name: grab_proxy
     ports:
       - 80:80
+      # - 443:443  # enable with the commented SSL server block in docker/proxy/conf.d/main.conf
     networks:
       - default
     volumes:
       - ./docker/proxy/conf.d:/etc/nginx/conf.d
+      # - ./docker/proxy/certs:/etc/nginx/certs:ro  # TLS: see docs/REMEDIATION.md
 
   mysql:
     image: mysql:8.0.37
     container_name: grab_mysql
-    ports:
-      - 3306:3306
+    # No host port publish — reachable only on the internal compose network.
     environment:
       MYSQL_DATABASE: grab_mysql
       MYSQL_USER: grab_user
-      MYSQL_PASSWORD: ***REDACTED***
-      MYSQL_ROOT_PASSWORD: ***REDACTED***
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD required}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD required}
     volumes:
       - ./docker/mysql/log:/var/log
       - mysql-storage:/var/lib/mysql
     networks:
       - default
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   api:
     build:
-      args:
-        APP_NAME: backend
-        APP_PORT: 8080
-        NODE_ENV: local
       context: .
-      dockerfile: ./docker/node/local.Dockerfile
+      dockerfile: ./docker/node/prod.Dockerfile
     container_name: grab_api
     environment:
       APP_PORT: 8080
-      NODE_ENV: local
+      APP_HOST: 0.0.0.0
+      NODE_ENV: production
       DB_HOST_WRITE: mysql
       DB_HOST_READ: mysql
+      DB_PORT: 3306
       DB_USER: grab_user
-      DB_PASSWORD: ***REDACTED***
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD required}
       DB_NAME: grab_mysql
-      VIRTUAL_HOST: local.api.com
+      TOKEN_SECRET: ${TOKEN_SECRET:?TOKEN_SECRET required}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?REFRESH_TOKEN_SECRET required}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN required}
+    # Not published on the host — nginx (proxy) is the only edge.
     expose:
       - 8080
-    ports:
-      - 8080:8080
-    volumes:
-      - ./backend:/app
     networks:
       - default
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      # node:20-slim has no curl; node 20 has global fetch.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # ponytail: /api default works behind the bundled nginx; set real origins
+        # (and NEXT_PUBLIC_CHAT — the localhost fallback is dev-only) at deploy time.
+        NEXT_PUBLIC_RENTAL_SERVICE_BACKEND_ENDPOINT: ${NEXT_PUBLIC_RENTAL_SERVICE_BACKEND_ENDPOINT:-/api}
+        NEXT_PUBLIC_CHAT: ${NEXT_PUBLIC_CHAT:-http://localhost:8000}
+        # browser-side map key (rotate per docs/REMEDIATION.md — old one is in git history)
+        NEXT_PUBLIC_GOONG_MAPTILES_KEY: ${NEXT_PUBLIC_GOONG_MAPTILES_KEY:-}
+    container_name: grab_frontend
+    expose:
+      - 4000
+    networks:
+      - default
+    depends_on:
+      - api

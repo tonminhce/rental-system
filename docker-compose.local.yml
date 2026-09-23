@@ -7,8 +7,10 @@ services:
     environment:
       MYSQL_DATABASE: rentalk_local
       MYSQL_USER: rentalk
-      MYSQL_PASSWORD: rentalk_local_only
-      MYSQL_ROOT_PASSWORD: rentalk_root_local_only
+      # dev-only defaults for the disposable local DB — override in your shell/.env
+      # for anything that lives longer than a laptop session
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-rentalk_local_only}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rentalk_root_local_only}
     volumes:
       - rentalk-data:/var/lib/mysql
     healthcheck:

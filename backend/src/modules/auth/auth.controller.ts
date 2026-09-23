@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   HttpCode,
+  HttpException,
+  HttpStatus,
   Post,
   UseGuards,
   UnauthorizedException,
@@ -75,7 +77,13 @@ export class AuthController {
     const userId = this._getUserIdFromContext();
     const refreshToken = body.refreshToken;
 
-    await this.authService.logout(userId, refreshToken);
+    const revoked = await this.authService.logout(userId, refreshToken);
+    if (!revoked) {
+      throw new HttpException(
+        'Logout failed: refresh token could not be revoked',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
 
     return responseUtil.success({
       message: 'Logout successful!',

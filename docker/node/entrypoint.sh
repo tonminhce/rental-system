@@ -18,7 +18,10 @@ fi
 #---------------------------------
 if [[ ${NODE_ENV} = "local" ]]; then
 
-  cp -rp ${APP_DIR}/.env.${NODE_ENV} .env
+  # .env.local is not tracked — only copy it when it exists (set -eu must not kill boot)
+  if [[ -f "${APP_DIR}/.env.${NODE_ENV}" ]]; then
+    cp -rp "${APP_DIR}/.env.${NODE_ENV}" .env
+  fi
   START_CMD="npm run dev"
 
   if ! [[ -d "${APP_DIR}/node_modules" ]]; then
@@ -26,7 +29,7 @@ if [[ ${NODE_ENV} = "local" ]]; then
   fi
 
 elif [ ${NODE_ENV} = "production" ] || [ ${NODE_ENV} = "development" ]; then
-  START_CMD="node main.js"
+  START_CMD="node dist/main.js"
 
 else
   echo "[ERROR] NODE_ENV: ${NODE_ENV} does not defined."
@@ -43,11 +46,9 @@ if [[ ${NODE_ENV} = "local" ]]; then
 fi
 npx sequelize-cli db:migrate
 
-#---------------------------------
-# Run seed
-#---------------------------------
-echo "[INFO] Seeding is running ........."
-npx sequelize-cli db:seed:all --seeders-path database/seeders
+# No db:seed:all at boot: seeders are not idempotent (unique-email crash-loops on
+# restart) and their down() bulk-deletes real tables. Seed manually, via the CLI,
+# on a database you mean to seed.
 
 #---------------------------------
 # Start app

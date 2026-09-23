@@ -6,12 +6,21 @@ import ChatWidget from "./components/ChatWidget";
 import { toggleChatWidget } from "@/redux/features/system/systemSlice";
 import { usePathname } from "next/navigation";
 
+// NEXT_PUBLIC_CHAT is inlined at build time; without it the assistant has no backend.
+const chatEnabled = Boolean(process.env.NEXT_PUBLIC_CHAT);
+if (!chatEnabled) {
+  console.warn(
+    "[chatbot] NEXT_PUBLIC_CHAT is not set — the rental assistant is disabled. " +
+      "Set NEXT_PUBLIC_CHAT to the chatbot service origin at build time.",
+  );
+}
+
 export default function ChatbotProvider({ children }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
   const isChatOpened = useSelector((s) => s.system.isChatOpened);
 
-  if (pathname === "/login" || pathname === "/signup") return children;
+  if (!chatEnabled || pathname === "/login" || pathname === "/signup") return children;
 
   return (
     <>

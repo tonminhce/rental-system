@@ -3,9 +3,10 @@ import {
   NotFoundException,
   HttpException,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/sequelize';
-import { Op, literal, fn, col } from 'sequelize';
+import { InjectConnection, InjectModel } from '@nestjs/sequelize';
+import { Op, literal, fn, col, Sequelize, UniqueConstraintError } from 'sequelize';
 import { CreatePostDto } from './dto/create-post.dto';
 import { GetPostsDto } from './dto/get-posts.dto';
 import { GetMapPostsDto } from './dto/get-map-posts.dto';
@@ -33,6 +34,8 @@ export class PostService {
     private rentalImageModel: typeof RentalImage,
     @InjectModel(FavoriteList)
     private favoriteListModel: typeof FavoriteList,
+    @InjectConnection()
+    private sequelize: Sequelize,
   ) {}
 
   async getMapPosts(query: GetMapPostsDto) {
@@ -100,6 +103,13 @@ export class PostService {
       const { page = 1, limit = 10, centerLat, centerLng } = getPostsDto;
       const offset = (page - 1) * limit;
       const whereConditions = buildPostWhere(getPostsDto);
+      if (getPostsDto.mine) {
+        if (!userId)
+          throw new UnauthorizedException('Sign in to list your own posts');
+        // ponytail: own *active* posts only (reuses the public status filter);
+        // add a status param here when owners need to see inactive drafts.
+        whereConditions.userId = userId;
+      }
 
       loggerUtil.info(`${_serviceName}.getPosts querying database`, {
         whereConditions,
@@ -193,6 +203,8 @@ export class PostService {
         `${_serviceName}.getPosts error: ${error.message}`,
         error,
       );
+      // Intentional HttpExceptions (404/401) must not be flattened into a 400.
+      if (error instanceof HttpException) throw error;
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);
@@ -257,6 +269,8 @@ export class PostService {
         `${_serviceName}.getFavoritePosts error: ${error.message}`,
         error,
       );
+      // Intentional HttpExceptions (404/401) must not be flattened into a 400.
+      if (error instanceof HttpException) throw error;
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);
@@ -318,6 +332,8 @@ export class PostService {
         `${_serviceName}.getPost error: ${error.message}`,
         error,
       );
+      // Intentional HttpExceptions (404/401) must not be flattened into a 400.
+      if (error instanceof HttpException) throw error;
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);
@@ -334,20 +350,25 @@ export class PostService {
       });
       const { images, ...postData } = createPostDto;
 
-      const post = await this.rentalPostModel.create({
-        ...postData,
-        user_id: userId,
-        status: 'active',
-      } as any);
+      // One transaction: a post without its images is a partial write.
+      const post = await this.sequelize.transaction(async (transaction) => {
+        const created = await this.rentalPostModel.create(
+          {
+            ...postData,
+            userId,
+            status: 'active',
+          },
+          { transaction },
+        );
 
-      if (images && images.length > 0) {
-        const imageRecords = images.map((url) => ({
-          rentalId: post.id,
-          url,
-        }));
-
-        await this.rentalImageModel.bulkCreate(imageRecords);
-      }
+        if (images && images.length > 0) {
+          await this.rentalImageModel.bulkCreate(
+            images.map((url) => ({ rentalId: created.id, url })),
+            { transaction },
+          );
+        }
+        return created;
+      });
       loggerUtil.info(`${_serviceName}.createPost completed`, {
         postId: post.id,
       });
@@ -357,6 +378,8 @@ export class PostService {
         `${_serviceName}.createPost error: ${error.message}`,
         error,
       );
+      // Intentional HttpExceptions (404/401) must not be flattened into a 400.
+      if (error instanceof HttpException) throw error;
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);
@@ -375,23 +398,15 @@ export class PostService {
         throw new NotFoundException(`Post with ID ${id} not found`);
       }
 
-      const existingFavorite = await this.favoriteListModel.findOne({
-        where: {
-          rentalId: id,
-          userId,
-        },
-      });
-
-      if (!existingFavorite) {
-        loggerUtil.info(`${_serviceName}.addFavorite creating new favorite`, {
-          id,
-          userId,
-        });
+      // No check-then-insert: the unique_user_rental index is the check.
+      // Losing the insert race means the row exists — same outcome, success.
+      try {
         await this.favoriteListModel.create({
           rentalId: id,
           userId,
         });
-      } else {
+      } catch (error) {
+        if (!(error instanceof UniqueConstraintError)) throw error;
         loggerUtil.info(`${_serviceName}.addFavorite favorite already exists`, {
           id,
           userId,
@@ -405,6 +420,8 @@ export class PostService {
         `${_serviceName}.addFavorite error: ${error.message}`,
         error,
       );
+      // Intentional HttpExceptions (404/401) must not be flattened into a 400.
+      if (error instanceof HttpException) throw error;
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);
@@ -446,6 +463,8 @@ export class PostService {
         `${_serviceName}.removeFavorite error: ${error.message}`,
         error,
       );
+      // Intentional HttpExceptions (404/401) must not be flattened into a 400.
+      if (error instanceof HttpException) throw error;
       if (error instanceof Error) {
         const message = SequelizeErrorUtil.formatSequelizeError(error);
         throw new HttpException(message, HttpStatus.BAD_REQUEST);

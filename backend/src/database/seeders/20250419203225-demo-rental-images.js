@@ -3,15 +3,14 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    /**
-     * Add seed commands here.
-     *
-     * Example:
-     * await queryInterface.bulkInsert('People', [{
-     *   name: 'John Doe',
-     *   isBetaMember: false
-     * }], {});
-    */
+    // Idempotent: skip when the demo images are already there (repeat boots).
+    const existing = await queryInterface.rawSelect('rental_images', {
+      where: { url: 'https://example.com/images/apartment1_1.jpg' }
+    }, ['id']);
+    if (existing) {
+      console.log('demo rental images already seeded — skipping');
+      return;
+    }
     return queryInterface.bulkInsert('rental_images', [
       {
         rental_id: 1,
@@ -59,12 +58,9 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    /**
-     * Add commands to revert seed here.
-     *
-     * Example:
-     * await queryInterface.bulkDelete('People', null, {});
-     */
-    return queryInterface.bulkDelete('rental_images', null, {});
+    // Only the rows this seeder created — never the whole rental_images table.
+    return queryInterface.bulkDelete('rental_images', {
+      url: { [Sequelize.Op.like]: 'https://example.com/images/%' }
+    }, {});
   }
 }; 

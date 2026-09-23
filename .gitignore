@@ -18,3 +18,5 @@ crawlers-venv/
 nhatot-crawler/data/*.csv
 mogi-crawler/*.csv
 mogi-crawler/website_scraper/*.csv
+bun.lockb
+.idea/

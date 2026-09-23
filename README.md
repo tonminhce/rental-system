@@ -55,7 +55,7 @@ Prerequisites: Node.js 22 or 24, Docker, Python 3.11+, and uv. Tested here with 
    ```sh
    cd chatbot-service
    uv venv .venv
-   uv pip install --python .venv/bin/python -r requirements-minimax.txt
+   uv pip install --python .venv/bin/python -r requirements.txt
    .venv/bin/uvicorn minimax_app:app --host 127.0.0.1 --port 8000
    ```
 

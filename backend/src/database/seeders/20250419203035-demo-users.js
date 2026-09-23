@@ -21,6 +21,7 @@ module.exports = {
     // hashSeedPassword salts per call, so the four rows never share a digest.
     const password = await hashSeedPassword(demo.password);
 
+    // ignoreDuplicates: repeated boots must not crash on the unique email.
     return queryInterface.bulkInsert('users', [
       {
         name: 'Mogi Crawler',
@@ -58,13 +59,20 @@ module.exports = {
         created_at: new Date(),
         updated_at: new Date()
       }
-    ]);
+    ], { ignoreDuplicates: true });
   },
 
   async down(queryInterface, Sequelize) {
-    /**
-     * Add commands to revert seed here.
-     */
-    return queryInterface.bulkDelete('users', null, {});
+    // Only the rows this seeder created — never the whole users table.
+    return queryInterface.bulkDelete('users', {
+      email: {
+        [Sequelize.Op.in]: [
+          'mogi@gmail.com',
+          'user@example.com',
+          'owner@example.com',
+          'qa@gmail.com'
+        ]
+      }
+    }, {});
   }
 }; 

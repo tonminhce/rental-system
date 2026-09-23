@@ -3,15 +3,14 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    /**
-     * Add seed commands here.
-     *
-     * Example:
-     * await queryInterface.bulkInsert('People', [{
-     *   name: 'John Doe',
-     *   isBetaMember: false
-     * }], {});
-    */
+    // Idempotent: skip when the first demo message already exists.
+    const existing = await queryInterface.rawSelect('messages', {
+      where: { content: 'Hello, I am interested in your apartment listing.' }
+    }, ['id']);
+    if (existing) {
+      console.log('demo messages already seeded — skipping');
+      return;
+    }
     return queryInterface.bulkInsert('messages', [
       {
         chat_room_id: 1,
@@ -52,12 +51,8 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    /**
-     * Add commands to revert seed here.
-     *
-     * Example:
-     * await queryInterface.bulkDelete('People', null, {});
-     */
-    return queryInterface.bulkDelete('messages', null, {});
+    // Messages reference hard-coded demo room ids that can collide with real
+    // rows — deleting them could destroy real data, so this is a no-op.
+    console.log('demo messages down() is a no-op (ids may be real)');
   }
 };

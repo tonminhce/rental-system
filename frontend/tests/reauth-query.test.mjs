@@ -46,6 +46,24 @@ test("a network failure keeps the session for a later retry", async () => {
   await query("/roommate/profile/me", api);
   assert.equal(state.auth.refreshToken, "refresh");
 });
+test("a non-expiry 401 clears the session and redirects to login", async () => {
+  const { api, state } = fixture();
+  const redirected = [];
+  globalThis.window = { location: { pathname: "/rent", search: "?q=1", assign: (u) => redirected.push(u) } };
+  try {
+    const revoked = { error: { status: 401, data: { code: "TOKEN_REVOKED" } } };
+    const query = withReauthentication(async () => revoked, actions);
+    const result = await query({ url: "/roommate/profile/me" }, api);
+    assert.deepEqual(state.auth, {});
+    assert.deepEqual(redirected, ["/login?returnURL=%2Frent%3Fq%3D1"]);
+    assert.equal(result.error.status, 401);
+    // A 401 from the auth endpoints themselves (e.g. bad password) must not bounce the login page.
+    await query({ url: "/auth/login" }, api);
+    assert.equal(redirected.length, 1);
+  } finally {
+    delete globalThis.window;
+  }
+});
 test("refresh cannot sign a user back in after logout", async () => {
   const { api, state } = fixture();
   const query = withReauthentication(async (args) => {

@@ -1,0 +1,3 @@
+# nhatot_crawl.py / nhatot_crawl_100k.py — direct imports only
+requests==2.34.2
+pandas==3.0.6

@@ -3,15 +3,14 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    /**
-     * Add seed commands here.
-     *
-     * Example:
-     * await queryInterface.bulkInsert('People', [{
-     *   name: 'John Doe',
-     *   isBetaMember: false
-     * }], {});
-    */
+    // Idempotent: skip when the first demo membership already exists.
+    const existing = await queryInterface.rawSelect('chat_room_members', {
+      where: { chat_room_id: 1, user_id: 1 }
+    }, ['id']);
+    if (existing) {
+      console.log('demo chat room members already seeded — skipping');
+      return;
+    }
     return queryInterface.bulkInsert('chat_room_members', [
       {
         chat_room_id: 1,
@@ -41,12 +40,8 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    /**
-     * Add commands to revert seed here.
-     *
-     * Example:
-     * await queryInterface.bulkDelete('People', null, {});
-     */
-    return queryInterface.bulkDelete('chat_room_members', null, {});
+    // Memberships reference hard-coded demo ids that can collide with real
+    // rows — deleting them could destroy real data, so this is a no-op.
+    console.log('demo chat room members down() is a no-op (ids may be real)');
   }
 }; 

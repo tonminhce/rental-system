@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsArray, Min, IsEnum } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray, IsIn, Min, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum PropertyType {
@@ -62,6 +62,17 @@ export class CreatePostDto {
   @IsString()
   @IsOptional()
   sourceUrl?: string;
+
+  @ApiProperty({
+    description: 'Ingestion source; crawler pipelines set "crawler"',
+    example: 'user',
+    enum: ['user', 'crawler'],
+    required: false,
+    default: 'user',
+  })
+  @IsIn(['user', 'crawler'])
+  @IsOptional()
+  source?: 'user' | 'crawler';
 
   @ApiProperty({ description: 'Province/City', example: 'Ho Chi Minh City' })
   @IsString()

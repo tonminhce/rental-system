@@ -21,6 +21,7 @@ module.exports = {
     }, ['id']); // get user id by email 'qa@gmail.com'
 
     // data for 'user_profiles'
+    // ignoreDuplicates: user_profiles.user_id is UNIQUE, so repeat boots no-op.
     return queryInterface.bulkInsert('user_profiles', [
       {
         user_id: user1,  // get user_id from email
@@ -78,11 +79,28 @@ module.exports = {
         created_at: new Date(),
         updated_at: new Date(),
       },
-    ]);
+    ], { ignoreDuplicates: true });
   },
 
   async down(queryInterface, Sequelize) {
-    // Revert data
-    return queryInterface.bulkDelete('user_profiles', null, {});
+    // Only profiles belonging to the seeded demo accounts.
+    const demoUsers = await queryInterface.select(null, 'users', {
+      attributes: ['id'],
+      where: {
+        email: {
+          [Sequelize.Op.in]: [
+            'mogi@gmail.com',
+            'user@example.com',
+            'owner@example.com',
+            'qa@gmail.com',
+          ],
+        },
+      },
+    });
+    const ids = demoUsers.map((user) => user.id);
+    if (ids.length === 0) return;
+    return queryInterface.bulkDelete('user_profiles', {
+      user_id: { [Sequelize.Op.in]: ids },
+    }, {});
   },
 };

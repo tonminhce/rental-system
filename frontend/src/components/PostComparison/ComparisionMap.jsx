@@ -32,6 +32,17 @@ const FALLBACK_CENTER = [106.660172, 10.762622];
 const propertyCoords = (post) => post?.coordinates?.coordinates || null;
 const toLatLngParam = ([lng, lat]) => `${lat},${lng}`;
 
+// goong-js needs a WebGL context; without one the map constructor throws and
+// used to take the whole comparison page down with it.
+const supportsWebGL = () => {
+  try {
+    const canvas = document.createElement("canvas");
+    return Boolean(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
+  } catch {
+    return false;
+  }
+};
+
 const createStartMarkerElement = () => {
   const element = document.createElement("div");
   element.style.width = "30px";
@@ -60,6 +71,7 @@ const ComparisonMap = ({ post1, post2 }) => {
   const [originParam, setOriginParam] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
+  const [mapUnavailable, setMapUnavailable] = useState(false);
 
   const [searchInput, setSearchInput, suggestions] = usePlaceAutocomplete();
 
@@ -71,6 +83,10 @@ const ComparisonMap = ({ post1, post2 }) => {
 
   useEffect(() => {
     if (!container1Ref.current || !container2Ref.current) return;
+    if (!supportsWebGL()) {
+      setMapUnavailable(true);
+      return;
+    }
 
     goongJs.accessToken = GOONG_API_KEY;
 
@@ -89,8 +105,17 @@ const ComparisonMap = ({ post1, post2 }) => {
       return map;
     };
 
-    const first = createMap(container1Ref.current, propertyCoords(post1));
-    const second = createMap(container2Ref.current, propertyCoords(post2));
+    let first;
+    let second;
+    try {
+      first = createMap(container1Ref.current, propertyCoords(post1));
+      second = createMap(container2Ref.current, propertyCoords(post2));
+    } catch (mapError) {
+      console.error("Comparison map initialization failed:", mapError);
+      first?.remove();
+      setMapUnavailable(true);
+      return;
+    }
     mapsRef.current = { first, second };
 
     return () => {
@@ -185,6 +210,16 @@ const ComparisonMap = ({ post1, post2 }) => {
     { slot: "first", containerRef: container1Ref, label: post1?.name || "Property 1", route: route1 },
     { slot: "second", containerRef: container2Ref, label: post2?.name || "Property 2", route: route2 },
   ];
+
+  if (mapUnavailable) {
+    return (
+      <Box sx={{ mt: 3, p: 2, bgcolor: "var(--rt-surface-tint)", borderRadius: "var(--rt-radius)" }}>
+        <Typography variant="body2" sx={{ color: "var(--rt-muted)" }}>
+          3D map unavailable in this browser.
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ mt: 3 }}>

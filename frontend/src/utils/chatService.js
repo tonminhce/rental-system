@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_CHAT || "http://localhost:8000";
+// No localhost fallback: an unset NEXT_PUBLIC_CHAT must never point at the user's own machine.
+// The chat entrypoint (components/Chatbot) stays disabled when this is empty.
+const API_URL = process.env.NEXT_PUBLIC_CHAT;
 
 /**
  * Service xử lý các tương tác chat với backend
@@ -13,7 +15,7 @@ export const chatService = {
    * @param {function} onChunk - Callback xử lý khi nhận được phản hồi
    * @returns {Promise<string>} Phản hồi từ server
    */
-  sendMessage: async (message, threadId, queryParams = {}, onChunk = (chunk) => {}) => {
+  sendMessage: async (message, threadId, queryParams = {}, onChunk = (chunk) => {}, accessToken = "") => {
     try {
       const url = `${API_URL}/api/v1/chat/chat`;
       const response = await fetch(url, {
@@ -23,6 +25,7 @@ export const chatService = {
           Accept: "*/*",
           "Accept-Language": "en-US,en;q=0.9",
           Connection: "keep-alive",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         credentials: "include",
         body: JSON.stringify({
@@ -55,7 +58,7 @@ export const chatService = {
    * @param {function} onError - Callback xử lý khi có lỗi
    * @returns {Promise<void>} Promise hoàn thành khi stream kết thúc
    */
-  sendMessageStream: async (message, threadId, queryParams = {}, onToken = (token) => {}, onError = (error) => {}) => {
+  sendMessageStream: async (message, threadId, queryParams = {}, onToken = (token) => {}, onError = (error) => {}, accessToken = "") => {
     try {
       const url = `${API_URL}/api/v1/chat/chat/stream`;
 
@@ -66,6 +69,7 @@ export const chatService = {
           Accept: "*/*",
           "Accept-Language": "en-US,en;q=0.9",
           Connection: "keep-alive",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         credentials: "include",
         body: JSON.stringify({

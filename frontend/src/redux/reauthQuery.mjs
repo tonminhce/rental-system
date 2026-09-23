@@ -1,15 +1,32 @@
 // Share one refresh per Redux store, even when multiple API slices fail together.
+
+// The session is over: clear persisted tokens and force the login screen.
+function endSession(api, removeUserInfo) {
+  api.dispatch(removeUserInfo());
+  // ponytail: full-page redirect; swap for next/navigation routing if SPA state must survive a forced logout
+  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+    window.location.assign(
+      `/login?returnURL=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+    );
+  }
+}
+
 export function withReauthentication(baseQuery, actions) {
   const flights = new WeakMap();
   return async (args, api, options) => {
     const before = api.getState().auth.accessToken;
     const result = await baseQuery(args, api, options);
     const url = typeof args === "string" ? args : args.url;
-    if (result.error?.status !== 401 || result.error?.data?.code !== "TOKEN_EXPIRED" || url.startsWith("/auth/"))
+    if (result.error?.status !== 401 || url.startsWith("/auth/")) return result;
+    // A non-expiry 401 (revoked token, deleted account) can never refresh —
+    // end the session instead of leaving a zombie that 401s forever.
+    if (result.error?.data?.code !== "TOKEN_EXPIRED") {
+      endSession(api, actions.removeUserInfo);
       return result;
+    }
     const session = api.getState().auth;
     if (!session.refreshToken) {
-      api.dispatch(actions.removeUserInfo());
+      endSession(api, actions.removeUserInfo);
       return result;
     }
     if (before !== session.accessToken) return baseQuery(args, api, options);
@@ -28,7 +45,7 @@ export function withReauthentication(baseQuery, actions) {
           api.dispatch(actions.setUserInfo({ ...refreshed.data.data, user: api.getState().auth.user }));
           return true;
         }
-        if ([400, 401, 403].includes(refreshed.error?.status)) api.dispatch(actions.removeUserInfo());
+        if ([400, 401, 403].includes(refreshed.error?.status)) endSession(api, actions.removeUserInfo);
         return false; // A temporary network outage must not erase the session.
       })();
       flights.set(api.dispatch, flight);

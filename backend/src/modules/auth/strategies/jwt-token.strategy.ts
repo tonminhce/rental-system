@@ -26,6 +26,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload): Promise<any> {
     loggerUtil.info(`${_strategyName}.validate begin with payload: ${JSON.stringify(payload)}`);
 
+    // Only access tokens authenticate requests. Missing type = legacy token,
+    // still accepted until it expires (<=1h); 'refresh' is rejected.
+    if (payload.type !== undefined && payload.type !== 'access') {
+      loggerUtil.warn(`${_strategyName}.validate rejected token of type: ${payload.type}`);
+      throw new UnauthorizedException('Invalid token type');
+    }
+
     try {
       const user = await this.userModel.findByPk(payload.id, {
         include: ['role'],

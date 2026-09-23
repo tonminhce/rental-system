@@ -12,6 +12,7 @@ module.exports = {
      *   isBetaMember: false
      * }], {});
     */
+    // ignoreDuplicates: the unique_user_rental index makes repeat boots a no-op.
     return queryInterface.bulkInsert('favorite_lists', [
       {
         user_id: 1,
@@ -31,16 +32,12 @@ module.exports = {
         created_at: new Date(),
         updated_at: new Date()
       }
-    ]);
+    ], { ignoreDuplicates: true });
   },
 
   async down(queryInterface, Sequelize) {
-    /**
-     * Add commands to revert seed here.
-     *
-     * Example:
-     * await queryInterface.bulkDelete('People', null, {});
-     */
-    return queryInterface.bulkDelete('favorite_lists', null, {});
+    // Favorites reference hard-coded demo user/rental ids that can collide
+    // with real rows — deleting them could destroy real data, so no-op.
+    console.log('demo favorite lists down() is a no-op (ids may be real)');
   }
 }; 

@@ -1,3 +1,18 @@
+// Fail-closed secret validation: runs in EVERY environment (compose pinned
+// NODE_ENV=local, so a production-only guard in main.ts is bypassable).
+for (const name of ['TOKEN_SECRET', 'REFRESH_TOKEN_SECRET']) {
+  if (!process.env[name]) {
+    throw new Error(
+      `${name} is required — the app refuses to boot without it. Generate one with: openssl rand -hex 32`,
+    );
+  }
+}
+if (process.env.TOKEN_SECRET === process.env.REFRESH_TOKEN_SECRET) {
+  throw new Error(
+    'TOKEN_SECRET and REFRESH_TOKEN_SECRET must be different keys',
+  );
+}
+
 export default () => ({
   NODE_ENV: process.env.NODE_ENV || 'production',
 
@@ -18,9 +33,9 @@ export default () => ({
   SWAGGER_PATH: 'document',
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:4000',
 
-  // JWT Configuration
-  TOKEN_SECRET: process.env.TOKEN_SECRET || '***REDACTED***',
+  // JWT Configuration (secrets validated above — never defaulted)
+  TOKEN_SECRET: process.env.TOKEN_SECRET,
   TOKEN_EXPIRATION: process.env.TOKEN_EXPIRATION || '1h',
-  REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET || '***REDACTED***',
+  REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET,
   REFRESH_TOKEN_EXPIRATION: process.env.REFRESH_TOKEN_EXPIRATION || '7d',
 });

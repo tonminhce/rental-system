@@ -16,7 +16,7 @@ Latest evidence and inventory caveats: [Rental discovery follow-up](rental-map-u
 - Next.js upgraded from 14.1.0 to patched 15.5.25; production/development build outputs separated. Dependency lockfiles updated; unused mapping packages removed; vulnerable transitive packages patched with documented package overrides.
 - Passwords now use salted scrypt. Existing MD5 hashes are accepted only to upgrade on successful login. A forward-only migration widens password storage and preserves decimal price/area precision.
 - Production startup requires explicit credentials, strong separate signing keys, and explicit CORS origins. API binds to loopback by default. SQL parameter logging and browser token logging removed. Basic auth throttling and security headers added.
-- Reproducible local DB configuration, migrations, guarded idempotent seeds, backend integration smoke tests, password unit tests, and assistant validation tests.
+- Reproducible local DB configuration, migrations, guarded idempotent seeds (local CLI path only — the Docker entrypoint now runs migrations only, `db:seed:all` was removed from boot), backend integration smoke tests, password unit tests, and assistant validation tests.
 
 ## Verification evidence
 

@@ -11,7 +11,7 @@ export const signUpSchema = object({
   name: string().required("Please enter your name"),
   phone: string()
     .matches(
-      /(\+84|84|0[3|5|7|8|9])+([0-9]{8})\b/g,
+      /^(?:\+?84[0-9]{9}|0[35789][0-9]{8})$/,
       "Phone number must be a Vietnamese phone number.\n Ex: 0828696919 or +84828696919"
     )
     .required("Please enter your phone number"),

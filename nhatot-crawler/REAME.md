@@ -33,6 +33,22 @@ curl "https://gateway.chotot.com/v1/public/ad-listing/124234964" -H "User-Agent:
 ```
 
 ## How to run
-```Python
-python nhatot_crawl.py
+
+```sh
+./run_crawl.sh            # wraps nhatot_crawl_100k.py, logs the row count
 ```
+
+Outputs are timestamped (`data/nhatot_rentals_<ts>.csv`) and never overwrite
+previous runs; listing ids are deduped across runs against all existing
+`data/*rental*.csv`. HTTP 429 triggers exponential backoff and is not counted
+toward the empty-page abort. The run exits non-zero when 0 new rows are
+collected.
+
+Cron (daily at 03:00, adjust the path):
+
+```cron
+0 3 * * * cd /path/to/rental-system/nhatot-crawler && ./run_crawl.sh 20000 >> crawl.log 2>&1
+```
+
+The older `nhatot_crawl.py` (region checkpoint crawler) persists seen ids in
+`data/seen_ids.json` and follows the same timestamped-output and 0-row rules.

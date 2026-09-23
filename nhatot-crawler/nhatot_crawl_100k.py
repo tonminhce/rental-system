@@ -55,14 +55,17 @@ USER_AGENTS = [
 ]
 
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, "nhatot_rentals_100k.csv")
+# Timestamped per run — never append to / overwrite a previous run's CSV.
+OUTPUT_FILE = os.path.join(OUTPUT_DIR, f"nhatot_rentals_{time.strftime('%Y%m%d_%H%M%S')}.csv")
 
 session = requests.Session()
 adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=30, max_retries=3)
 session.mount("https://", adapter)
 session.mount("http://", adapter)
 
-def fetch_page(category, region_code, page):
+def fetch_page(category, region_code, page, retries=4):
+    """Returns a list of ads, or None when still rate-limited after retries.
+    None must NOT be counted as an empty page (that aborts the crawl early)."""
     offset = (page - 1) * LIMIT
     params = {
         "cg": category,
@@ -77,16 +80,22 @@ def fetch_page(category, region_code, page):
         "Accept": "application/json",
         "Referer": "https://www.nhatot.com/",
     }
-    try:
-        r = session.get(BASE_URL, params=params, headers=headers, timeout=12)
-        if r.status_code == 200:
-            return r.json().get("ads", [])
-        elif r.status_code == 429:
-            time.sleep(2.0)
+    rate_limited = False
+    for attempt in range(retries):
+        try:
+            r = session.get(BASE_URL, params=params, headers=headers, timeout=12)
+            if r.status_code == 200:
+                return r.json().get("ads", [])
+            if r.status_code == 429:
+                rate_limited = True
+                time.sleep((2 ** attempt) * 2 + random.random())  # exponential backoff
+                continue
+            print(f"[!] HTTP {r.status_code} on {category}/{region_code} p{page}")
             return []
-    except Exception as e:
-        return []
-    return []
+        except Exception as e:
+            print(f"[!] Network error on {category}/{region_code} p{page}: {e}")
+            time.sleep(2 ** attempt)
+    return None if rate_limited else []
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -130,6 +139,7 @@ def main():
         csv_file.flush()
 
     total_collected = len(seen_ids)
+    seen_before_run = len(seen_ids)
     batch_buffer = []
 
     for cat_code, cat_name in CATEGORIES:
@@ -147,6 +157,11 @@ def main():
                 empty_pages = 0
                 for future in as_completed(futures):
                     ads = future.result()
+                    if ads is None:
+                        # Rate-limited even after backoff retries — a gateway
+                        # throttle is not an empty page, don't abort on it.
+                        print(f"[!] page still rate-limited after retries, not counting as empty")
+                        continue
                     if not ads:
                         empty_pages += 1
                         if empty_pages > 25:
@@ -206,7 +221,13 @@ def main():
         batch_buffer.clear()
 
     csv_file.close()
-    print(f"\n[✓] Finished crawling. Total unique listings available: {total_collected:,}")
+    new_in_run = total_collected - seen_before_run
+    print(f"\n[✓] Finished crawling. New this run: {new_in_run:,} | total unique: {total_collected:,}")
+    if new_in_run == 0:
+        # ponytail: row-count exit code; real alerting when a scheduler exists
+        print("[✗] FATAL: crawl produced 0 new rows — gateway blocked, selectors "
+              "stale, or everything already seen", file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

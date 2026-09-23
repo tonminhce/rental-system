@@ -142,6 +142,22 @@ export class RentalPost extends Model<RentalPost> {
   })
   postUrl: string;
 
+  // Owner of the listing. NULL on legacy/crawler rows (see migration
+  // 20260924000000-post-ownership-and-source).
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+    field: 'user_id',
+  })
+  userId: number;
+
+  @Column({
+    type: DataType.ENUM('user', 'crawler'),
+    allowNull: false,
+    defaultValue: 'user',
+  })
+  source: 'user' | 'crawler';
+
   @HasMany(() => RentalImage, 'rental_id')
   images: RentalImage[];
 

@@ -3,6 +3,7 @@ import {
   IsOptional,
   IsNumber,
   IsInt,
+  IsBoolean,
   Min,
   Max,
   IsEnum,
@@ -20,6 +21,16 @@ export class GetPostsDto {
   @IsOptional()
   @IsIn(['newest', 'price_asc', 'price_desc', 'area_desc'])
   sort?: string;
+
+  @ApiProperty({
+    description: 'Only my own listings (requires auth)',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  mine?: boolean;
 
   @ApiProperty({ description: 'Page number', example: 1, required: false })
   @IsOptional()

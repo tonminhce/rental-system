@@ -1,20 +1,62 @@
 ---
+# Deploys the frontend container on the target host.
+#
+# container_image has no default — it must be supplied (inventory / -e), e.g.:
+#   ansible-playbook frontend/scripts/deploy.yml \
+#     -e container_image=registry.example.com/rental-frontend:$(git rev-parse --short HEAD) \
+#     -e next_public_rental_service_backend_endpoint=https://api.example.com/api \
+#     -e next_public_chat=https://chat.example.com
+#
+# NEXT_PUBLIC_* values are baked into the bundle at image build time, so the
+# image is built here (on the control node, from the repo checkout) and pushed.
 - name: Deploy the frontend application
   hosts: all
   become: true
   remote_user: congdat
-  vars:
-    container_image: ""
 
   tasks:
+    - name: Require deploy variables (no silent empty defaults)
+      ansible.builtin.assert:
+        that:
+          - container_image is defined and container_image | length > 0
+          - next_public_rental_service_backend_endpoint is defined and next_public_rental_service_backend_endpoint | length > 0
+          - next_public_chat is defined and next_public_chat | length > 0
+          - next_public_goong_maptiles_key is defined and next_public_goong_maptiles_key | length > 0
+        fail_msg: >-
+          Pass -e container_image=<registry/repo:tag>
+          -e next_public_rental_service_backend_endpoint=<url>
+          -e next_public_chat=<url>
+          -e next_public_goong_maptiles_key=<key>
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Build frontend image with NEXT_PUBLIC_* build args
+      community.docker.docker_image:
+        name: "{{ container_image }}"
+        source: build
+        force_source: true
+        push: true
+        build:
+          path: "{{ playbook_dir }}/.."
+          args:
+            NEXT_PUBLIC_RENTAL_SERVICE_BACKEND_ENDPOINT: "{{ next_public_rental_service_backend_endpoint }}"
+            NEXT_PUBLIC_CHAT: "{{ next_public_chat }}"
+            NEXT_PUBLIC_GOONG_MAPTILES_KEY: "{{ next_public_goong_maptiles_key }}"
+      delegate_to: localhost
+      run_once: true
+      become: false
+
     - name: Create a frontend container
       community.docker.docker_container:
         name: frontend
         image: "{{ container_image }}"
+        pull: true
         ports:
           - "4000:4000"
         healthcheck:
-          test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+          # Next.js has no /health route — probe /. node:18-alpine has no curl; use busybox wget.
+          test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:4000/ || exit 1"]
           interval: 30s
           retries: 3
           start_period: 30s

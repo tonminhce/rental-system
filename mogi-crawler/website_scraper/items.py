@@ -18,4 +18,4 @@ class PostItem:
     bedrooms: int
     bathrooms: int
 
-    coordinates: list[float]
+    coordinates: list[float]  # [latitude, longitude] in degrees

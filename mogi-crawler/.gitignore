@@ -1,0 +1,5 @@
+seen_urls.txt
+server/.env
+
+# regenerable by server/train.py (62MB) — do not commit pickles
+server/models/*.pkl

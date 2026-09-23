@@ -80,10 +80,12 @@ province_dict = {
 }
 
 
+# casefold lookup so "Tp Hồ Chí Minh" (chotot) and "TP. Hồ Chí Minh" collapse
+_province_lookup = {k.casefold(): v for k, v in province_dict.items()}
+
+
 def standardize_province(province):
-    print("PROVINCE", province)
-    print("STANDARDIZED PROVINCE", province_dict.get(province, province))
-    return province_dict.get(province, province)
+    return _province_lookup.get((province or "").strip().casefold(), province)
 
 
 def standardize_district(district):

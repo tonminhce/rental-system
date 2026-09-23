@@ -31,8 +31,10 @@ export class RoommateService {
   }
 
   async getProfileById(id: number): Promise<UserProfile> {
+    // Same whitelist as the public directory: contact info is owner-only
+    // (owners read their own via GET /roommate/profile/me).
     const profile = await this.userProfileModel.findByPk(id, {
-      include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
+      include: [{ model: User, attributes: ['id', 'name'] }],
     });
     if (!profile) throw new NotFoundException('Profile not found');
     return profile;
@@ -126,7 +128,8 @@ export class RoommateService {
       where: {
         userId: { [Op.ne]: userId }, // Exclude current user
       },
-      include: [{ model: User, attributes: ['id', 'name', 'email', 'phone'] }],
+      // Suggestions are always other users: directory whitelist, no contact info.
+      include: [{ model: User, attributes: ['id', 'name'] }],
     });
 
     if (!allProfiles || allProfiles.length === 0) {

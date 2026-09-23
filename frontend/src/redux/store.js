@@ -13,6 +13,7 @@ const persistConfig = {
   key: "root",
   storage,
   timeout: 2000,
+  // ponytail: refresh token in localStorage (persisted "auth" slice) — migrate to httpOnly cookie + SameSite when backend supports cookie auth
   whitelist: ["auth", "system"],
 };
 

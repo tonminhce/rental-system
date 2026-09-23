@@ -68,6 +68,7 @@ const ChatWidget = () => {
   const filterState = useSelector((state) => state.filter);
 
   const isChatOpened = useSelector((state) => state.system.isChatOpened);
+  const accessToken = useSelector((state) => state.auth.accessToken);
   const getThreadId = () => {
     if (typeof window !== "undefined") {
       try {
@@ -242,6 +243,7 @@ const ChatWidget = () => {
             return newMessages;
           });
         },
+        accessToken || "",
       );
 
       setMessages((prev) => {

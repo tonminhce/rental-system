@@ -1,3 +1,7 @@
+import json
+import os
+import sys
+
 import requests
 import pandas as pd
 import time
@@ -22,8 +26,12 @@ HEADERS_LIST = [
 ]
 
 
+RUN_TS = time.strftime("%Y%m%d_%H%M%S")
+SEEN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "seen_ids.json")
+
+
 # Function to fetch a single page of data
-def get_data(region_code, page):
+def get_data(region_code, page, retries=4):
     offset = (page - 1) * LIMIT
     params = {
         "cg": CATEGORY,
@@ -35,22 +43,39 @@ def get_data(region_code, page):
     }
     headers = random.choice(HEADERS_LIST)
 
-    try:
-        response = requests.get(BASE_URL, params=params, headers=headers, timeout=10)
-        if response.status_code == 200:
-            json_data = response.json()
-            ads = json_data.get("ads", [])
-            print(f"[✓] Page {page} fetched with {len(ads)} ads.")
-            return ads
-        else:
+    for attempt in range(retries):
+        try:
+            response = requests.get(BASE_URL, params=params, headers=headers, timeout=10)
+            if response.status_code == 200:
+                ads = response.json().get("ads", [])
+                print(f"[✓] Page {page} fetched with {len(ads)} ads.")
+                return ads
+            if response.status_code == 429:
+                time.sleep((2 ** attempt) * 2 + random.random())  # exponential backoff
+                continue
             print(f"[!] HTTP Error {response.status_code} on page {page}")
             return []
-    except RequestException as e:
-        print(f"[!] Network error on page {page}: {e}")
-        return []
+        except RequestException as e:
+            print(f"[!] Network error on page {page}: {e}")
+            time.sleep(2 ** attempt)
+    print(f"[!] Giving up on page {page} after {retries} retries")
+    return []
+
+
+def load_seen():
+    try:
+        with open(SEEN_FILE, encoding="utf-8") as f:
+            return set(json.load(f))
+    except (FileNotFoundError, ValueError):
+        return set()
 
 
 # === Start crawling ===
+os.makedirs(os.path.dirname(SEEN_FILE), exist_ok=True)
+seen_ids = load_seen()
+print(f"[+] Loaded {len(seen_ids):,} previously seen listing IDs from {SEEN_FILE}")
+total_new = 0
+
 for region_name, region_code in REGIONS.items():
     print(f"=== Crawling data for region: {region_name} ===")
     all_data = []
@@ -65,21 +90,39 @@ for region_name, region_code in REGIONS.items():
 
         for count, future in enumerate(as_completed(futures), 1):
             ads = future.result()
-            if ads:
-                all_data.extend(ads)
+            for ad in ads:
+                # Cross-run dedup: skip listings already persisted by a
+                # previous crawl (state: data/seen_ids.json, gitignored).
+                aid = str(ad.get("list_id") or ad.get("ad_id") or "")
+                if not aid or aid in seen_ids:
+                    continue
+                seen_ids.add(aid)
+                all_data.append(ad)
+                total_new += 1
 
             # Save checkpoint every N pages
-            if count % SAVE_INTERVAL == 0:
+            if count % SAVE_INTERVAL == 0 and all_data:
                 df = pd.DataFrame(all_data)
-                temp_filename = f"data/data_{region_name}_p{count}.csv"
+                temp_filename = f"data/data_{region_name}_{RUN_TS}_p{count}.csv"
                 df.to_csv(temp_filename, index=False, encoding="utf-8")
                 print(f"[✓] Saved checkpoint: {temp_filename}")
 
-    # Save final CSV after region is fully crawled
+    # Save final CSV after region is fully crawled (timestamped — never
+    # overwrite a previous run's training CSV)
     if all_data:
         df = pd.DataFrame(all_data)
-        final_filename = f"phongtro_{region_name}_full.csv"
+        final_filename = f"phongtro_{region_name}_{RUN_TS}.csv"
         df.to_csv(final_filename, index=False, encoding="utf-8")
         print(f"[✓] Completed region {region_name}: saved to {final_filename}")
     else:
-        print(f"[!] No data collected for region {region_name}")
+        print(f"[!] No new data collected for region {region_name}")
+
+with open(SEEN_FILE, "w", encoding="utf-8") as f:
+    json.dump(sorted(seen_ids), f)
+
+print(f"[✓] Done. {total_new:,} new listings this run.")
+if total_new == 0:
+    # ponytail: row-count exit code; real alerting when a scheduler exists
+    print("[✗] FATAL: crawl produced 0 new rows — gateway blocked or "
+          "everything already seen", file=sys.stderr)
+    sys.exit(1)

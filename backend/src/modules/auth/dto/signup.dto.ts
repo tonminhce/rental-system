@@ -1,6 +1,7 @@
 import {
   IsEmail,
   IsNotEmpty,
+  Matches,
   MinLength,
   IsEnum,
   IsOptional,
@@ -22,6 +23,11 @@ export class SignupDto {
 
   @IsOptional()
   @IsString()
+  // Anchored, no /g — the old unanchored stateful pattern matched substrings.
+  @Matches(/^(?:\+?84[0-9]{9}|0[35789][0-9]{8})$/, {
+    message:
+      'Phone number must be a Vietnamese phone number. Ex: 0828696919 or +84828696919',
+  })
   phone?: string;
 
   @IsEnum(['user', 'rental'])

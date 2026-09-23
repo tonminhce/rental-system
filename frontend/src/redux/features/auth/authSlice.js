@@ -24,9 +24,8 @@ const authSlice = createSlice({
     },
 
     removeUserInfo: (state, action) => {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
+      // redux-persist rewrites the persisted "auth" slice on this state change;
+      // no raw localStorage keys are used anymore.
       state.isAuthenticated = false;
       state.user = null;
       state.accessToken = null;
