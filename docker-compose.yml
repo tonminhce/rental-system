@@ -46,6 +46,7 @@ services:
       - mysql-storage:/var/lib/mysql
     networks:
       - default
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -78,6 +79,7 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    restart: unless-stopped
     healthcheck:
       # node:20-slim has no curl; node 20 has global fetch.
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -98,9 +100,15 @@ services:
         # browser-side map key (rotate per docs/REMEDIATION.md — old one is in git history)
         NEXT_PUBLIC_GOONG_MAPTILES_KEY: ${NEXT_PUBLIC_GOONG_MAPTILES_KEY:-}
     container_name: grab_frontend
+    # Server-side Goong REST key for the Next /api/{geocoding,geocode,places,direction}
+    # proxies (distinct from the browser NEXT_PUBLIC_GOONG_MAPTILES_KEY build arg).
+    # Rotate per docs/REMEDIATION.md §1.
+    environment:
+      GOONG_API_KEY: ${GOONG_API_KEY:?GOONG_API_KEY required}
     expose:
       - 4000
     networks:
       - default
     depends_on:
       - api
+    restart: unless-stopped

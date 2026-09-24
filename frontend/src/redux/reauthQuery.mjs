@@ -13,6 +13,15 @@ function endSession(api, removeUserInfo) {
 
 export function withReauthentication(baseQuery, actions) {
   const flights = new WeakMap();
+  // The refresh rotates the token, so the captured args are stale on retry:
+  // a /auth/logout body still holding the old (already-revoked) refresh token
+  // would revoke nothing and leave the rotated one valid server-side.
+  const withCurrentRefreshToken = (args, api) => {
+    const refreshToken = api.getState().auth.refreshToken;
+    return args?.body?.refreshToken && refreshToken
+      ? { ...args, body: { ...args.body, refreshToken } }
+      : args;
+  };
   return async (args, api, options) => {
     const before = api.getState().auth.accessToken;
     const result = await baseQuery(args, api, options);
@@ -36,7 +45,7 @@ export function withReauthentication(baseQuery, actions) {
       endSession(api, actions.removeUserInfo);
       return result;
     }
-    if (before !== session.accessToken) return baseQuery(args, api, options);
+    if (before !== session.accessToken) return baseQuery(withCurrentRefreshToken(args, api), api, options);
     let flight = flights.get(api.dispatch);
     if (!flight) {
       const refreshToken = session.refreshToken;
@@ -58,7 +67,7 @@ export function withReauthentication(baseQuery, actions) {
       flights.set(api.dispatch, flight);
     }
     try {
-      return (await flight) ? baseQuery(args, api, options) : result;
+      return (await flight) ? baseQuery(withCurrentRefreshToken(args, api), api, options) : result;
     } finally {
       if (flights.get(api.dispatch) === flight) flights.delete(api.dispatch);
     }

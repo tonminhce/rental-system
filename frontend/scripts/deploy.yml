@@ -1,11 +1,20 @@
 ---
 # Deploys the frontend container on the target host.
 #
+# Control-node prereq: ansible-galaxy collection install -r frontend/scripts/requirements.yml
+#
 # container_image has no default — it must be supplied (inventory / -e), e.g.:
 #   ansible-playbook frontend/scripts/deploy.yml \
 #     -e container_image=registry.example.com/rental-frontend:$(git rev-parse --short HEAD) \
 #     -e next_public_rental_service_backend_endpoint=https://api.example.com/api \
-#     -e next_public_chat=https://chat.example.com
+#     -e next_public_chat=https://chat.example.com \
+#     -e goong_api_key=<server-side Goong REST key>
+#
+# next_public_chat= (empty) disables the chat widget — same contract as
+# docker-compose.yml. A non-empty cross-origin URL additionally requires that
+# origin in the enforced CSP connect-src (docker/proxy/conf.d/main.conf) and a
+# route/service for the chatbot; docs/production-readiness.md advises against
+# running the legacy chatbot publicly.
 #
 # NEXT_PUBLIC_* values are baked into the bundle at image build time, so the
 # image is built here (on the control node, from the repo checkout) and pushed.
@@ -20,13 +29,16 @@
         that:
           - container_image is defined and container_image | length > 0
           - next_public_rental_service_backend_endpoint is defined and next_public_rental_service_backend_endpoint | length > 0
-          - next_public_chat is defined and next_public_chat | length > 0
+          # Empty next_public_chat is valid: it disables the chat widget (docker-compose contract).
+          - next_public_chat is defined
           - next_public_goong_maptiles_key is defined and next_public_goong_maptiles_key | length > 0
+          - goong_api_key is defined and goong_api_key | length > 0
         fail_msg: >-
           Pass -e container_image=<registry/repo:tag>
           -e next_public_rental_service_backend_endpoint=<url>
-          -e next_public_chat=<url>
+          -e next_public_chat=<url, or empty to disable the chat widget>
           -e next_public_goong_maptiles_key=<key>
+          -e goong_api_key=<server-side key>
       run_once: true
       delegate_to: localhost
       become: false
@@ -52,6 +64,9 @@
         name: frontend
         image: "{{ container_image }}"
         pull: true
+        env:
+          # Runtime-only server-side key for the Next /api/{geocoding,...} proxies.
+          GOONG_API_KEY: "{{ goong_api_key }}"
         ports:
           - "4000:4000"
         healthcheck:

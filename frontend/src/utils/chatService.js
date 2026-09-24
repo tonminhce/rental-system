@@ -36,7 +36,10 @@ export const chatService = {
       });
 
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        // status rides along so callers can refresh-and-retry on a 401.
+        throw Object.assign(new Error(`Network response was not ok: ${response.status} ${response.statusText}`), {
+          status: response.status,
+        });
       }
 
       const data = await response.json();
@@ -80,7 +83,10 @@ export const chatService = {
       });
 
       if (!response.ok) {
-        throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
+        // status rides along so the widget can refresh-and-retry on a 401.
+        throw Object.assign(new Error(`Network response was not ok: ${response.status} ${response.statusText}`), {
+          status: response.status,
+        });
       }
 
       const reader = response.body.getReader();
@@ -116,7 +122,7 @@ export const chatService = {
       }
     } catch (error) {
       console.error("Stream error:", error);
-      onError(error.message);
+      onError(error); // the Error object, not .message — callers branch on error.status
     }
   },
 };

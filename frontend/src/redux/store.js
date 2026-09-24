@@ -3,7 +3,6 @@ import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import authSlice from "./features/auth/authSlice";
 import createPostSlice from "./features/createPostSlice";
 import { propertyApi } from "./features/properties/propertyApi";
-import { landlordApi } from "./features/landlord/api";
 import storage from "redux-persist/lib/storage";
 import { persistReducer, persistStore } from "redux-persist";
 import systemSlice from "./features/system/systemSlice";
@@ -20,7 +19,6 @@ const persistConfig = {
 const rootReducer = combineReducers({
   [apiSlice.reducerPath]: apiSlice.reducer,
   [propertyApi.reducerPath]: propertyApi.reducer,
-  [landlordApi.reducerPath]: landlordApi.reducer,
   auth: authSlice,
   createPost: createPostSlice,
   system: systemSlice,
@@ -38,8 +36,7 @@ export const store = configureStore({
       },
     })
       .concat(apiSlice.middleware)
-      .concat(propertyApi.middleware)
-      .concat(landlordApi.middleware),
+      .concat(propertyApi.middleware),
 });
 
 export const persistor = persistStore(store);

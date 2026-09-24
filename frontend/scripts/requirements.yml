@@ -1,0 +1,5 @@
+# Control-node dependencies for deploy.yml:
+#   ansible-galaxy collection install -r frontend/scripts/requirements.yml
+collections:
+  - name: community.docker
+    version: ">=3.0.0"

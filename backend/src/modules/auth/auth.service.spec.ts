@@ -122,6 +122,42 @@ describe('AuthService.logout reports revocation failure', () => {
     refreshTokenModel.findOne.mockResolvedValueOnce({ id: 7 });
     await expect(service.logout(1, 'already-revoked')).resolves.toBe(true);
   });
+
+  it("revokes the user's remaining live refresh tokens when the presented one is known but already revoked", async () => {
+    const { service, refreshTokenModel } = makeService();
+
+    // presented row revokes nothing (already revoked) but IS known → logout
+    // must still end the session: every other live row for the user dies too.
+    refreshTokenModel.update.mockResolvedValueOnce([0]);
+    refreshTokenModel.findOne.mockResolvedValueOnce({ id: 7 });
+    await expect(service.logout(1, 'stale-rotated-token')).resolves.toBe(true);
+    expect(refreshTokenModel.update).toHaveBeenLastCalledWith(
+      { isRevoked: true },
+      { where: { userId: 1, isRevoked: false } },
+    );
+  });
+});
+
+describe('refresh token rotation issues unique tokens', () => {
+  it('two same-second rotations produce different refresh tokens (jti)', async () => {
+    const { service, refreshTokenModel, userModel, jwtService } = makeService();
+    const stored: any = {
+      expiresAt: new Date(Date.now() + 60_000),
+      update: jest.fn().mockResolvedValue(undefined),
+    };
+    refreshTokenModel.findOne.mockResolvedValue(stored);
+    userModel.findByPk.mockResolvedValue({
+      id: 1,
+      email: 'a@b.c',
+      role: { name: 'user' },
+    });
+    const token = signed(jwtService, { id: 1, type: 'refresh' }, REFRESH_SECRET);
+
+    const r1: any = await service.refreshToken({ refreshToken: token });
+    const r2: any = await service.refreshToken({ refreshToken: token });
+    expect(r1.refreshToken).toBeDefined();
+    expect(r1.refreshToken).not.toBe(r2.refreshToken);
+  });
 });
 
 describe('SignupDto phone regex is anchored and stateless', () => {

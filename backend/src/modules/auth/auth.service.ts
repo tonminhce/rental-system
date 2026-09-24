@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/sequelize';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { Op, Transaction } from 'sequelize';
 import * as ms from 'ms';
 import { User } from '../../database/entities/user.entity';
@@ -352,6 +352,14 @@ export class AuthService {
           );
           return false;
         }
+        // Logout ends the user's session: the presented token is known but
+        // already revoked (e.g. a stale pre-rotation copy), so a sibling token
+        // from the rotation the client missed must not outlive the logout —
+        // mirrors login's revokeAllRefreshTokens single-session behavior.
+        await this.refreshTokenModel.update(
+          { isRevoked: true },
+          { where: { userId, isRevoked: false } },
+        );
       }
       loggerUtil.info(
         `${_serviceName}.logout tokens revoked for user: ${userId}`,
@@ -391,10 +399,17 @@ export class AuthService {
       expiresIn: +ms(tokenExpiration) / 1000,
     });
 
-    const refreshToken = this.jwtService.sign({ ...payload, type: 'refresh' }, {
-      secret: refreshTokenSecret,
-      expiresIn: +ms(refreshTokenExpiration) / 1000,
-    });
+    // jti makes every issuance unique: without it, two refresh tokens signed
+    // in the same wall-clock second for the same user are byte-identical (same
+    // payload + iat), so rotation would re-issue the presented token and its
+    // replay would still be accepted — defeating rotation/replay rejection.
+    const refreshToken = this.jwtService.sign(
+      { ...payload, type: 'refresh', jti: randomUUID() },
+      {
+        secret: refreshTokenSecret,
+        expiresIn: +ms(refreshTokenExpiration) / 1000,
+      },
+    );
 
     // Tính thời gian hết hạn
     const refreshTokenExpiryMs = +ms(refreshTokenExpiration);

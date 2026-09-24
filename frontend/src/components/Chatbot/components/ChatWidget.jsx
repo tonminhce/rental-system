@@ -9,6 +9,8 @@ import eventBus, { CHATBOT_EVENTS } from "@/utils/chatbotEventBus";
 import CloseIcon from "@mui/icons-material/Close";
 import { useDispatch } from "react-redux";
 import { toggleChatWidget } from "@/redux/features/system/systemSlice";
+import { useRefreshTokenMutation } from "@/redux/features/auth/authApiSlice";
+import { setUserInfo } from "@/redux/features/auth/authSlice";
 
 const ChatbotContainer = styled(Box)(({ theme }) => ({
   position: "fixed",
@@ -69,6 +71,8 @@ const ChatWidget = () => {
 
   const isChatOpened = useSelector((state) => state.system.isChatOpened);
   const accessToken = useSelector((state) => state.auth.accessToken);
+  const refreshToken = useSelector((state) => state.auth.refreshToken);
+  const [refreshTokenMutation] = useRefreshTokenMutation();
   const getThreadId = () => {
     if (typeof window !== "undefined") {
       try {
@@ -215,36 +219,51 @@ const ChatWidget = () => {
         return params;
       }, {});
 
-      await chatService.sendMessageStream(
-        userMessage,
-        activeThreadId,
-        queryParams,
-        (token) => {
-          const processedToken = processChatbotResponse(token);
-          streamedMessageRef.current += processedToken;
-          setMessages((prev) => {
-            const newMessages = [...prev];
-            const lastMessage = newMessages[newMessages.length - 1];
-            if (lastMessage) {
-              lastMessage.text = streamedMessageRef.current;
-            }
-            return newMessages;
-          });
-        },
-        (error) => {
-          console.error("Chat error:", error);
-          setMessages((prev) => {
-            const newMessages = [...prev];
-            const lastMessage = newMessages[newMessages.length - 1];
-            if (lastMessage) {
-              lastMessage.text = "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.";
-              lastMessage.isPartial = false;
-            }
-            return newMessages;
-          });
-        },
-        accessToken || "",
-      );
+      const onToken = (token) => {
+        const processedToken = processChatbotResponse(token);
+        streamedMessageRef.current += processedToken;
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastMessage = newMessages[newMessages.length - 1];
+          if (lastMessage) {
+            lastMessage.text = streamedMessageRef.current;
+          }
+          return newMessages;
+        });
+      };
+      let streamError = null;
+      const onError = (error) => {
+        streamError = error;
+      };
+      await chatService.sendMessageStream(userMessage, activeThreadId, queryParams, onToken, onError, accessToken || "");
+      // The chatbot 401s an expired access token: refresh once and retry, or
+      // the widget hard-fails on every message until a page reload.
+      // ponytail: single retry flag — a token the chatbot still rejects after a
+      // fresh refresh falls through to the generic bubble instead of looping.
+      if (streamError?.status === 401 && refreshToken) {
+        try {
+          const refreshed = await refreshTokenMutation(refreshToken).unwrap();
+          // Rotate the persisted pair — the old refresh token is dead server-side now.
+          dispatch(setUserInfo({ ...refreshed.data }));
+          streamError = null;
+          streamedMessageRef.current = "";
+          await chatService.sendMessageStream(userMessage, activeThreadId, queryParams, onToken, onError, refreshed.data?.token || "");
+        } catch {
+          // Refresh failed — fall through to the generic error bubble.
+        }
+      }
+      if (streamError) {
+        console.error("Chat error:", streamError);
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastMessage = newMessages[newMessages.length - 1];
+          if (lastMessage) {
+            lastMessage.text = "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn.";
+            lastMessage.isPartial = false;
+          }
+          return newMessages;
+        });
+      }
 
       setMessages((prev) => {
         const newMessages = [...prev];
