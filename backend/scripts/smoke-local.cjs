@@ -27,10 +27,12 @@ async function main() {
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    return { status: res.status, ...(await res.json()) };
+    // HTTP status must win: bodies can carry their own `status` field
+    // (e.g. /health returns {"status":"ok"}), which would clobber it.
+    return { ...(await res.json()), status: res.status };
   }
   try {
-    assert.equal((await request('/health-check')).status, 200);
+    assert.equal((await request('/health')).status, 200);
     const listings = await request('/posts?limit=4&transactionType=rent');
     assert.equal(listings.data.data.length, 4);
     const homes = await request(

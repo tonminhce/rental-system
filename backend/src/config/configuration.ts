@@ -1,9 +1,18 @@
+// Load backend/.env before the guard below runs: this module is imported
+// before ConfigModule.forRoot({envFilePath}) ever executes, so without this
+// preload a valid .env still crashes `node dist/main.js`. dotenv never
+// overrides already-exported shell vars, so CI/compose are unaffected.
+import 'dotenv/config';
+
 // Fail-closed secret validation: runs in EVERY environment (compose pinned
 // NODE_ENV=local, so a production-only guard in main.ts is bypassable).
-for (const name of ['TOKEN_SECRET', 'REFRESH_TOKEN_SECRET']) {
+for (const name of ['TOKEN_SECRET', 'REFRESH_TOKEN_SECRET', 'DB_PASSWORD']) {
   if (!process.env[name]) {
     throw new Error(
-      `${name} is required — the app refuses to boot without it. Generate one with: openssl rand -hex 32`,
+      `${name} is required — the app refuses to boot without it.` +
+        (name === 'DB_PASSWORD'
+          ? ''
+          : ' Generate one with: openssl rand -hex 32'),
     );
   }
 }
@@ -27,7 +36,7 @@ export default () => ({
   DB_HOST_READ: process.env.DB_HOST_READ || '127.0.0.1',
   DB_HOST_WRITE: process.env.DB_HOST_WRITE || '127.0.0.1',
   DB_USER: process.env.DB_USER || 'grab_user',
-  DB_PASSWORD: process.env.DB_PASSWORD || '***REDACTED***',
+  DB_PASSWORD: process.env.DB_PASSWORD,
   DB_NAME: process.env.DB_NAME || 'grab_mysql',
 
   SWAGGER_PATH: 'document',

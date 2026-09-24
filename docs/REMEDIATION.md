@@ -17,6 +17,12 @@ considered compromised until rotated:
 | `TOKEN_SECRET` / `REFRESH_TOKEN_SECRET` (`***REDACTED***` default) | `backend/.env.local` in history + config defaults | Generate fresh independent values (`openssl rand -hex 32` each); compose requires both |
 | MiniMax API key (`MINIMAX_API_KEY` / `OPENAI_API_KEY`, same value) | `chatbot-service/.env` in commit `970315a` on pushed branch `fix/production-readiness` | Revoke + reissue in the MiniMax console; the new key goes only in the untracked env file |
 
+Compose's `${VAR:?required}` fail-fast applies to **every** subcommand, including
+read-only ones (`ps`, `down`), so pass `--env-file <operator.env>` (or export the
+six required vars) with each `docker compose -f docker-compose.yml …` invocation.
+`DB_PASSWORD` is additionally fail-closed at backend boot (`configuration.ts`),
+matching the JWT secrets.
+
 ## 2. Purge history (`scripts/purge-history.sh`)
 
 Exact commands the script runs (from a mirror clone):

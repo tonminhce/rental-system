@@ -28,7 +28,7 @@ import { UserProfile } from './database/entities/user-profile.entity';
           port: configService.get<number>('DB_PORT') || 3306,
           host: configService.get<string>('DB_HOST_READ') || '127.0.0.1',
           username: configService.get<string>('DB_USER') || 'grab_user',
-          password: configService.get<string>('DB_PASSWORD') || '***REDACTED***',
+          password: configService.get<string>('DB_PASSWORD'),
           database: configService.get<string>('DB_NAME') || 'grab_mysql',
           models: [
             Role,

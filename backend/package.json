@@ -8,10 +8,6 @@
   "scripts": {
     "start": "nest start",
     "dev": "nest start --watch",
-    "build:dev": "bash ./scripts/build.sh development",
-    "run:dev": "bash ./scripts/run.sh development",
-    "build:prod": "bash ./scripts/build.sh production",
-    "run:prod": "bash ./scripts/run.sh production",
     "build": "nest build",
     "start:prod": "node dist/main.js",
     "seed:local": "node scripts/seed-local.cjs",

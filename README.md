@@ -22,7 +22,7 @@ Both videos are committed to the repository, so these links download them. GitHu
 ## Local preview
 
 - Frontend: http://localhost:4000
-- Rental API: http://127.0.0.1:8100/api/health-check
+- Rental API: http://127.0.0.1:8100/api/health
 - Assistant: http://127.0.0.1:8000/health
 - Isolated MySQL: `127.0.0.1:3307`, database `rentalk_local`
 
@@ -59,7 +59,7 @@ Prerequisites: Node.js 22 or 24, Docker, Python 3.11+, and uv. Tested here with 
    .venv/bin/uvicorn minimax_app:app --host 127.0.0.1 --port 8000
    ```
 
-   This uses the new bounded MiniMax implementation. The older `main.py` / LangChain service is retained for reference and is **not** the preview entrypoint. `MINIMAX_MODEL` defaults to `MiniMax-M2.5`, which was verified with the supplied key. Confirm that your provider plan permits the intended deployment workload.
+   This uses the new bounded MiniMax implementation. The older `main.py` / LangChain service has been removed; `minimax_app.py` is the only assistant entrypoint. `MINIMAX_MODEL` defaults to `MiniMax-M2.5`, which was verified with the supplied key. Confirm that your provider plan permits the intended deployment workload.
 
 5. Start the frontend in a third terminal:
 
@@ -70,7 +70,7 @@ Prerequisites: Node.js 22 or 24, Docker, Python 3.11+, and uv. Tested here with 
    npm start
    ```
 
-   Use `npm run dev` while editing. Development and production output use separate directories (`.next-dev` and `.next`) to avoid build collisions. Both scripts bind to loopback for safe local preview.
+   Use `npm run dev` while editing. Development and production output use separate directories (`.next-dev` and `.next`) to avoid build collisions. `npm run dev` binds to loopback; `npm start` binds to all interfaces (`0.0.0.0`) because the compose stack requires it — prefer `npm run dev` on untrusted networks.
 
 ## Verification
 
