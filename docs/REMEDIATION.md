@@ -10,12 +10,13 @@ considered compromised until rotated:
 
 | Credential | Where it leaked | Action |
 |---|---|---|
-| Goong REST API key (`GOONG_API_KEY`) | `frontend/.env.development` in commits `f757f84` / `1a6cbfb`, reachable from pushed history | Revoke + reissue in the Goong dashboard; restrict the new key to the server-side proxy origin only |
-| Goong maptiles key | same file/commits (browser-visible by design) | Reissue; restrict to exact deployment domains + quota |
+| Goong REST API key (`GOONG_API_KEY`) | `frontend/.env.development` in pre-purge pushed history | Revoke + reissue in the Goong dashboard; restrict the new key to the server-side proxy origin only |
+| Older Goong REST key (hardcoded default) | `chatbot-service/app/core/ai/tools.py` in pre-purge pushed history (file no longer exists at HEAD) | Revoke in the Goong dashboard if still active; redacted from history by the purge |
+| Goong maptiles key | same file (browser-visible by design) | Reissue; restrict to exact deployment domains + quota |
 | Seeded demo-account passwords (`mogi123`, `user123`, `owner123`, `abc@123` and MD5 forms) | seeders in history | Any deployed DB seeded from that history: delete or reset those accounts |
 | MySQL root/user password `***REDACTED***` | `docker-compose.yml` in history (published on 0.0.0.0:3306) | Set fresh `DB_PASSWORD` / `MYSQL_ROOT_PASSWORD` in the operator environment; the current compose refuses to start without them and no longer publishes 3306 |
 | `TOKEN_SECRET` / `REFRESH_TOKEN_SECRET` (`***REDACTED***` default) | `backend/.env.local` in history + config defaults | Generate fresh independent values (`openssl rand -hex 32` each); compose requires both |
-| MiniMax API key (`MINIMAX_API_KEY` / `OPENAI_API_KEY`, same value) | `chatbot-service/.env` in commit `970315a` on pushed branch `fix/production-readiness` | Revoke + reissue in the MiniMax console; the new key goes only in the untracked env file |
+| MiniMax API key (`MINIMAX_API_KEY` / `OPENAI_API_KEY`, same value) | `chatbot-service/.env` on pre-purge pushed branch `fix/production-readiness` (branch deleted) | Revoke + reissue in the MiniMax console; the new key goes only in the untracked env file |
 
 Compose's `${VAR:?required}` fail-fast applies to **every** subcommand, including
 read-only ones (`ps`, `down`), so pass `--env-file <operator.env>` (or export the
@@ -24,6 +25,13 @@ six required vars) with each `docker compose -f docker-compose.yml …` invocati
 matching the JWT secrets.
 
 ## 2. Purge history (`scripts/purge-history.sh`)
+
+**Status: executed 2026-09-25.** Every branch was rewritten with the path
+removals below plus a `--replace-text` pass redacting the §1 credential
+literals (weak DB/JWT defaults, the old Goong key, demo-password MD5s) from
+all history; stale branches `fix/production-readiness` and
+`production-readiness` were deleted; all refs force-pushed. Rotation in §1 is
+still required — rewriting history does not un-leak anything.
 
 Exact commands the script runs (from a mirror clone):
 
@@ -55,6 +63,9 @@ git push --force --all && git push --force --tags
 - filter-repo promotes stale remote refs (e.g. `origin/fix/production-readiness`)
   to local heads, so `push --force --all` republishes them. The rewritten branch
   is clean, but delete it on the forge afterwards so its old objects can be GC'd.
+- GitHub keeps `refs/pull/*` pointing at pre-purge commits and they cannot be
+  deleted with `git push`. The old objects stay reachable there until GitHub
+  GCs them — contact GitHub Support to expire them if that matters.
 
 ## 3. TLS at the edge
 
